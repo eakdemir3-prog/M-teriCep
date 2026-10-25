@@ -1,0 +1,74 @@
+name: Release (AAB + APK)
+
+# "v1.0.1" gibi bir etiket gönderilince imzalı AAB (Google Play) ve APK (telefona kurulum) üretir,
+# GitHub Releases sayfasına ekler ve "builds" dalına kopyalar.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+
+      - name: Yükleme anahtarını çöz
+        env:
+          PASS: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$PASS" ]; then echo "::error::UPLOAD_KEYSTORE_PASSWORD secret tanımlı değil"; exit 1; fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in ci/upload.jks.enc -out my-upload-key.jks -pass env:PASS
+          cp ci/ci-debug.jks debug.keystore
+
+      - name: İmzalı AAB ve APK derle
+        env:
+          STORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          set -o pipefail
+          gradle :app:testReleaseUnitTest :app:bundleRelease :app:assembleRelease --no-configuration-cache 2>&1 | tee build.log
+
+      - name: Dosyaları hazırla
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          mkdir -p out
+          cp app/build/outputs/bundle/release/app-release.aab "out/MusteriCep-$V.aab"
+          cp app/build/outputs/apk/release/app-release.apk "out/MusteriCep-$V.apk"
+          ls -la out
+
+      - name: GitHub Release oluştur
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/* --title "MüşteriCep $GITHUB_REF_NAME" --notes "İmzalı sürüm: AAB Google Play için, APK telefona doğrudan kurulum için." || gh release upload "$GITHUB_REF_NAME" out/* --clobber
+
+      - name: builds dalına kopyala
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git fetch origin builds || true
+          mkdir -p /tmp/b && cp out/* /tmp/b/
+          if git show-ref --quiet refs/remotes/origin/builds; then git checkout -B builds origin/builds; else git checkout --orphan builds; git rm -rf . >/dev/null 2>&1 || true; fi
+          rm -f *.aab *.apk
+          cp /tmp/b/* .
+          git add -A *.aab *.apk
+          git commit -m "Derleme $GITHUB_REF_NAME" || true
+          git push origin builds --force
+
+      - name: Hataları özetle
+        if: failure()
+        run: |
+          [ -f build.log ] && grep -E "^e: |error:|FAILED|What went wrong|Exception" build.log | head -60 | while IFS= read -r line; do echo "::error::${line//%/%25}"; done || true
