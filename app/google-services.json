@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "868611233334",
+    "project_id": "device-streaming-a7c40cfa",
+    "storage_bucket": "device-streaming-a7c40cfa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:868611233334:android:4aaf8fe9e567b6e2296a97",
+        "android_client_info": {
+          "package_name": "com.eavisionlabs.mustericep"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "868611233334-102u45pl1j6p9hc16hrssjp7hv6cjf49.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eavisionlabs.mustericep",
+            "certificate_hash": "c146b73618d3ca0fa990571852ec42e65792ad86"
+          }
+        },
+        {
+          "client_id": "868611233334-epegpb29k16sfoai6j9u0f77kgp2f5v1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eavisionlabs.mustericep",
+            "certificate_hash": "b385c48558f4d67bd9767675a5ba5c2d937e5baa"
+          }
+        },
+        {
+          "client_id": "868611233334-38cbn6jsf0bl228jlng9f9ilt7qf3dtn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDa2qu3Xs1CEXT139jFkPc2pFOaUtO4MnM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "868611233334-38cbn6jsf0bl228jlng9f9ilt7qf3dtn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
