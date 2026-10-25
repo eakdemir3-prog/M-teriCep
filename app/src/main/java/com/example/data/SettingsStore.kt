@@ -29,6 +29,22 @@ class SettingsStore(private val context: Context) {
     val REMINDER_DAYS = intPreferencesKey("reminder_days_before")
     val TIER = stringPreferencesKey("active_tier")
     val THEME = stringPreferencesKey("theme_mode")
+    val LOCAL_ONLY = booleanPreferencesKey("local_only")
+    val PENDING_ROLE = stringPreferencesKey("pending_role")
+  }
+
+  /** Kullanıcı "giriş yapmadan sadece defter" modunu seçti mi? */
+  val localOnly: Flow<Boolean> = context.settingsDataStore.data.map { it[Keys.LOCAL_ONLY] ?: false }
+
+  suspend fun setLocalOnly(value: Boolean) {
+    context.settingsDataStore.edit { it[Keys.LOCAL_ONLY] = value }
+  }
+
+  /** Giriş öncesi seçilen rol (Google girişi dönünce kaydedilir). */
+  val pendingRole: Flow<String?> = context.settingsDataStore.data.map { it[Keys.PENDING_ROLE] }
+
+  suspend fun setPendingRole(role: String?) {
+    context.settingsDataStore.edit { if (role == null) it.remove(Keys.PENDING_ROLE) else it[Keys.PENDING_ROLE] = role }
   }
 
   val profile: Flow<UserBusinessProfile> = context.settingsDataStore.data.map { p ->

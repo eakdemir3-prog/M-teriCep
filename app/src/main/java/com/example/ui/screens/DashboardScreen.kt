@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Send
@@ -62,7 +63,9 @@ import com.example.viewmodel.Screen
 @Composable
 fun DashboardScreen(
   viewModel: MusteriCepViewModel,
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
+  appointmentsToday: List<com.example.cloud.Appointment>? = null,
+  pendingCount: Int = 0
 ) {
   val summary by viewModel.dashboardSummary.collectAsState()
   val profile by viewModel.profile.collectAsState()
@@ -116,18 +119,47 @@ fun DashboardScreen(
             overflow = TextOverflow.Ellipsis
           )
         }
-        Surface(
-          shape = RoundedCornerShape(20.dp),
-          color = MaterialTheme.colorScheme.primaryContainer,
-          modifier = Modifier.clickable { viewModel.navigate(Screen.Pricing) }
+        androidx.compose.material3.IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
+          Icon(androidx.compose.material.icons.Icons.Default.Settings, contentDescription = "Ayarlar", tint = palette.ink)
+        }
+      }
+    }
+
+    // Bugünün randevuları (giriş yapılmışsa)
+    if (appointmentsToday != null) {
+      item {
+        val active = appointmentsToday.filter { it.status.isActive || it.status == com.example.cloud.AppointmentStatus.COMPLETED }
+          .sortedBy { it.start }
+        val next = active.firstOrNull { it.end > now && it.status.isActive }
+        Card(
+          shape = RoundedCornerShape(16.dp),
+          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+          border = BorderStroke(1.dp, palette.cardBorder),
+          modifier = Modifier
+            .fillMaxWidth()
+            .clickable { viewModel.navigate(Screen.Appointments) }
         ) {
-          Text(
-            text = profile.activeTier.title,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-          )
+          Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Event, contentDescription = null, tint = palette.ink)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Bugün ${active.size} randevu", fontWeight = FontWeight.SemiBold)
+              Text(
+                when {
+                  next != null -> "Sıradaki: ${com.example.ui.cloud.timeOf(next.start)} • ${next.customerName}"
+                  active.isNotEmpty() -> "Bugünkü randevular bitti"
+                  else -> "Takvime göz atın"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = Slate500
+              )
+            }
+            if (pendingCount > 0) {
+              Surface(shape = RoundedCornerShape(10.dp), color = AmberWarning.copy(alpha = 0.15f)) {
+                Text("$pendingCount onay bekliyor", color = AmberWarning, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+              }
+            }
+          }
         }
       }
     }

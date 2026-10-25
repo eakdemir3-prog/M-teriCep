@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.PersonAdd
@@ -50,7 +51,8 @@ fun QuickActionBottomSheet(
   onAddCollection: () -> Unit,
   onAddCustomer: () -> Unit,
   onOpenCalculator: () -> Unit,
-  onOpenTemplates: () -> Unit
+  onOpenTemplates: () -> Unit,
+  onAddAppointment: (() -> Unit)? = null
 ) {
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -78,6 +80,21 @@ fun QuickActionBottomSheet(
       )
 
       Spacer(modifier = Modifier.height(20.dp))
+
+      if (onAddAppointment != null) {
+        QuickActionRow(
+          title = "Randevu Ekle",
+          subtitle = "Telefonla veya yüz yüze alınan randevuyu takvime yaz",
+          icon = Icons.Default.Event,
+          accentColor = NavyPrimary,
+          testTag = "quick_action_add_appointment",
+          onClick = {
+            onDismiss()
+            onAddAppointment()
+          }
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+      }
 
       // 1. Hızlı Tahsilat Al (Yeşil)
       QuickActionRow(

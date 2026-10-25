@@ -67,7 +67,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
 
   fun navigate(screen: Screen) {
     val isPrimaryTab = screen is Screen.Dashboard || screen is Screen.Customers ||
-      screen is Screen.Collections || screen is Screen.Settings
+      screen is Screen.Collections || screen is Screen.Settings || screen is Screen.Appointments
     _screenStack.value = if (isPrimaryTab) listOf(screen) else _screenStack.value + screen
   }
 

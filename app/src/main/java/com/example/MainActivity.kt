@@ -58,6 +58,14 @@ import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.DialogState
 import com.example.viewmodel.MusteriCepViewModel
 import com.example.viewmodel.Screen
+import com.example.viewmodel.AppMode
+import com.example.viewmodel.CloudViewModel
+import com.example.ui.cloud.BusinessAppointmentsScreen
+import com.example.ui.cloud.BusinessProfileScreen
+import com.example.ui.cloud.CustomerApp
+import com.example.ui.cloud.ManualAppointmentDialog
+import com.example.ui.cloud.WelcomeScreen
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
@@ -75,8 +83,17 @@ class MainActivity : ComponentActivity() {
           else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
           enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
         }
+        val cloud: CloudViewModel = viewModel()
+        val mode by cloud.mode.collectAsState()
         MyApplicationTheme(themeMode = profile.themeMode) {
-          MusteriCepApp(viewModel)
+          androidx.compose.material3.Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+            when (mode) {
+              AppMode.LOADING -> Box(modifier = Modifier.fillMaxSize())
+              AppMode.WELCOME -> WelcomeRoot(cloud)
+              AppMode.CUSTOMER -> CustomerApp(cloud, profile.themeMode) { viewModel.setTheme(it) }
+              AppMode.BUSINESS -> MusteriCepApp(viewModel, cloud)
+            }
+          }
         }
       }
     }
@@ -84,8 +101,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+private fun WelcomeRoot(cloud: CloudViewModel) {
+  val snackbar = remember { SnackbarHostState() }
+  LaunchedEffect(Unit) { cloud.messages.collectLatest { snackbar.showSnackbar(it.text) } }
+  Box(modifier = Modifier.fillMaxSize()) {
+    WelcomeScreen(cloud)
+    SnackbarHost(snackbar, modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(16.dp))
+  }
+}
+
+@Composable
 fun MusteriCepApp(
-  viewModel: MusteriCepViewModel
+  viewModel: MusteriCepViewModel,
+  cloud: CloudViewModel
 ) {
   val currentScreen by viewModel.currentScreen.collectAsState()
   val dialogState by viewModel.dialogState.collectAsState()
@@ -95,6 +123,14 @@ fun MusteriCepApp(
 
   val snackbarHostState = remember { SnackbarHostState() }
   var showQuickActionSheet by remember { mutableStateOf(false) }
+  var showManualAppointment by remember { mutableStateOf(false) }
+  val cloudUser by cloud.firebaseUser.collectAsState()
+  val pending by cloud.pendingAppointments.collectAsState()
+  val today by cloud.todayAppointments.collectAsState()
+
+  LaunchedEffect(Unit) {
+    cloud.messages.collectLatest { msg -> snackbarHostState.showSnackbar(msg.text) }
+  }
 
   // ViewModel'den gelen kısa mesajlar (bazılarında "Geri Al" düğmesi var)
   LaunchedEffect(Unit) {
@@ -117,7 +153,8 @@ fun MusteriCepApp(
   val isPrimaryTab = currentScreen is Screen.Dashboard ||
     currentScreen is Screen.Customers ||
     currentScreen is Screen.Collections ||
-    currentScreen is Screen.Settings
+    currentScreen is Screen.Settings ||
+    currentScreen is Screen.Appointments
 
   Scaffold(
     containerColor = MaterialTheme.colorScheme.background,
@@ -128,7 +165,8 @@ fun MusteriCepApp(
         MusteriCepBottomBar(
           currentScreen = currentScreen,
           onNavigate = { viewModel.navigate(it) },
-          onQuickActionClick = { showQuickActionSheet = true }
+          onQuickActionClick = { showQuickActionSheet = true },
+          pendingCount = pending.size
         )
       }
     }
@@ -144,14 +182,30 @@ fun MusteriCepApp(
         label = "ScreenTransition"
       ) { screen ->
         when (screen) {
-          is Screen.Dashboard -> DashboardScreen(viewModel = viewModel)
+          is Screen.Dashboard -> DashboardScreen(
+            viewModel = viewModel,
+            appointmentsToday = if (cloudUser != null) today else null,
+            pendingCount = pending.size
+          )
           is Screen.Customers -> CustomersScreen(viewModel = viewModel)
           is Screen.Collections -> CollectionsScreen(viewModel = viewModel)
-          is Screen.Settings -> SettingsScreen(viewModel = viewModel)
+          is Screen.Settings -> SettingsScreen(viewModel = viewModel, cloud = cloud)
           is Screen.CustomerDetail -> CustomerDetailScreen(viewModel = viewModel)
           is Screen.WhatsAppTemplates -> WhatsAppTemplatesScreen(viewModel = viewModel)
           is Screen.ReportsAndExport -> ReportsAndExportScreen(viewModel = viewModel)
           is Screen.Pricing -> PricingScreen(viewModel = viewModel)
+          is Screen.Appointments -> BusinessAppointmentsScreen(
+            cloud = cloud,
+            onOpenBusinessProfile = { viewModel.navigate(Screen.BusinessProfile) },
+            onAddAppointment = { showManualAppointment = true }
+          )
+          is Screen.BusinessProfile -> BusinessProfileScreen(
+            cloud = cloud,
+            defaultName = profile.businessName,
+            defaultCity = profile.city,
+            defaultPhone = profile.phone,
+            onBack = { viewModel.navigateBack() }
+          )
         }
       }
     }
@@ -173,8 +227,13 @@ fun MusteriCepApp(
           )
         )
       },
-      onOpenTemplates = { viewModel.navigate(Screen.WhatsAppTemplates) }
+      onOpenTemplates = { viewModel.navigate(Screen.WhatsAppTemplates) },
+      onAddAppointment = if (cloudUser != null) ({ showManualAppointment = true }) else null
     )
+  }
+
+  if (showManualAppointment) {
+    ManualAppointmentDialog(cloud = cloud, onDismiss = { showManualAppointment = false })
   }
 
   // Global Dialogs Rendering

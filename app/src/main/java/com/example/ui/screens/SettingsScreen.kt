@@ -80,6 +80,8 @@ import com.example.util.FileShare
 import com.example.util.Formatters
 import com.example.viewmodel.DialogState
 import com.example.viewmodel.MusteriCepViewModel
+import com.example.viewmodel.CloudViewModel
+import androidx.compose.material.icons.filled.AccountCircle
 import com.example.viewmodel.Screen
 import kotlinx.coroutines.launch
 
@@ -89,8 +91,11 @@ private const val PRIVACY_POLICY_URL = "https://eakdemir3-prog.github.io/M-teriC
 @Composable
 fun SettingsScreen(
   viewModel: MusteriCepViewModel,
+  cloud: CloudViewModel,
   modifier: Modifier = Modifier
 ) {
+  val cloudUser by cloud.firebaseUser.collectAsState()
+  var confirmDeleteAccount by remember { mutableStateOf(false) }
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val profile by viewModel.profile.collectAsState()
@@ -153,6 +158,40 @@ fun SettingsScreen(
           }
           OutlinedButton(onClick = { showProfileEditDialog = true }, shape = RoundedCornerShape(10.dp)) {
             Text("Düzenle", fontSize = 12.sp)
+          }
+        }
+      }
+    }
+
+    // Hesap ve online randevu
+    item {
+      SettingsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Icon(Icons.Default.AccountCircle, contentDescription = null, tint = NavyPrimary)
+          Spacer(modifier = Modifier.width(10.dp))
+          Column(modifier = Modifier.weight(1f)) {
+            Text("Hesap ve online randevu", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(
+              cloudUser?.email ?: "Giriş yapılmadı — uygulama sadece defter olarak çalışıyor",
+              style = MaterialTheme.typography.bodySmall,
+              color = Slate500
+            )
+          }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        if (cloudUser == null) {
+          Button(
+            onClick = { (context as? android.app.Activity)?.let { cloud.signIn(it, com.example.cloud.UserRole.BUSINESS) } },
+            enabled = cloud.isConfigured,
+            modifier = Modifier.fillMaxWidth()
+          ) { Text(if (cloud.isConfigured) "Google ile giriş yap" else "Online randevu yakında") }
+        } else {
+          OutlinedButton(onClick = { viewModel.navigate(Screen.BusinessProfile) }, modifier = Modifier.fillMaxWidth()) {
+            Text("İşletme vitrini, saatler ve hizmetler")
+          }
+          Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = { cloud.signOut() }, modifier = Modifier.weight(1f)) { Text("Çıkış yap") }
+            TextButton(onClick = { confirmDeleteAccount = true }, modifier = Modifier.weight(1f)) { Text("Hesabı sil", color = RoseError) }
           }
         }
       }
@@ -437,6 +476,16 @@ fun SettingsScreen(
     )
   }
 
+  if (confirmDeleteAccount) {
+    AlertDialog(
+      onDismissRequest = { confirmDeleteAccount = false },
+      title = { Text("Hesap silinsin mi?", fontWeight = FontWeight.Bold) },
+      text = { Text("Online hesabınız silinir, vitrininiz gizlenir ve yeni randevu alınamaz. Telefondaki borç/tahsilat defteriniz silinmez.") },
+      confirmButton = { Button(onClick = { confirmDeleteAccount = false; cloud.deleteAccount() }) { Text("Hesabı sil") } },
+      dismissButton = { TextButton(onClick = { confirmDeleteAccount = false }) { Text("Vazgeç") } }
+    )
+  }
+
   if (showKvkkDialog) {
     AlertDialog(
       onDismissRequest = { showKvkkDialog = false },
@@ -445,9 +494,11 @@ fun SettingsScreen(
         Text(
           text = "6698 sayılı KVKK kapsamında bilgilendirme:\n\n" +
             "• Veri sorumlusu, uygulamaya müşteri bilgisi giren işletmedir.\n" +
-            "• Girilen müşteri, borç ve tahsilat kayıtları yalnızca bu telefondaki uygulama veritabanında saklanır; " +
-            "MüşteriCep bu verileri kendi sunucusuna göndermez, yapay zekâ servisi kullanmaz. (Telefonunuzun Google yedeklemesi açıksa, " +
-            "uygulama verileri Android tarafından Google hesabınıza şifreli olarak yedeklenebilir.)\n" +
+            "• Borç ve tahsilat kayıtları yalnızca bu telefonda saklanır.\n" +
+            "• Online randevu kullanılırsa işletme vitrini, hizmetler ve randevu bilgileri (müşteri adı, telefonu, randevu saati) " +
+            "Google Firebase sunucularında saklanır ve yalnızca ilgili işletme ile müşteri tarafından görülür.\n" +
+            "• Uygulama yapay zekâ servisi kullanmaz, verileri reklam için paylaşmaz.\n" +
+            "• Telefonunuzun Google yedeklemesi açıksa uygulama verileri Android tarafından Google hesabınıza şifreli olarak yedeklenebilir.\n" +
             "• WhatsApp mesajları sizin onayınızla, sizin WhatsApp hesabınızdan gönderilir.\n" +
             "• Verilerinizi dilediğiniz an Excel (CSV) veya yedek dosyası olarak dışa aktarabilir, tamamen silebilirsiniz.\n" +
             "• Müşterilerinizin bilgilerini kaydetmeden önce onları bilgilendirmek sizin sorumluluğunuzdadır.\n\n" +

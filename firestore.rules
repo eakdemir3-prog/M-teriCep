@@ -1,0 +1,72 @@
+rules_version = '2';
+
+// MüşteriCep Firestore güvenlik kuralları
+// Firebase Console > Firestore Database > Kurallar (Rules) sekmesine olduğu gibi yapıştırın.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function onlyChanged(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // Kullanıcı profili: herkes sadece kendi kaydını görür ve değiştirir.
+    match /users/{uid} {
+      allow read, write: if isMe(uid);
+    }
+
+    // İşletme vitrini: giriş yapan herkes okuyabilir (randevu almak için),
+    // sadece sahibi yazabilir. Belge kimliği sahibin kullanıcı kimliğidir.
+    match /businesses/{bid} {
+      allow read: if signedIn();
+      allow create, update: if isMe(bid)
+        && request.resource.data.ownerUid == bid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() < 120;
+      allow delete: if isMe(bid);
+
+      match /services/{sid} {
+        allow read: if signedIn();
+        allow write: if isMe(bid);
+      }
+
+      // Dolu saat blokları. Sadece OLUŞTURULABİLİR (güncellenemez): aynı bloğa
+      // ikinci randevu sunucu tarafından reddedilir.
+      match /locks/{blockId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.businessId == bid
+          && (isMe(bid) || request.resource.data.customerUid == request.auth.uid);
+        allow update: if false;
+        allow delete: if isMe(bid) || (signedIn() && resource.data.customerUid == request.auth.uid);
+      }
+    }
+
+    // Randevular: yalnızca ilgili müşteri ve işletme görebilir.
+    match /appointments/{aid} {
+      allow read: if signedIn()
+        && (resource.data.customerUid == request.auth.uid || resource.data.businessId == request.auth.uid);
+
+      // Müşteri kendi adına randevu ister; işletme kendi takvimine elle randevu ekler.
+      allow create: if signedIn() && (
+        (request.resource.data.customerUid == request.auth.uid
+          && (request.resource.data.status == 'PENDING'
+              || (request.resource.data.status == 'CONFIRMED'
+                  && get(/databases/$(database)/documents/businesses/$(request.resource.data.businessId)).data.autoApprove == true)))
+        || isMe(request.resource.data.businessId)
+      );
+
+      // İşletme her şeyi güncelleyebilir; müşteri sadece kendi randevusunu iptal edebilir.
+      allow update: if signedIn() && (
+        resource.data.businessId == request.auth.uid
+        || (resource.data.customerUid == request.auth.uid
+            && resource.data.status in ['PENDING', 'CONFIRMED']
+            && request.resource.data.status == 'CANCELLED'
+            && onlyChanged(['status', 'cancelledBy', 'updatedAt']))
+      );
+      allow delete: if false;
+    }
+  }
+}

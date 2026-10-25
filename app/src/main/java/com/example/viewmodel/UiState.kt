@@ -15,6 +15,8 @@ sealed class Screen {
   object WhatsAppTemplates : Screen()
   object ReportsAndExport : Screen()
   object Pricing : Screen()
+  object Appointments : Screen()
+  object BusinessProfile : Screen()
 }
 
 sealed class DialogState {

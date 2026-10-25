@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -47,7 +49,8 @@ import com.example.viewmodel.Screen
 fun MusteriCepBottomBar(
   currentScreen: Screen,
   onNavigate: (Screen) -> Unit,
-  onQuickActionClick: () -> Unit
+  onQuickActionClick: () -> Unit,
+  pendingCount: Int = 0
 ) {
   Surface(
     modifier = Modifier.fillMaxWidth(),
@@ -78,7 +81,20 @@ fun MusteriCepBottomBar(
           onClick = { onNavigate(Screen.Dashboard) }
         )
 
-        // 2. Müşteriler
+        // 2. Randevular
+        BottomNavItem(
+          label = if (pendingCount > 0) "Randevu ($pendingCount)" else "Randevular",
+          selectedIcon = Icons.Filled.CalendarMonth,
+          unselectedIcon = Icons.Outlined.CalendarMonth,
+          isSelected = currentScreen is Screen.Appointments,
+          testTag = "nav_appointments",
+          onClick = { onNavigate(Screen.Appointments) }
+        )
+
+        // Empty space for center elevated FAB
+        Spacer(modifier = Modifier.size(56.dp))
+
+        // 3. Müşteriler
         BottomNavItem(
           label = "Müşteriler",
           selectedIcon = Icons.Filled.People,
@@ -88,12 +104,9 @@ fun MusteriCepBottomBar(
           onClick = { onNavigate(Screen.Customers) }
         )
 
-        // Empty space for center elevated FAB
-        Spacer(modifier = Modifier.size(56.dp))
-
-        // 3. Tahsilatlar
+        // 4. Kasa (tahsilatlar)
         BottomNavItem(
-          label = "Tahsilatlar",
+          label = "Kasa",
           selectedIcon = Icons.Filled.AccountBalanceWallet,
           unselectedIcon = Icons.Outlined.AccountBalanceWallet,
           isSelected = currentScreen is Screen.Collections,
@@ -101,15 +114,6 @@ fun MusteriCepBottomBar(
           onClick = { onNavigate(Screen.Collections) }
         )
 
-        // 4. Ayarlar
-        BottomNavItem(
-          label = "Ayarlar",
-          selectedIcon = Icons.Filled.Settings,
-          unselectedIcon = Icons.Outlined.Settings,
-          isSelected = currentScreen is Screen.Settings,
-          testTag = "nav_settings",
-          onClick = { onNavigate(Screen.Settings) }
-        )
       }
 
       // Elevated Center "+" Quick Action Button
