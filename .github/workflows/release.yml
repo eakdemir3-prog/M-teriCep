@@ -1,10 +1,10 @@
 name: Release (AAB + APK)
 
-# "v1.0.1" gibi bir etiket gönderilince imzalı AAB (Google Play) ve APK (telefona kurulum) üretir,
+# "release" dalına gönderim yapılınca imzalı AAB (Google Play) ve APK (telefona kurulum) üretir,
 # GitHub Releases sayfasına ekler ve "builds" dalına kopyalar.
 on:
   push:
-    tags: ["v*"]
+    branches: [release]
 
 permissions:
   contents: write
@@ -25,6 +25,12 @@ jobs:
         with:
           gradle-version: "9.3.1"
 
+      - name: Sürüm adını oku
+        run: |
+          V=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "TAG=v$V" >> "$GITHUB_ENV"
+          echo "VER=$V" >> "$GITHUB_ENV"
+
       - name: Yükleme anahtarını çöz
         env:
           PASS: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
@@ -43,7 +49,7 @@ jobs:
 
       - name: Dosyaları hazırla
         run: |
-          V="${GITHUB_REF_NAME#v}"
+          V="$VER"
           mkdir -p out
           cp app/build/outputs/bundle/release/app-release.aab "out/MusteriCep-$V.aab"
           cp app/build/outputs/apk/release/app-release.apk "out/MusteriCep-$V.apk"
@@ -53,7 +59,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" out/* --title "MüşteriCep $GITHUB_REF_NAME" --notes "İmzalı sürüm: AAB Google Play için, APK telefona doğrudan kurulum için." || gh release upload "$GITHUB_REF_NAME" out/* --clobber
+          gh release create "$TAG" out/* --target "$GITHUB_SHA" --title "MüşteriCep $TAG" --notes "İmzalı sürüm: AAB Google Play için, APK telefona doğrudan kurulum için." || gh release upload "$TAG" out/* --clobber
 
       - name: builds dalına kopyala
         run: |
@@ -65,7 +71,7 @@ jobs:
           rm -f *.aab *.apk
           cp /tmp/b/* .
           git add -A *.aab *.apk
-          git commit -m "Derleme $GITHUB_REF_NAME" || true
+          git commit -m "Derleme $TAG" || true
           git push origin builds --force
 
       - name: Hataları özetle
