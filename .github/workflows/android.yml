@@ -26,13 +26,27 @@ jobs:
           gradle-version: "9.3.1"
 
       - name: Sabit debug imza anahtarını yerleştir
-        run: cp ci/debug.keystore debug.keystore
-
-      - name: Birim testleri
-        run: gradle :app:testDebugUnitTest --stacktrace --no-configuration-cache
+        run: cp ci/ci-debug.jks debug.keystore
 
       - name: Debug APK derle
-        run: gradle :app:assembleDebug --stacktrace --no-configuration-cache
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --no-configuration-cache 2>&1 | tee build.log
+
+      - name: Birim testleri
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest --no-configuration-cache 2>&1 | tee test.log
+
+      - name: Hataları özetle
+        if: failure()
+        run: |
+          for f in build.log test.log; do
+            [ -f "$f" ] || continue
+            grep -E "^e: |error:|FAILED|What went wrong|Exception|expected|but was" "$f" | head -60 | while IFS= read -r line; do
+              echo "::error::${line//%/%25}"
+            done
+          done
 
       - name: APK'yı yükle
         uses: actions/upload-artifact@v4
