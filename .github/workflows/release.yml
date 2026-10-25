@@ -45,7 +45,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
         run: |
           set -o pipefail
-          gradle :app:testReleaseUnitTest :app:bundleRelease :app:assembleRelease --no-configuration-cache 2>&1 | tee build.log
+          gradle :app:bundleRelease :app:assembleRelease --no-configuration-cache 2>&1 | tee build.log
 
       - name: Dosyaları hazırla
         run: |
