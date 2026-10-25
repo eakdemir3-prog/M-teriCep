@@ -1,0 +1,112 @@
+MÜŞTERİCEP — GOOGLE AI STUDIO UYGULAMA GELİŞTİRME PROMPTU
+
+ROLÜN
+Kıdemli bir mobil uygulama geliştiricisi ve UI/UX tasarımcısı gibi çalış. Aşağıdaki gereksinimlere uygun, modern, çalışan ve Android'de yayınlanmaya hazırlanabilecek bir müşteri yönetimi uygulaması oluştur.
+
+UYGULAMA ADI
+MüşteriCep
+
+TEMEL KURAL
+Uygulamada hiçbir yapay zekâ özelliği bulunmayacak. Gemini, OpenAI, LLM, chatbot, AI API veya yapay zekâ tabanlı otomasyon ekleme. Harici yapay zekâ servisi kullanma. Uygulama klasik, kurallara dayalı yazılım mantığıyla çalışmalı.
+
+UYGULAMANIN AMACI
+Esnafın ve küçük işletmelerin müşterilerini, borçlarını, tahsilatlarını ve ödeme hatırlatmalarını tek bir yerden yönetmesini sağlamak. Kullanıcı müşteri bilgilerini kolayca kaydedebilmeli, yapılan ödemeleri takip edebilmeli ve WhatsApp üzerinden hazır mesajlar gönderebilmeli.
+
+1. MÜŞTERİ YÖNETİMİ
+- Müşteri ekleme, düzenleme, arşivleme ve silme.
+- Ad soyad veya işletme adı, telefon, e-posta, adres ve not alanları.
+- Müşteri arama ve ada, telefon numarasına veya borç durumuna göre filtreleme.
+- Müşteri detay ekranında toplam borç, toplam tahsilat ve kalan bakiye.
+- Müşteri geçmişinde tüm borç ve ödeme hareketlerini tarih sırasıyla göster.
+- Aynı telefon numarasıyla kayıt yapılırken kullanıcıyı uyar.
+
+2. BORÇ VE TAHSİLAT TAKİBİ
+- Müşteriye yeni borç kaydı ekleme.
+- Tutar, tarih, açıklama, vade tarihi ve isteğe bağlı kategori alanları.
+- Tam veya kısmi tahsilat kaydı oluşturma.
+- Ödeme yöntemi: Nakit, banka havalesi/EFT, kart ve diğer.
+- Kalan borcu otomatik hesaplama.
+- Kısmi ödemelerde kalan tutarı doğru güncelleme.
+- Yanlış kaydı düzenleme veya silme; finansal hareketlerde işlem geçmişini korumaya dikkat et.
+- Borç durumu: Ödenmedi, Kısmen ödendi, Ödendi, Vadesi geçti.
+- Aynı tahsilatın iki kez kaydedilmesini önleyecek kontroller ekle.
+- Para birimi Türk lirası (₺); tutarları Türkçe sayı biçiminde göster.
+
+3. WHATSAPP MESAJLARI
+- Müşteri detayında “WhatsApp ile Mesaj Gönder” düğmesi.
+- WhatsApp sohbetini telefon numarasıyla aç; mesajı otomatik gönderme.
+- Kullanıcı mesajı kontrol edip kendisi göndermeli.
+- Hazır mesaj şablonları:
+  a) Ödeme hatırlatması
+  b) Vadesi yaklaşan ödeme
+  c) Ödeme alındı bildirimi
+  d) Teşekkür mesajı
+  e) Genel bilgilendirme
+- Mesaj içine müşteri adı, borç tutarı, kalan bakiye ve vade tarihi gibi alanları uygulama içindeki kayıtlarla doldur.
+- Mesaj şablonları kullanıcı tarafından düzenlenebilsin.
+- WhatsApp yüklü değilse uygun bir hata mesajı göster.
+
+4. ANA SAYFA VE RAPORLAR
+- Toplam alacak, tahsil edilen tutar, vadesi geçen borçlar ve müşteri sayısı için özet kartlar.
+- Son tahsilatlar ve yaklaşan vadeler listesi.
+- Günlük, haftalık ve aylık tahsilat özeti.
+- Borçlu müşteriler ve vadesi geçmiş kayıtlar için filtrelenebilir liste.
+- Verileri Excel uyumlu CSV formatında dışa aktarma.
+- CSV dosyasından müşteri verisi içe aktarma; hatalı satırları bildir ve içe aktarmadan önce önizleme sun.
+- Raporlarda toplamları doğru hesapla; iptal edilmiş veya silinmiş kayıtları iki kez sayma.
+
+5. HATIRLATICILAR
+- Vade tarihine göre uygulama içi hatırlatma ve desteklenen cihazlarda yerel bildirimler.
+- Kullanıcı hatırlatmaları açıp kapatabilsin.
+- Bildirim izni verilmediyse uygulama çalışmaya devam etsin ve kullanıcıya durumu açıkla.
+- Mesajları otomatik göndermeye veya WhatsApp üzerinden kendiliğinden iletişim kurmaya çalışma.
+
+6. KULLANICI HESABI VE VERİLER
+- Güvenli kayıt ve giriş ekranları.
+- Firebase Authentication ve Cloud Firestore kullanabiliyorsan düzgün biçimde entegre et.
+- Firebase yapılandırması eksikse sahte bir gerçek bağlantı varmış gibi davranma; gereken kurulum adımlarını ve yapılandırma alanlarını açıkça belirt.
+- Her kullanıcı yalnızca kendi müşteri ve finansal verilerine erişebilmeli.
+- Veritabanı güvenlik kurallarını kullanıcı kimliğine göre sınırla.
+- Yükleniyor, boş durum, hata ve internet bağlantısı yok durumlarını tasarla.
+- Kritik işlemlerden önce doğrulama ve uygun hata mesajları kullan.
+- Kullanıcı verilerinin yedeklenmesi ve dışa aktarılması için anlaşılır seçenekler sun.
+
+7. TASARIM VE KULLANICI DENEYİMİ
+- Premium, modern, sade ve profesyonel arayüz.
+- Ana renkler: lacivert ve yeşil; arka plan açık gri/beyaz.
+- Açık ve koyu tema desteği.
+- Okunaklı yazı tipleri, dengeli boşluklar, yuvarlatılmış kartlar ve tutarlı ikonlar.
+- Alt navigasyon: Ana Sayfa, Müşteriler, ortada belirgin “+” hızlı işlem düğmesi, Tahsilatlar, Ayarlar.
+- Büyük ve kolay basılabilir düğmeler; küçük işletme sahiplerinin hızlı kullanımı için basit akışlar.
+- Formlarda zorunlu alanları belirt, hatalı girişlerde alanın yanında anlaşılır uyarı göster.
+- Ekranları yalnızca görsel prototip olarak bırakma; düğmeler, formlar, arama, filtreler ve gezinme çalışmalı.
+- Demo verisi varsa açıkça örnek olarak işaretle ve gerçek kullanıcı verileriyle karıştırma.
+
+8. ABONELİK VE FİYATLANDIRMA
+Aşağıdaki paketleri arayüzde göster:
+- Ücretsiz: En fazla 25 müşteri.
+- Başlangıç: 149 TL/ay.
+- Pro: 299 TL/ay.
+- İşletme: 499 TL/ay.
+Paket limitlerini yazılım içinde tanımlanabilir şekilde kur. Gerçek ödeme altyapısı entegre edilmediyse aboneliği satın alınmış gibi gösterme. Google Play Billing entegrasyonu gerekiyorsa gerekli kurulum ve test adımlarını belirt. Fiyatları tek bir yapılandırma noktasından değiştirilebilir yap.
+
+9. GÜVENLİK VE KİŞİSEL VERİLER
+- Kişisel ve finansal bilgileri koru.
+- Kullanıcıya verilerini dışa aktarma ve hesabını silme seçenekleri sun.
+- Gereksiz izin isteme.
+- API anahtarlarını veya gizli bilgileri uygulama koduna gömme.
+- KVKK kapsamında gizlilik politikası ve veri işleme açıklamaları için gerekli ekranları/bağlantı alanlarını hazırla; hukuki uygunluğu otomatik olarak garanti ettiğini iddia etme.
+- Kritik verilerde istemci tarafındaki kontrolleri sunucu/veritabanı güvenlik kurallarıyla destekle.
+
+10. TEKNİK KALİTE VE TESTLER
+- Mevcut proje yapısını incele ve kullanılan teknolojiyle uyumlu ilerle.
+- Çalışan mevcut özellikleri sebepsiz yere silme veya tasarımı baştan değiştirme.
+- Tekrarlanan kodları azalt, bileşenleri düzenli ve yeniden kullanılabilir tut.
+- Borç, tahsilat, kısmi ödeme ve kalan bakiye hesaplamalarını test et.
+- Boş liste, hatalı giriş, bağlantı hatası, yinelenen kayıt ve sınır durumlarını test et.
+- Android ekran boyutlarına uyumlu, erişilebilir ve akıcı bir arayüz oluştur.
+- Uygulama derlemesini engelleyen hataları gider.
+- Tamamlanmayan entegrasyonları açıkça listele; çalışıyormuş gibi gösterme.
+
+SON TALİMAT
+Önce mevcut proje dosyalarını ve mimarisini incele. Ardından uygulamayı bu gereksinimlere göre geliştir. Yapay zekâ, sohbet botu veya AI tabanlı özellik ekleme. Öncelik sırası: müşteri kayıtları, borç/tahsilat hesaplamalarının doğruluğu, WhatsApp mesaj şablonları, raporlama, veri güvenliği ve kaliteli arayüz. Sonunda tamamlanan özellikleri, eksik yapılandırmaları ve Android derleme adımlarını kısa bir raporla belirt.
