@@ -1,32 +1,82 @@
 package com.example.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Brand Navy & Emerald Green Palette
-val NavyDark = Color(0xFF0F1E36)
-val NavyPrimary = Color(0xFF1E3A8A)
-val NavyLight = Color(0xFF2563EB)
-val NavyContainerLight = Color(0xFFEFF6FF)
-val NavyContainerDark = Color(0xFF172554)
+/**
+ * Uygulamanın anlamsal renk paleti. Her tema (Esnaf Defteri / Komuta Merkezi) kendi
+ * paletini sağlar; ekranlar renkleri doğrudan hex ile değil bu palet üzerinden okur.
+ *
+ * - ink      : marka / vurgu rengi (başlıklar, seçili öğeler)
+ * - success  : tahsilat, ödendi
+ * - danger   : borç, gecikmiş
+ * - warning  : vadesi yaklaşan, uyarı
+ * - muted    : ikincil metin
+ */
+data class AppPalette(
+  val isDark: Boolean,
+  val ink: Color,
+  val onInk: Color,
+  val success: Color,
+  val danger: Color,
+  val warning: Color,
+  val muted: Color,
+  val heroBackground: Color,
+  val heroContent: Color,
+  val heroMuted: Color,
+  val cardBorder: Color
+)
 
-val EmeraldPrimary = Color(0xFF059669)
-val EmeraldLight = Color(0xFF10B981)
-val EmeraldContainerLight = Color(0xFFECFDF5)
-val EmeraldContainerDark = Color(0xFF064E3B)
+val DefterPalette = AppPalette(
+  isDark = false,
+  ink = Color(0xFF1F2A44),
+  onInk = Color(0xFFFFFFFF),
+  success = Color(0xFF2E6B3A),
+  danger = Color(0xFFA3402A),
+  warning = Color(0xFF9A6A12),
+  muted = Color(0xFF6E6452),
+  heroBackground = Color(0xFFFFFDF8),
+  heroContent = Color(0xFF1F2A44),
+  heroMuted = Color(0xFF7A6F5C),
+  cardBorder = Color(0xFFE4DAC6)
+)
 
-val AmberWarning = Color(0xFFD97706)
-val AmberContainerLight = Color(0xFFFFFBEB)
+val KomutaPalette = AppPalette(
+  isDark = true,
+  ink = Color(0xFF7FB2FF),
+  onInk = Color(0xFF0B1220),
+  success = Color(0xFF3DF5A0),
+  danger = Color(0xFFFF5C7A),
+  warning = Color(0xFFF5B83D),
+  muted = Color(0xFF8592AB),
+  heroBackground = Color(0xFF111A2C),
+  heroContent = Color(0xFFE6EDF7),
+  heroMuted = Color(0xFF8592AB),
+  cardBorder = Color(0xFF22314D)
+)
 
-val RoseError = Color(0xFFDC2626)
-val RoseContainerLight = Color(0xFFFEF2F2)
+val LocalAppPalette = staticCompositionLocalOf { DefterPalette }
 
-// Neutral surfaces
-val Slate50 = Color(0xFFF8FAFC)
-val Slate100 = Color(0xFFF1F5F9)
-val Slate200 = Color(0xFFE2E8F0)
-val Slate500 = Color(0xFF64748B)
-val Slate700 = Color(0xFF334155)
-val Slate800 = Color(0xFF1E293B)
-val Slate900 = Color(0xFF0F172A)
-val DarkSurface = Color(0xFF111827)
-val DarkSurfaceVariant = Color(0xFF1F2937)
+/** WhatsApp marka yeşili (tema bağımsız). */
+val WhatsAppGreen = Color(0xFF25D366)
+
+// Eski isimler korunuyor: tüm ekranlar bunları kullanıyor, artık aktif temaya göre değişiyorlar.
+val NavyPrimary: Color
+  @Composable @ReadOnlyComposable get() = LocalAppPalette.current.ink
+
+val NavyDark: Color
+  @Composable @ReadOnlyComposable get() = LocalAppPalette.current.ink
+
+val EmeraldPrimary: Color
+  @Composable @ReadOnlyComposable get() = LocalAppPalette.current.success
+
+val RoseError: Color
+  @Composable @ReadOnlyComposable get() = LocalAppPalette.current.danger
+
+val AmberWarning: Color
+  @Composable @ReadOnlyComposable get() = LocalAppPalette.current.warning
+
+val Slate500: Color
+  @Composable @ReadOnlyComposable get() = LocalAppPalette.current.muted

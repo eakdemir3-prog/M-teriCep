@@ -1,5 +1,6 @@
 package com.example.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -26,7 +27,11 @@ data class CollectionRecord(
   val date: Long = System.currentTimeMillis(),
   val paymentMethod: PaymentMethod = PaymentMethod.CASH,
   val notes: String = "",
-  val createdAt: Long = System.currentTimeMillis()
+  val createdAt: Long = System.currentTimeMillis(),
+  @ColumnInfo(defaultValue = "0")
+  val updatedAt: Long = System.currentTimeMillis(),
+  @ColumnInfo(defaultValue = "0")
+  val isDeleted: Boolean = false
 )
 
 enum class PaymentMethod(val label: String) {

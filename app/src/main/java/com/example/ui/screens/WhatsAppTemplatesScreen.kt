@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -66,6 +67,18 @@ fun WhatsAppTemplatesScreen(
           IconButton(onClick = { viewModel.navigateBack() }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
           }
+        },
+        actions = {
+          TextButton(onClick = {
+            viewModel.openDialog(
+              com.example.viewmodel.DialogState.ConfirmAction(
+                title = "Varsayılana döndür",
+                message = "Tüm şablonlar ilk hâline dönecek; yaptığınız değişiklikler silinecek.",
+                confirmLabel = "Döndür",
+                onConfirm = { viewModel.resetTemplates() }
+              )
+            )
+          }) { Text("Sıfırla") }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
       )

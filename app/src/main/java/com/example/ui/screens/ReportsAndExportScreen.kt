@@ -1,7 +1,9 @@
 package com.example.ui.screens
 
-import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.PieChart
@@ -25,7 +27,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -47,18 +47,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.EmeraldPrimary
+import com.example.ui.theme.LocalAppPalette
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.theme.RoseError
 import com.example.ui.theme.Slate500
+import com.example.ui.theme.moneyStyle
 import com.example.util.CsvHelper
+import com.example.util.FileShare
 import com.example.util.Formatters
-import com.example.util.WhatsAppHelper
 import com.example.viewmodel.MusteriCepViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,26 +72,37 @@ fun ReportsAndExportScreen(
 ) {
   val context = LocalContext.current
   val summary by viewModel.dashboardSummary.collectAsState()
-  val customers by viewModel.allCustomersWithBalance.collectAsState(initial = emptyList())
-  val debts by viewModel.allDebts.collectAsState(initial = emptyList())
-  val collections by viewModel.allCollections.collectAsState(initial = emptyList())
+  val customers by viewModel.allCustomersWithBalance.collectAsState()
+  val palette = LocalAppPalette.current
+  val realCount = customers.count { !it.customer.isDemo }
 
   var importCsvText by remember { mutableStateOf("") }
+  var showPaste by remember { mutableStateOf(false) }
+  val today = Formatters.formatDate(System.currentTimeMillis()).replace('.', '-')
 
-  BackHandler {
-    viewModel.navigateBack()
+  val csvOpener = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    if (uri != null) {
+      try {
+        viewModel.parseAndPreviewCsv(FileShare.readFromUri(context, uri, maxBytes = 5 * 1024 * 1024))
+      } catch (e: Exception) {
+        viewModel.showMessage("Dosya okunamadı: ${e.message}")
+      }
+    }
   }
 
+  BackHandler { viewModel.navigateBack() }
+
   Scaffold(
+    containerColor = MaterialTheme.colorScheme.background,
     topBar = {
       TopAppBar(
-        title = { Text("Raporlar & Excel Dışa Aktar", fontWeight = FontWeight.Bold) },
+        title = { Text("Raporlar ve Excel", fontWeight = FontWeight.Bold) },
         navigationIcon = {
           IconButton(onClick = { viewModel.navigateBack() }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
           }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
       )
     }
   ) { innerPadding ->
@@ -99,70 +113,67 @@ fun ReportsAndExportScreen(
         .padding(horizontal = 16.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-      // 1. Genel Finansal Durum Rapor Kartı
+      // 1. Özet
       item {
-        Spacer(modifier = Modifier.height(4.dp))
-        ElevatedCard(
+        Card(
           shape = RoundedCornerShape(18.dp),
-          colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+          border = BorderStroke(1.dp, palette.cardBorder),
           modifier = Modifier.fillMaxWidth()
         ) {
           Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
               Icon(Icons.Default.PieChart, contentDescription = null, tint = NavyPrimary)
               Spacer(modifier = Modifier.width(8.dp))
-              Text("Finansal Bilanço Özeti", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+              Text("Genel durum", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-
             Spacer(modifier = Modifier.height(14.dp))
-
-            ReportRow("Toplam Alacak Tutarı", Formatters.formatCurrency(summary.totalReceivable), RoseError)
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            ReportRow("Toplam Yapılan Tahsilat", Formatters.formatCurrency(summary.totalCollected), EmeraldPrimary)
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            ReportRow("Gecikmiş Vadesi Geçen Alacak", Formatters.formatCurrency(summary.overdueAmount), RoseError)
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            ReportRow("Aktif Kayıtlı Müşteri Sayısı", "${summary.activeCustomerCount}", MaterialTheme.colorScheme.onSurface)
+            ReportRow("Toplam alacak", Formatters.formatCurrency(summary.totalReceivable), RoseError)
+            ReportDivider()
+            ReportRow("Vadesi geçen alacak", Formatters.formatCurrency(summary.overdueAmount), RoseError)
+            ReportDivider()
+            ReportRow("7 gün içinde vadesi gelen", Formatters.formatCurrency(summary.upcomingAmount), MaterialTheme.colorScheme.onSurface)
+            ReportDivider()
+            ReportRow("Bu ay tahsilat", Formatters.formatCurrency(summary.thisMonthCollected), EmeraldPrimary)
+            ReportDivider()
+            ReportRow("Geçen ay tahsilat", Formatters.formatCurrency(summary.lastMonthCollected), EmeraldPrimary)
+            ReportDivider()
+            ReportRow("Toplam tahsilat (tüm zamanlar)", Formatters.formatCurrency(summary.totalCollected), EmeraldPrimary)
+            ReportDivider()
+            ReportRow("Aktif müşteri / borçlu", "${summary.activeCustomerCount} / ${summary.debtorCount}", MaterialTheme.colorScheme.onSurface)
           }
         }
       }
 
-      // 2. Excel (CSV) Dışa Aktarma
+      // 2. Dışa aktarma
       item {
         Card(
           shape = RoundedCornerShape(18.dp),
           colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+          border = BorderStroke(1.dp, palette.cardBorder),
           modifier = Modifier.fillMaxWidth()
         ) {
           Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
               Icon(Icons.Default.FileDownload, contentDescription = null, tint = EmeraldPrimary)
               Spacer(modifier = Modifier.width(8.dp))
-              Text("Excel (CSV) Dışa Aktar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+              Text("Excel'e aktar (CSV)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-              text = "Verilerinizi Türkçe karakter destekli (UTF-8 BOM) ve Excel uyumlu noktalı virgüllü CSV dosyası olarak dışa aktarın.",
+              "Dosya Excel'de doğrudan açılır; Türkçe karakterler ve tutarlar doğru görünür. Örnek veriler dosyaya eklenmez.",
               style = MaterialTheme.typography.bodySmall,
               color = Slate500
             )
-
             Spacer(modifier = Modifier.height(14.dp))
-
-            // Export Customers CSV
             Button(
               onClick = {
-                val csv = CsvHelper.exportCustomersToCsv(customers)
-                val sendIntent = Intent().apply {
-                  action = Intent.ACTION_SEND
-                  putExtra(Intent.EXTRA_TEXT, csv)
-                  putExtra(Intent.EXTRA_TITLE, "MusteriCep_Musteri_Listesi.csv")
-                  type = "text/csv"
+                if (realCount == 0) {
+                  viewModel.showMessage("Dışa aktarılacak müşteri yok.")
+                } else {
+                  FileShare.shareText(context, "MusteriCep_Musteriler_$today.csv", "text/csv", viewModel.exportCustomersCsv(), "Müşteri listesini gönder")
                 }
-                context.startActivity(Intent.createChooser(sendIntent, "Müşteri Listesi CSV Paylaş"))
               },
-              colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
               shape = RoundedCornerShape(12.dp),
               modifier = Modifier
                 .fillMaxWidth()
@@ -170,120 +181,114 @@ fun ReportsAndExportScreen(
             ) {
               Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
               Spacer(modifier = Modifier.width(8.dp))
-              Text("Müşteri Bakiyelerini Dışa Aktar (${customers.size} Müşteri)")
+              Text("Müşteri bakiyeleri ($realCount)")
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Export All Transactions CSV
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
               onClick = {
-                val customerMap = customers.associate { it.customer.id to it.customer }
-                val csv = CsvHelper.exportAllTransactionsToCsv(customerMap, debts, collections)
-                val sendIntent = Intent().apply {
-                  action = Intent.ACTION_SEND
-                  putExtra(Intent.EXTRA_TEXT, csv)
-                  putExtra(Intent.EXTRA_TITLE, "MusteriCep_Tum_Finansal_Hareketler.csv")
-                  type = "text/csv"
+                if (realCount == 0) {
+                  viewModel.showMessage("Dışa aktarılacak kayıt yok.")
+                } else {
+                  FileShare.shareText(context, "MusteriCep_Hareketler_$today.csv", "text/csv", viewModel.exportTransactionsCsv(), "Hareket dökümünü gönder")
                 }
-                context.startActivity(Intent.createChooser(sendIntent, "İşlem Geçmişi CSV Paylaş"))
               },
               shape = RoundedCornerShape(12.dp),
               modifier = Modifier.fillMaxWidth()
             ) {
-              Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+              Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
               Spacer(modifier = Modifier.width(8.dp))
-              Text("Tüm Borç ve Tahsilat Geçmişini Dışa Aktar")
+              Text("Tüm borç ve tahsilat hareketleri")
             }
           }
         }
       }
 
-      // 3. CSV Dosyasından Müşteri İçe Aktarma (Önizlemeli & Hata Bildirimli)
+      // 3. İçe aktarma
       item {
         Card(
           shape = RoundedCornerShape(18.dp),
           colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+          border = BorderStroke(1.dp, palette.cardBorder),
           modifier = Modifier.fillMaxWidth()
         ) {
           Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
               Icon(Icons.Default.FileUpload, contentDescription = null, tint = NavyPrimary)
               Spacer(modifier = Modifier.width(8.dp))
-              Text("CSV ile Müşteri İçe Aktar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+              Text("Excel'den müşteri ekle", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-              text = "Format: Ad Soyad;Telefon;E-posta;Adres;Notlar (Her satıra bir müşteri gelecek şekilde metni yapıştırın).",
+              "Sütun sırası: Ad Soyad; Telefon; E-posta; Adres; Not. Excel'de \"Farklı kaydet → CSV (noktalı virgülle ayrılmış)\" seçin. " +
+                "Önce önizleme gösterilir; hatalı ve zaten kayıtlı satırlar atlanır.",
               style = MaterialTheme.typography.bodySmall,
               color = Slate500
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Paste input
-            OutlinedTextField(
-              value = importCsvText,
-              onValueChange = { importCsvText = it },
-              placeholder = {
-                Text(
-                  "Örnek:\nAli Koç;05321112233;ali@mail.com;Kadıköy;Düzenli alıcı\nFatma Şen;05423334455;;Beşiktaş;"
-                )
-              },
-              maxLines = 5,
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+              onClick = { csvOpener.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain", "application/vnd.ms-excel", "*/*")) },
+              colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+              shape = RoundedCornerShape(12.dp),
               modifier = Modifier
                 .fillMaxWidth()
-                .testTag("input_csv_text")
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween
+                .testTag("btn_pick_csv")
             ) {
-              TextButton(
-                onClick = {
-                  importCsvText = "Ad Soyad;Telefon;E-posta;Adres;Notlar\nKemal Sunal (Güneş Ticaret);05329998877;kemal@gunes.com;Fatih/İstanbul;Toptan gıda\nZeynep Yılmaz;05448887766;;Şişli;Kuaför malzemesi\nHatalı Satır Deneme;123;;;"
-                }
-              ) {
-                Text("Örnek Veri Doldur", fontSize = 12.sp)
+              Text("CSV dosyası seç")
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+              TextButton(onClick = {
+                FileShare.shareText(context, "MusteriCep_Ornek_Sablon.csv", "text/csv", CsvHelper.sampleTemplate(), "Örnek şablonu gönder")
+              }) { Text("Örnek şablon", fontSize = 13.sp) }
+              TextButton(onClick = { showPaste = !showPaste }) {
+                Text(if (showPaste) "Yapıştırmayı kapat" else "Metin yapıştır", fontSize = 13.sp)
               }
-
+            }
+            if (showPaste) {
+              OutlinedTextField(
+                value = importCsvText,
+                onValueChange = { importCsvText = it },
+                placeholder = { Text("Ali Koç;05321112233;ali@mail.com;Kadıköy;Cuma öder") },
+                minLines = 4,
+                maxLines = 8,
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .testTag("input_csv_paste")
+              )
+              Spacer(modifier = Modifier.height(8.dp))
               Button(
                 onClick = {
-                  if (importCsvText.isNotBlank()) {
-                    viewModel.parseAndPreviewCsv(importCsvText)
-                  } else {
-                    viewModel.showMessage("Lütfen CSV metnini yapıştırınız.")
-                  }
+                  if (importCsvText.isNotBlank()) viewModel.parseAndPreviewCsv(importCsvText)
+                  else viewModel.showMessage("Önce CSV metnini yapıştırın.")
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                modifier = Modifier.testTag("btn_preview_csv")
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .testTag("btn_preview_csv")
               ) {
-                Text("Önizle & Doğrula")
+                Text("Önizle")
               }
             }
           }
         }
       }
 
-      item {
-        Spacer(modifier = Modifier.height(40.dp))
-      }
+      item { Spacer(modifier = Modifier.height(40.dp)) }
     }
   }
 }
 
 @Composable
-private fun ReportRow(title: String, value: String, valueColor: androidx.compose.ui.graphics.Color) {
+private fun ReportDivider() {
+  HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = LocalAppPalette.current.cardBorder)
+}
+
+@Composable
+private fun ReportRow(title: String, value: String, valueColor: Color) {
   Row(
     modifier = Modifier.fillMaxWidth(),
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Text(title, style = MaterialTheme.typography.bodyMedium, color = Slate500)
-    Text(value, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = valueColor)
+    Text(title, style = MaterialTheme.typography.bodyMedium, color = Slate500, modifier = Modifier.weight(1f))
+    Text(value, style = moneyStyle(15), color = valueColor)
   }
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,7 +62,8 @@ fun StatCard(
     colors = CardDefaults.cardColors(
       containerColor = MaterialTheme.colorScheme.surface
     ),
-    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.LocalAppPalette.current.cardBorder)
   ) {
     Column(
       modifier = Modifier
@@ -98,11 +100,9 @@ fun StatCard(
 
       Text(
         text = value,
-        style = MaterialTheme.typography.titleLarge.copy(
-          fontWeight = FontWeight.Bold,
-          fontSize = 20.sp
-        ),
-        color = MaterialTheme.colorScheme.onSurface
+        style = com.example.ui.theme.moneyStyle(19),
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1
       )
 
       if (subtitle != null) {
@@ -145,8 +145,8 @@ fun BalanceStatusBadge(balance: Double, isArchived: Boolean = false) {
   val (text, bgColor, textColor) = when {
     isArchived -> Triple("Arşivlendi", Slate500.copy(alpha = 0.15f), Slate500)
     balance > 0 -> Triple("Borçlu", RoseError.copy(alpha = 0.12f), RoseError)
-    balance < 0 -> Triple("Alacaklı", NavyPrimary.copy(alpha = 0.12f), NavyPrimary)
-    else -> Triple("Bakiye Sıfır", EmeraldPrimary.copy(alpha = 0.12f), EmeraldPrimary)
+    balance < 0 -> Triple("Avansı var", NavyPrimary.copy(alpha = 0.12f), NavyPrimary)
+    else -> Triple("Borcu yok", EmeraldPrimary.copy(alpha = 0.12f), EmeraldPrimary)
   }
 
   Surface(
@@ -275,4 +275,48 @@ fun ConfirmDeleteDialog(
       }
     }
   )
+}
+
+
+@Composable
+fun ConfirmActionDialog(
+  title: String,
+  message: String,
+  confirmLabel: String,
+  isDestructive: Boolean,
+  onConfirm: () -> Unit,
+  onDismiss: () -> Unit
+) {
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text(title, fontWeight = FontWeight.Bold) },
+    text = { Text(message) },
+    confirmButton = {
+      Button(
+        onClick = onConfirm,
+        colors = ButtonDefaults.buttonColors(
+          containerColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+        )
+      ) {
+        Text(confirmLabel, fontWeight = FontWeight.Bold)
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) { Text("Vazgeç") }
+    }
+  )
+}
+
+/** Örnek (demo) kayıtları gerçeklerden ayırmak için küçük etiket. */
+@Composable
+fun DemoBadge() {
+  Surface(shape = RoundedCornerShape(6.dp), color = AmberWarning.copy(alpha = 0.15f)) {
+    Text(
+      text = "ÖRNEK",
+      color = AmberWarning,
+      fontSize = 10.sp,
+      fontWeight = FontWeight.Bold,
+      modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+    )
+  }
 }

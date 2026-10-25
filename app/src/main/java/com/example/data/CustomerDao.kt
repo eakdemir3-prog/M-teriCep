@@ -14,22 +14,24 @@ interface CustomerDao {
   @Query("SELECT * FROM customers ORDER BY name ASC")
   fun getAllCustomers(): Flow<List<Customer>>
 
-  @Query("SELECT * FROM customers WHERE isArchived = 0 ORDER BY name ASC")
-  fun getActiveCustomers(): Flow<List<Customer>>
+  @Query("SELECT * FROM customers ORDER BY name ASC")
+  suspend fun getAllCustomersOnce(): List<Customer>
 
   @Query("SELECT * FROM customers WHERE id = :id LIMIT 1")
-  fun getCustomerById(id: Long): Flow<Customer?>
+  suspend fun getCustomerById(id: Long): Customer?
 
-  @Query("SELECT * FROM customers WHERE phone = :phone AND id != :excludeId LIMIT 1")
-  suspend fun findCustomerByPhone(phone: String, excludeId: Long = 0): Customer?
+  /** Paket limiti için: örnek veriler hariç tüm müşteriler (arşivdekiler dahil). */
+  @Query("SELECT COUNT(*) FROM customers WHERE isDemo = 0")
+  suspend fun countRealCustomers(): Int
 
-  @Query("SELECT COUNT(*) FROM customers WHERE isArchived = 0")
-  fun getActiveCustomerCount(): Flow<Int>
+  @Query("SELECT COUNT(*) FROM customers WHERE isDemo = 1")
+  suspend fun countDemoCustomers(): Int
 
-  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  // Yeni kayıt: çakışmada eskisini SİLMEMESİ için ABORT (REPLACE, bağlı borçları da silerdi).
+  @Insert(onConflict = OnConflictStrategy.ABORT)
   suspend fun insertCustomer(customer: Customer): Long
 
-  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  @Insert(onConflict = OnConflictStrategy.ABORT)
   suspend fun insertAll(customers: List<Customer>): List<Long>
 
   @Update
@@ -40,6 +42,9 @@ interface CustomerDao {
 
   @Delete
   suspend fun deleteCustomer(customer: Customer)
+
+  @Query("DELETE FROM customers WHERE isDemo = 1")
+  suspend fun deleteDemoCustomers()
 
   @Query("DELETE FROM customers")
   suspend fun clearAll()

@@ -2,9 +2,17 @@ package com.example
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.ui.graphics.toArgb
+import com.example.ui.components.ConfirmActionDialog
+import com.example.ui.theme.isKomuta
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -57,8 +65,19 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     setContent {
-      MyApplicationTheme {
-        MusteriCepApp()
+      val viewModel: MusteriCepViewModel = viewModel()
+      val loadedProfile by viewModel.loadedProfile.collectAsState()
+      val profile = loadedProfile
+      if (profile != null) {
+        val komuta = profile.themeMode.isKomuta()
+        LaunchedEffect(komuta) {
+          val style = if (komuta) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+          else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+          enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+        }
+        MyApplicationTheme(themeMode = profile.themeMode) {
+          MusteriCepApp(viewModel)
+        }
       }
     }
   }
@@ -66,25 +85,31 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MusteriCepApp(
-  viewModel: MusteriCepViewModel = viewModel()
+  viewModel: MusteriCepViewModel
 ) {
   val currentScreen by viewModel.currentScreen.collectAsState()
   val dialogState by viewModel.dialogState.collectAsState()
-  val allCustomers by viewModel.allCustomersWithBalance.collectAsState(initial = emptyList())
+  val allCustomers by viewModel.allCustomersWithBalance.collectAsState()
   val templates by viewModel.allTemplates.collectAsState(initial = emptyList())
   val profile by viewModel.profile.collectAsState()
 
   val snackbarHostState = remember { SnackbarHostState() }
   var showQuickActionSheet by remember { mutableStateOf(false) }
 
-  // Listen to ViewModel snackbar events
+  // ViewModel'den gelen kısa mesajlar (bazılarında "Geri Al" düğmesi var)
   LaunchedEffect(Unit) {
-    viewModel.snackbar.collectLatest { message ->
-      snackbarHostState.showSnackbar(message)
+    viewModel.messages.collectLatest { msg ->
+      val result = snackbarHostState.showSnackbar(
+        message = msg.text,
+        actionLabel = msg.actionLabel,
+        withDismissAction = msg.actionLabel == null,
+        duration = if (msg.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short
+      )
+      if (result == SnackbarResult.ActionPerformed) msg.onAction?.invoke()
     }
   }
 
-  // Handle system back press
+  // Sistem geri tuşu: alt sayfalardan geri, ana sekmelerden Ana Sayfa'ya
   BackHandler(enabled = currentScreen !is Screen.Dashboard) {
     viewModel.navigateBack()
   }
@@ -95,6 +120,7 @@ fun MusteriCepApp(
     currentScreen is Screen.Settings
 
   Scaffold(
+    containerColor = MaterialTheme.colorScheme.background,
     contentWindowInsets = WindowInsets.safeDrawing,
     snackbarHost = { SnackbarHost(snackbarHostState) },
     bottomBar = {
@@ -167,8 +193,7 @@ fun MusteriCepApp(
             email = email,
             address = address,
             notes = notes,
-            existingId = state.existingCustomer?.id ?: 0L,
-            onSuccess = {}
+            existing = state.existingCustomer
           )
         }
       )
@@ -177,16 +202,18 @@ fun MusteriCepApp(
     is DialogState.AddDebt -> {
       AddDebtDialog(
         preselectedCustomerId = state.preselectedCustomerId,
+        existing = state.existing,
         allCustomers = allCustomers,
         onDismiss = { viewModel.dismissDialog() },
-        onSave = { customerId, amount, dueDate, description, category ->
+        onSave = { customerId, amount, date, dueDate, description, category ->
           viewModel.saveDebt(
             customerId = customerId,
             amount = amount,
+            date = date,
             dueDate = dueDate,
             description = description,
             category = category,
-            onSuccess = {}
+            existingId = state.existing?.id ?: 0L
           )
         }
       )
@@ -196,15 +223,17 @@ fun MusteriCepApp(
       AddCollectionDialog(
         preselectedCustomerId = state.preselectedCustomerId,
         defaultAmount = state.defaultAmount,
+        existing = state.existing,
         allCustomers = allCustomers,
         onDismiss = { viewModel.dismissDialog() },
-        onSave = { customerId, amount, method, notes ->
+        onSave = { customerId, amount, date, method, notes ->
           viewModel.saveCollection(
             customerId = customerId,
             amount = amount,
+            date = date,
             paymentMethod = method,
             notes = notes,
-            onSuccess = {}
+            existingId = state.existing?.id ?: 0L
           )
         }
       )
@@ -213,7 +242,7 @@ fun MusteriCepApp(
     is DialogState.SendWhatsApp -> {
       SendWhatsAppDialog(
         customerWithBalance = state.customerWithBalance,
-        businessName = profile.businessName,
+        businessName = profile.displayBusinessName,
         templates = templates,
         onDismiss = { viewModel.dismissDialog() },
         onOpenTemplates = {
@@ -242,6 +271,7 @@ fun MusteriCepApp(
       CsvImportPreviewDialog(
         validCustomers = state.validList,
         errors = state.errors,
+        skipped = state.skipped,
         onDismiss = { viewModel.dismissDialog() },
         onConfirm = { viewModel.executeCsvImport(state.validList) }
       )
@@ -256,6 +286,17 @@ fun MusteriCepApp(
       )
     }
 
+    is DialogState.ConfirmAction -> {
+      ConfirmActionDialog(
+        title = state.title,
+        message = state.message,
+        confirmLabel = state.confirmLabel,
+        isDestructive = state.isDestructive,
+        onConfirm = state.onConfirm,
+        onDismiss = { viewModel.dismissDialog() }
+      )
+    }
+
     is DialogState.TierLimitReached -> {
       TierLimitReachedDialog(
         currentCount = state.currentCount,
@@ -265,6 +306,5 @@ fun MusteriCepApp(
       )
     }
 
-    else -> Unit
   }
 }

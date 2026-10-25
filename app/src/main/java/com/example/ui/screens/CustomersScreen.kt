@@ -61,6 +61,7 @@ import com.example.model.CustomerFilter
 import com.example.model.CustomerSort
 import com.example.ui.components.BalanceStatusBadge
 import com.example.ui.components.EmptyStateView
+import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.theme.RoseError
@@ -196,9 +197,16 @@ fun CustomersScreen(
           }
           item {
             FilterChip(
+              selected = currentFilter == CustomerFilter.OVERDUE,
+              onClick = { viewModel.customerFilter.value = CustomerFilter.OVERDUE },
+              label = { Text("Vadesi Geçenler") }
+            )
+          }
+          item {
+            FilterChip(
               selected = currentFilter == CustomerFilter.ZERO_BALANCE,
               onClick = { viewModel.customerFilter.value = CustomerFilter.ZERO_BALANCE },
-              label = { Text("Bakiyesi Sıfır") }
+              label = { Text("Borcu Yok") }
             )
           }
           item {
@@ -270,13 +278,31 @@ fun CustomersScreen(
                     color = MaterialTheme.colorScheme.onSurface
                   )
                   Text(
-                    text = Formatters.formatPhoneForDisplay(customer.phone),
+                    text = Formatters.formatPhoneForDisplay(customer.phone).ifBlank { "Telefon yok" },
                     style = MaterialTheme.typography.bodySmall,
                     color = Slate500
                   )
+                  if (item.overdueAmount > 0) {
+                    Text(
+                      text = "Gecikmiş: ${Formatters.formatCurrency(item.overdueAmount)}",
+                      style = MaterialTheme.typography.bodySmall,
+                      color = RoseError,
+                      fontWeight = FontWeight.SemiBold
+                    )
+                  } else if (item.nextDueDate != null && item.remainingBalance > 0) {
+                    Text(
+                      text = "Vade: ${Formatters.dueLabel(item.nextDueDate)}",
+                      style = MaterialTheme.typography.bodySmall,
+                      color = AmberWarning
+                    )
+                  }
                 }
               }
 
+              if (customer.isDemo) {
+                com.example.ui.components.DemoBadge()
+                Spacer(modifier = Modifier.width(4.dp))
+              }
               BalanceStatusBadge(balance = item.remainingBalance, isArchived = customer.isArchived)
             }
 
@@ -360,7 +386,7 @@ fun CustomersScreen(
     FloatingActionButton(
       onClick = { viewModel.openDialog(DialogState.AddEditCustomer()) },
       containerColor = NavyPrimary,
-      contentColor = Color.White,
+      contentColor = com.example.ui.theme.LocalAppPalette.current.onInk,
       modifier = Modifier
         .align(Alignment.BottomEnd)
         .padding(end = 20.dp, bottom = 80.dp)

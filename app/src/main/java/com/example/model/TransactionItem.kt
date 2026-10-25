@@ -15,7 +15,8 @@ sealed class TransactionItem {
     override val notesOrDesc: String,
     val dueDate: Long?,
     val category: String,
-    val status: DebtStatus
+    val status: DebtStatus,
+    val remainingAmount: Double = amount
   ) : TransactionItem()
 
   data class CollectionItem(

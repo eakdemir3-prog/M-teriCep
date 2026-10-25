@@ -3,20 +3,34 @@ package com.example.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.data.AppDatabase
+import com.example.data.LedgerSnapshot
 import com.example.data.MusteriCepRepository
+import com.example.data.SaveResult
+import com.example.data.SettingsStore
+import com.example.model.AppThemeMode
 import com.example.model.CollectionRecord
 import com.example.model.Customer
 import com.example.model.CustomerFilter
 import com.example.model.CustomerSort
 import com.example.model.CustomerWithBalance
 import com.example.model.Debt
+import com.example.model.DebtStatus
+import com.example.model.DebtWithStatus
 import com.example.model.PaymentMethod
 import com.example.model.SubscriptionTier
 import com.example.model.TransactionItem
 import com.example.model.UserBusinessProfile
 import com.example.model.WhatsAppTemplate
+import com.example.reminder.DueReminderWorker
+import com.example.util.BackupManager
 import com.example.util.CsvHelper
+import com.example.util.Formatters
+import com.example.util.Money
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,247 +41,264 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Calendar
+import java.text.Collator
+import java.util.Locale
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MusteriCepViewModel(application: Application) : AndroidViewModel(application) {
 
-  private val repository: MusteriCepRepository
+  private val repository = MusteriCepRepository(AppDatabase.getDatabase(application))
+  private val settings = SettingsStore(application)
+  private val trCollator: Collator = Collator.getInstance(Locale("tr", "TR")).apply { strength = Collator.PRIMARY }
+
   init {
-    val database = AppDatabase.getDatabase(application, viewModelScope)
-    repository = MusteriCepRepository(
-      database.customerDao(),
-      database.debtDao(),
-      database.collectionDao(),
-      database.templateDao()
-    )
-    viewModelScope.launch {
-      repository.ensureDefaultTemplates()
-    }
+    viewModelScope.launch { repository.ensureDefaultTemplates() }
   }
 
-  // Navigation Stack
+  // ---------------- Gezinme ----------------
+
   private val _screenStack = MutableStateFlow<List<Screen>>(listOf(Screen.Dashboard))
-  val currentScreen: StateFlow<Screen> = _screenStack.combine(flowOf(Unit)) { stack, _ ->
-    stack.lastOrNull() ?: Screen.Dashboard
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Screen.Dashboard)
+  val currentScreen: StateFlow<Screen> = _screenStack
+    .map { it.lastOrNull() ?: Screen.Dashboard }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, Screen.Dashboard)
 
   fun navigate(screen: Screen) {
-    val current = _screenStack.value
-    // If navigating to a primary tab, clear the stack to avoid deep tab nests
-    val isPrimaryTab = screen is Screen.Dashboard || screen is Screen.Customers || screen is Screen.Collections || screen is Screen.Settings
-    if (isPrimaryTab) {
-      _screenStack.value = listOf(screen)
-    } else {
-      _screenStack.value = current + screen
-    }
+    val isPrimaryTab = screen is Screen.Dashboard || screen is Screen.Customers ||
+      screen is Screen.Collections || screen is Screen.Settings
+    _screenStack.value = if (isPrimaryTab) listOf(screen) else _screenStack.value + screen
   }
 
+  /** Geri tuşu: alt sayfadan bir önceki sayfaya, ana sekmelerden Ana Sayfa'ya döner. */
   fun navigateBack(): Boolean {
-    val current = _screenStack.value
-    if (current.size > 1) {
-      _screenStack.value = current.dropLast(1)
-      return true
+    val stack = _screenStack.value
+    return when {
+      stack.size > 1 -> { _screenStack.value = stack.dropLast(1); true }
+      stack.lastOrNull() !is Screen.Dashboard -> { _screenStack.value = listOf(Screen.Dashboard); true }
+      else -> false
     }
-    return false
   }
 
-  // Dialog State
+  // ---------------- Pencereler ve mesajlar ----------------
+
   private val _dialogState = MutableStateFlow<DialogState>(DialogState.None)
   val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
 
-  fun openDialog(dialog: DialogState) {
-    _dialogState.value = dialog
+  fun openDialog(dialog: DialogState) { _dialogState.value = dialog }
+  fun dismissDialog() { _dialogState.value = DialogState.None }
+
+  private val _messages = MutableSharedFlow<UiMessage>(extraBufferCapacity = 4)
+  val messages: SharedFlow<UiMessage> = _messages.asSharedFlow()
+
+  fun showMessage(msg: String) { _messages.tryEmit(UiMessage(msg)) }
+
+  private fun showUndo(msg: String, undo: () -> Unit) {
+    _messages.tryEmit(UiMessage(msg, "Geri Al", undo))
   }
 
-  fun dismissDialog() {
-    _dialogState.value = DialogState.None
-  }
+  // ---------------- Profil ve ayarlar ----------------
 
-  // Feedback Notifications
-  private val _snackbar = MutableSharedFlow<String>()
-  val snackbar: SharedFlow<String> = _snackbar.asSharedFlow()
+  /** DataStore'dan okunana kadar null (ilk açılışta yanlış tema yanıp sönmesin diye). */
+  val loadedProfile: StateFlow<UserBusinessProfile?> =
+    settings.profile.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-  fun showMessage(msg: String) {
+  val profile: StateFlow<UserBusinessProfile> = loadedProfile
+    .map { it ?: UserBusinessProfile() }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, UserBusinessProfile())
+
+  fun updateBusinessProfile(name: String, owner: String, phone: String, city: String) {
     viewModelScope.launch {
-      _snackbar.emit(msg)
+      settings.updateBusiness(name, owner, phone, city)
+      showMessage("İşletme bilgileri kaydedildi.")
     }
   }
 
-  // User Profile & Settings
-  private val _profile = MutableStateFlow(UserBusinessProfile())
-  val profile: StateFlow<UserBusinessProfile> = _profile.asStateFlow()
-
-  fun updateBusinessProfile(name: String, owner: String, phone: String, city: String, notifications: Boolean) {
-    _profile.value = _profile.value.copy(
-      businessName = name,
-      ownerName = owner,
-      phone = phone,
-      city = city,
-      notificationsEnabled = notifications
-    )
-    showMessage("İşletme profili güncellendi.")
+  fun setTheme(mode: AppThemeMode) {
+    viewModelScope.launch { settings.setTheme(mode) }
   }
 
-  fun setActiveTier(tier: SubscriptionTier) {
-    _profile.value = _profile.value.copy(activeTier = tier)
-    showMessage("${tier.title} paketine geçildi.")
+  /** Bildirim izni ekranda istendikten sonra çağrılır. */
+  fun setNotifications(enabled: Boolean) {
+    viewModelScope.launch {
+      settings.setNotifications(enabled)
+      val ctx = getApplication<Application>()
+      if (enabled) {
+        DueReminderWorker.schedule(ctx)
+        showMessage("Vade hatırlatıcı açıldı. Her sabah 09:00 civarı kontrol edilir.")
+      } else {
+        DueReminderWorker.cancel(ctx)
+        showMessage("Vade hatırlatıcı kapatıldı.")
+      }
+    }
   }
 
-  // Filter & Search
+  fun setReminderDays(days: Int) {
+    viewModelScope.launch { settings.setReminderDays(days) }
+  }
+
+  /** Hatırlatıcıyı hemen bir kez çalıştırır (deneme için). */
+  fun runReminderNow() {
+    val ctx = getApplication<Application>()
+    if (!DueReminderWorker.canNotify(ctx)) {
+      showMessage("Bildirim izni kapalı. Telefon ayarlarından MüşteriCep bildirimlerine izin verin.")
+      return
+    }
+    WorkManager.getInstance(ctx).enqueue(OneTimeWorkRequestBuilder<DueReminderWorker>().build())
+    showMessage("Kontrol edildi. Vadesi gelen alacak varsa bildirim gelecek.")
+  }
+
+  /**
+   * Paket satın alma. Google Play Faturalandırma henüz bağlanmadığı için paket
+   * değiştirilmez; kullanıcıya dürüstçe bilgi verilir.
+   */
+  fun requestUpgrade(tier: SubscriptionTier) {
+    showMessage("${tier.title} paketi Google Play üzerinden satın alınabilir olacak. Bu sürümde ödeme henüz aktif değil.")
+  }
+
+  // ---------------- Veri akışları ----------------
+
+  val ledger: StateFlow<LedgerSnapshot> =
+    repository.ledger.stateIn(viewModelScope, SharingStarted.Eagerly, LedgerSnapshot())
+
+  val allCustomersWithBalance: StateFlow<List<CustomerWithBalance>> = ledger
+    .map { it.customers }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+  val debtStatuses: StateFlow<List<DebtWithStatus>> = ledger
+    .map { it.debtStatuses }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+  val allDebts: Flow<List<Debt>> = repository.allDebts
+  val allCollections: StateFlow<List<CollectionRecord>> = ledger
+    .map { it.collections }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+  val allTemplates: Flow<List<WhatsAppTemplate>> = repository.allTemplates
+
+  val hasDemoData: StateFlow<Boolean> = ledger
+    .map { snap -> snap.customers.any { it.customer.isDemo } }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+  // ---------------- Arama ve filtre ----------------
+
   val searchQuery = MutableStateFlow("")
   val customerFilter = MutableStateFlow(CustomerFilter.ALL)
   val customerSort = MutableStateFlow(CustomerSort.NAME_ASC)
 
-  // Data streams from repository
-  val allCustomersWithBalance = repository.customersWithBalances
-  val allDebts = repository.allDebts
-  val allCollections = repository.allCollections
-  val allTemplates = repository.allTemplates
-
-  // Filtered & Sorted Customer list
   val filteredCustomers: StateFlow<List<CustomerWithBalance>> = combine(
-    repository.customersWithBalances,
-    searchQuery,
-    customerFilter,
-    customerSort
+    allCustomersWithBalance, searchQuery, customerFilter, customerSort
   ) { list, query, filter, sort ->
-    var filtered = list.filter { item ->
+    val q = query.trim().lowercase(Locale("tr", "TR"))
+    val qDigits = query.filter { it.isDigit() }
+    val filtered = list.filter { item ->
       val c = item.customer
-      val matchesQuery = query.isBlank() ||
-        c.name.contains(query, ignoreCase = true) ||
-        c.phone.contains(query) ||
-        c.notes.contains(query, ignoreCase = true)
-
+      val matchesQuery = q.isBlank() ||
+        c.name.lowercase(Locale("tr", "TR")).contains(q) ||
+        c.notes.lowercase(Locale("tr", "TR")).contains(q) ||
+        (qDigits.length >= 3 && c.phone.filter { it.isDigit() }.contains(qDigits))
       val matchesFilter = when (filter) {
         CustomerFilter.ALL -> !c.isArchived
         CustomerFilter.WITH_DEBT -> !c.isArchived && item.remainingBalance > 0
+        CustomerFilter.OVERDUE -> !c.isArchived && item.overdueAmount > 0
         CustomerFilter.ZERO_BALANCE -> !c.isArchived && item.remainingBalance <= 0
         CustomerFilter.ARCHIVED -> c.isArchived
       }
-
       matchesQuery && matchesFilter
     }
-
-    filtered = when (sort) {
-      CustomerSort.NAME_ASC -> filtered.sortedBy { it.customer.name.lowercase() }
-      CustomerSort.NAME_DESC -> filtered.sortedByDescending { it.customer.name.lowercase() }
+    when (sort) {
+      CustomerSort.NAME_ASC -> filtered.sortedWith { a, b -> trCollator.compare(a.customer.name, b.customer.name) }
+      CustomerSort.NAME_DESC -> filtered.sortedWith { a, b -> trCollator.compare(b.customer.name, a.customer.name) }
       CustomerSort.DEBT_DESC -> filtered.sortedByDescending { it.remainingBalance }
       CustomerSort.RECENT_ACTIVITY -> filtered.sortedByDescending { it.lastTransactionDate ?: 0L }
     }
+  }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    filtered
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+  // ---------------- Ana sayfa özeti ----------------
 
-  // Dashboard Stats
-  val dashboardSummary: StateFlow<DashboardSummary> = combine(
-    repository.customersWithBalances,
-    repository.allDebts,
-    repository.allCollections
-  ) { customers, debts, collections ->
+  val dashboardSummary: StateFlow<DashboardSummary> = ledger.map { snap ->
     val now = System.currentTimeMillis()
-    val cal = Calendar.getInstance()
+    val todayStart = Formatters.startOfDay(now)
+    val weekStart = Formatters.startOfWeek(now)
+    val monthStart = Formatters.startOfMonth(now)
+    val lastMonthStart = Formatters.startOfMonth(monthStart - 1)
+    val upcomingLimit = todayStart + 8 * 86_400_000L
 
-    // Today start
-    cal.set(Calendar.HOUR_OF_DAY, 0)
-    cal.set(Calendar.MINUTE, 0)
-    cal.set(Calendar.SECOND, 0)
-    cal.set(Calendar.MILLISECOND, 0)
-    val todayStart = cal.timeInMillis
+    fun sum(items: List<CollectionRecord>) = Money.sum(items.map { it.amount })
 
-    // This week start
-    cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-    val weekStart = cal.timeInMillis
-
-    // This month start
-    cal.set(Calendar.DAY_OF_MONTH, 1)
-    val monthStart = cal.timeInMillis
-
-    val totalRec = customers.filter { !it.customer.isArchived }.sumOf { maxOf(0.0, it.remainingBalance) }
-    val totalColl = collections.sumOf { it.amount }
-
-    // Overdue debts
-    val overdueDebts = debts.filter { it.dueDate != null && it.dueDate < now }
-    val overdueSum = overdueDebts.sumOf { it.amount }
-
-    val todayColl = collections.filter { it.date >= todayStart }.sumOf { it.amount }
-    val weekColl = collections.filter { it.date >= weekStart }.sumOf { it.amount }
-    val monthColl = collections.filter { it.date >= monthStart }.sumOf { it.amount }
+    val open = snap.debtStatuses.filter { it.remainingAmount > 0 }
+    val overdue = open.filter { it.status == DebtStatus.OVERDUE }
+    val upcoming = open.filter { it.status != DebtStatus.OVERDUE && it.debt.dueDate != null && it.debt.dueDate < upcomingLimit }
 
     DashboardSummary(
-      totalReceivable = totalRec,
-      totalCollected = totalColl,
-      overdueAmount = overdueSum,
-      activeCustomerCount = customers.count { !it.customer.isArchived },
-      overdueDebtsCount = overdueDebts.size,
-      todayCollected = todayColl,
-      thisWeekCollected = weekColl,
-      thisMonthCollected = monthColl
+      totalReceivable = Money.sum(snap.customers.map { maxOf(0.0, it.remainingBalance) }),
+      totalCollected = sum(snap.collections),
+      overdueAmount = Money.sum(overdue.map { it.remainingAmount }),
+      activeCustomerCount = snap.customers.count { !it.customer.isArchived },
+      overdueDebtsCount = overdue.size,
+      overdueCustomerCount = overdue.map { it.debt.customerId }.distinct().size,
+      debtorCount = snap.customers.count { it.remainingBalance > 0 },
+      upcomingAmount = Money.sum(upcoming.map { it.remainingAmount }),
+      upcomingCount = upcoming.size,
+      todayCollected = sum(snap.collections.filter { it.date >= todayStart }),
+      thisWeekCollected = sum(snap.collections.filter { it.date >= weekStart }),
+      thisMonthCollected = sum(snap.collections.filter { it.date >= monthStart }),
+      lastMonthCollected = sum(snap.collections.filter { it.date in lastMonthStart until monthStart })
     )
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardSummary())
+  }.stateIn(viewModelScope, SharingStarted.Eagerly, DashboardSummary())
 
-  // Customer Detail flow
+  // ---------------- Müşteri detayı ----------------
+
   private val _selectedCustomerId = MutableStateFlow<Long?>(null)
+
   fun selectCustomer(id: Long) {
     _selectedCustomerId.value = id
     navigate(Screen.CustomerDetail(id))
   }
 
-  val selectedCustomerWithBalance: StateFlow<CustomerWithBalance?> = combine(
-    repository.customersWithBalances,
-    _selectedCustomerId
-  ) { list, id ->
-    if (id == null) null else list.find { it.customer.id == id }
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+  val selectedCustomerWithBalance: StateFlow<CustomerWithBalance?> =
+    combine(allCustomersWithBalance, _selectedCustomerId) { list, id ->
+      if (id == null) null else list.find { it.customer.id == id }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
   val selectedCustomerTransactions: StateFlow<List<TransactionItem>> = _selectedCustomerId
-    .flatMapLatest { id ->
-      if (id == null) flowOf(emptyList()) else repository.getTransactionsForCustomer(id)
-    }
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else repository.getTransactionsForCustomer(id) }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-  // Customer Actions
+  // ---------------- Müşteri işlemleri ----------------
+
   fun saveCustomer(
     name: String,
     phone: String,
     email: String,
     address: String,
     notes: String,
-    existingId: Long = 0,
-    onSuccess: () -> Unit
+    existing: Customer? = null
   ) {
     if (name.isBlank()) {
-      showMessage("Lütfen müşteri adını giriniz.")
+      showMessage("Müşteri adı zorunludur.")
       return
     }
-
-    // Check tier limits
-    val activeCount = dashboardSummary.value.activeCustomerCount
-    val tier = profile.value.activeTier
-    if (existingId == 0L && activeCount >= tier.maxCustomerLimit) {
-      openDialog(DialogState.TierLimitReached(activeCount, tier.maxCustomerLimit))
-      return
-    }
-
     viewModelScope.launch {
-      val customer = Customer(
-        id = existingId,
-        name = name.trim(),
-        phone = phone.trim(),
-        email = email.trim(),
-        address = address.trim(),
-        notes = notes.trim()
-      )
-      if (existingId == 0L) {
-        repository.insertCustomer(customer)
-        showMessage("Yeni müşteri eklendi: $name")
+      if (existing == null) {
+        val tier = profile.value.activeTier
+        val count = repository.countRealCustomers()
+        if (count >= tier.maxCustomerLimit) {
+          openDialog(DialogState.TierLimitReached(count, tier.maxCustomerLimit))
+          return@launch
+        }
+        repository.insertCustomer(
+          Customer(name = name.trim(), phone = phone.trim(), email = email.trim(), address = address.trim(), notes = notes.trim())
+        )
+        showMessage("Müşteri eklendi: ${name.trim()}")
       } else {
-        repository.updateCustomer(customer)
+        // Arşiv durumu, oluşturma tarihi ve örnek veri işareti korunur.
+        repository.updateCustomer(
+          existing.copy(name = name.trim(), phone = phone.trim(), email = email.trim(), address = address.trim(), notes = notes.trim())
+        )
         showMessage("Müşteri güncellendi.")
       }
       dismissDialog()
-      onSuccess()
     }
   }
 
@@ -275,166 +306,242 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     viewModelScope.launch {
       val newStatus = !customer.isArchived
       repository.setCustomerArchived(customer.id, newStatus)
-      showMessage(if (newStatus) "Müşteri arşivlendi." else "Müşteri arşivden çıkarıldı.")
+      showMessage(if (newStatus) "Müşteri arşive kaldırıldı." else "Müşteri arşivden çıkarıldı.")
     }
   }
 
   fun deleteCustomer(customer: Customer) {
     viewModelScope.launch {
+      dismissDialog()
+      if (currentScreen.value is Screen.CustomerDetail) navigateBack()
       repository.deleteCustomer(customer)
       showMessage("${customer.name} ve tüm hareketleri silindi.")
-      dismissDialog()
-      if (currentScreen.value is Screen.CustomerDetail) {
-        navigateBack()
-      }
     }
   }
 
-  // Debt Actions
+  // ---------------- Borç işlemleri ----------------
+
   fun saveDebt(
     customerId: Long,
     amount: Double,
+    date: Long,
     dueDate: Long?,
     description: String,
     category: String,
-    existingId: Long = 0,
-    onSuccess: () -> Unit
+    existingId: Long = 0
   ) {
-    if (amount <= 0) {
-      showMessage("Borç tutarı 0'dan büyük olmalıdır.")
-      return
-    }
+    if (customerId <= 0) { showMessage("Lütfen müşteri seçin."); return }
     viewModelScope.launch {
       val debt = Debt(
-        id = existingId,
-        customerId = customerId,
-        amount = amount,
-        dueDate = dueDate,
-        description = description.trim(),
-        category = category
+        id = existingId, customerId = customerId, amount = amount, date = date,
+        dueDate = dueDate, description = description.trim(), category = category
       )
-      if (existingId == 0L) {
-        repository.insertDebt(debt)
-        showMessage("Yeni borç kaydı eklendi.")
-      } else {
-        repository.updateDebt(debt)
-        showMessage("Borç kaydı güncellendi.")
+      val result = if (existingId == 0L) repository.insertDebt(debt) else repository.updateDebt(debt)
+      when (result) {
+        is SaveResult.Saved -> {
+          dismissDialog()
+          showMessage(if (existingId == 0L) "Borç kaydedildi: ${Formatters.formatCurrency(amount)}" else "Borç kaydı güncellendi.")
+        }
+        is SaveResult.Failed -> showMessage(result.message)
+        is SaveResult.NeedsConfirmation -> showMessage(result.reason)
       }
-      dismissDialog()
-      onSuccess()
     }
   }
 
-  fun deleteDebt(debt: Debt) {
+  fun editDebt(id: Long) {
     viewModelScope.launch {
-      repository.deleteDebt(debt)
-      showMessage("Borç kaydı silindi.")
-      dismissDialog()
+      repository.getDebt(id)?.let { openDialog(DialogState.AddDebt(it.customerId, existing = it)) }
     }
   }
 
-  // Collection Actions
+  fun deleteDebt(id: Long) {
+    viewModelScope.launch {
+      repository.setDebtDeleted(id, true)
+      dismissDialog()
+      showUndo("Borç kaydı silindi.") {
+        viewModelScope.launch { repository.setDebtDeleted(id, false) }
+      }
+    }
+  }
+
+  // ---------------- Tahsilat işlemleri ----------------
+
   fun saveCollection(
     customerId: Long,
     amount: Double,
+    date: Long,
     paymentMethod: PaymentMethod,
     notes: String,
     existingId: Long = 0,
-    onSuccess: () -> Unit
+    force: Boolean = false
   ) {
-    if (amount <= 0) {
-      showMessage("Tahsilat tutarı 0'dan büyük olmalıdır.")
-      return
-    }
+    if (customerId <= 0) { showMessage("Lütfen müşteri seçin."); return }
     viewModelScope.launch {
-      val coll = CollectionRecord(
-        id = existingId,
-        customerId = customerId,
-        amount = amount,
-        paymentMethod = paymentMethod,
-        notes = notes.trim()
+      val record = CollectionRecord(
+        id = existingId, customerId = customerId, amount = amount, date = date,
+        paymentMethod = paymentMethod, notes = notes.trim()
       )
-      if (existingId == 0L) {
-        val result = repository.insertCollection(coll)
-        result.onSuccess {
-          showMessage("Tahsilat başarıyla kaydedildi.")
+      val result = if (existingId == 0L) repository.insertCollection(record, force) else repository.updateCollection(record)
+      when (result) {
+        is SaveResult.Saved -> {
           dismissDialog()
-          onSuccess()
-        }.onFailure { err ->
-          showMessage(err.message ?: "Tahsilat kaydedilemedi.")
+          showMessage(if (existingId == 0L) "Tahsilat kaydedildi: ${Formatters.formatCurrency(amount)}" else "Tahsilat güncellendi.")
         }
-      } else {
-        repository.updateCollection(coll)
-        showMessage("Tahsilat güncellendi.")
-        dismissDialog()
-        onSuccess()
+        is SaveResult.Failed -> showMessage(result.message)
+        is SaveResult.NeedsConfirmation -> openDialog(
+          DialogState.ConfirmAction(
+            title = "Kontrol edin",
+            message = result.reason,
+            confirmLabel = "Yine de kaydet",
+            onConfirm = { saveCollection(customerId, amount, date, paymentMethod, notes, existingId, force = true) }
+          )
+        )
       }
     }
   }
 
-  fun deleteCollection(collection: CollectionRecord) {
+  fun editCollection(id: Long) {
     viewModelScope.launch {
-      repository.deleteCollection(collection)
-      showMessage("Tahsilat kaydı silindi.")
-      dismissDialog()
+      repository.getCollection(id)?.let {
+        openDialog(DialogState.AddCollection(preselectedCustomerId = it.customerId, existing = it))
+      }
     }
   }
 
-  // WhatsApp Templates
+  fun deleteCollection(id: Long) {
+    viewModelScope.launch {
+      repository.setCollectionDeleted(id, true)
+      dismissDialog()
+      showUndo("Tahsilat kaydı silindi.") {
+        viewModelScope.launch { repository.setCollectionDeleted(id, false) }
+      }
+    }
+  }
+
+  // ---------------- WhatsApp şablonları ----------------
+
   fun updateTemplate(template: WhatsAppTemplate) {
+    if (template.templateText.isBlank()) { showMessage("Mesaj metni boş olamaz."); return }
     viewModelScope.launch {
-      repository.updateTemplate(template)
-      showMessage("Şablon güncellendi.")
+      repository.updateTemplate(template.copy(isCustom = true))
+      showMessage("Şablon kaydedildi.")
       dismissDialog()
     }
   }
 
-  // CSV Import & Export
+  fun resetTemplates() {
+    viewModelScope.launch {
+      repository.resetTemplates()
+      dismissDialog()
+      showMessage("Şablonlar varsayılana döndürüldü.")
+    }
+  }
+
+  // ---------------- CSV ----------------
+
   fun parseAndPreviewCsv(csvContent: String) {
-    val result = CsvHelper.parseCustomerCsv(csvContent)
-    if (result.validCustomers.isEmpty() && result.errors.isNotEmpty()) {
-      showMessage("CSV okunamadı: ${result.errors.first()}")
-    } else {
-      openDialog(DialogState.CsvImportPreview(result.validCustomers, result.errors))
+    viewModelScope.launch {
+      val result = CsvHelper.parseCustomerCsv(csvContent, repository.existingPhones())
+      if (result.validCustomers.isEmpty() && result.skippedDuplicates.isEmpty() && result.errors.isNotEmpty()) {
+        showMessage("CSV okunamadı: ${result.errors.first()}")
+      } else {
+        openDialog(DialogState.CsvImportPreview(result.validCustomers, result.errors, result.skippedDuplicates))
+      }
     }
   }
 
   fun executeCsvImport(validCustomers: List<Customer>) {
     viewModelScope.launch {
       val tier = profile.value.activeTier
-      val currentTotal = dashboardSummary.value.activeCustomerCount
-      val availableSlots = tier.maxCustomerLimit - currentTotal
-
-      val toImport = if (validCustomers.size > availableSlots && tier.maxCustomerLimit != Int.MAX_VALUE) {
-        validCustomers.take(maxOf(0, availableSlots))
-      } else {
-        validCustomers
-      }
-
-      repository.insertCustomers(toImport)
+      val available = (tier.maxCustomerLimit - repository.countRealCustomers()).coerceAtLeast(0)
+      val toImport = validCustomers.take(available)
+      if (toImport.isNotEmpty()) repository.insertCustomers(toImport)
       val skipped = validCustomers.size - toImport.size
-      if (skipped > 0) {
-        showMessage("${toImport.size} müşteri içe aktarıldı. Paket limiti nedeniyle $skipped kayıt aktarılamadı.")
-      } else {
-        showMessage("${toImport.size} müşteri başarıyla içe aktarıldı.")
-      }
       dismissDialog()
+      showMessage(
+        if (skipped > 0) "${toImport.size} müşteri eklendi. Paket limiti nedeniyle $skipped kayıt eklenemedi."
+        else "${toImport.size} müşteri içe aktarıldı."
+      )
     }
   }
 
-  // Sample data & reset
+  fun exportCustomersCsv(): String = CsvHelper.exportCustomersToCsv(
+    allCustomersWithBalance.value.filter { !it.customer.isDemo }
+  )
+
+  fun exportTransactionsCsv(): String {
+    val snap = ledger.value
+    val real = snap.customers.filter { !it.customer.isDemo }.associate { it.customer.id to it.customer }
+    return CsvHelper.exportAllTransactionsToCsv(
+      real,
+      snap.debtStatuses.filter { it.debt.customerId in real },
+      snap.collections.filter { it.customerId in real }
+    )
+  }
+
+  // ---------------- Yedekleme ----------------
+
+  suspend fun buildBackupJson(): String =
+    BackupManager.toJson(repository.snapshot().copy(profile = profile.value))
+
+  fun confirmRestore(json: String) {
+    val snapshot = try {
+      BackupManager.fromJson(json)
+    } catch (e: Exception) {
+      showMessage(e.message ?: "Yedek dosyası okunamadı.")
+      return
+    }
+    openDialog(
+      DialogState.ConfirmAction(
+        title = "Yedekten geri yükle",
+        message = "Yedek tarihi: ${Formatters.formatDateTime(snapshot.createdAt)}\n" +
+          "${snapshot.customers.size} müşteri, ${snapshot.debts.count { !it.isDeleted }} borç, " +
+          "${snapshot.collections.count { !it.isDeleted }} tahsilat.\n\n" +
+          "Telefondaki mevcut kayıtların YERİNE yedektekiler konacak. Devam edilsin mi?",
+        confirmLabel = "Geri yükle",
+        isDestructive = true,
+        onConfirm = {
+          viewModelScope.launch {
+            try {
+              repository.restore(snapshot)
+              snapshot.profile?.let { settings.restore(it) }
+              dismissDialog()
+              showMessage("Yedek geri yüklendi: ${snapshot.customers.size} müşteri.")
+            } catch (e: Exception) {
+              dismissDialog()
+              showMessage("Geri yükleme başarısız: ${e.message}")
+            }
+          }
+        }
+      )
+    )
+  }
+
+  // ---------------- Örnek veri ve sıfırlama ----------------
+
   fun loadDemoData() {
     viewModelScope.launch {
-      repository.loadSampleData()
-      showMessage("Örnek esnaf verileri başarıyla yüklendi!")
+      if (repository.loadSampleData()) {
+        showMessage("Örnek veriler yüklendi. İstediğinizde Ayarlar'dan silebilirsiniz.")
+      } else {
+        showMessage("Gerçek müşteri kaydınız olduğu için örnek veri yüklenmedi.")
+      }
+    }
+  }
+
+  fun clearDemoData() {
+    viewModelScope.launch {
+      repository.clearDemoData()
+      showMessage("Örnek veriler silindi.")
     }
   }
 
   fun clearAllData() {
     viewModelScope.launch {
       repository.clearAllData()
-      showMessage("Tüm kayıtlar silindi ve sıfırlandı.")
       dismissDialog()
+      navigate(Screen.Dashboard)
+      showMessage("Tüm müşteri ve hareket kayıtları silindi.")
     }
   }
 }

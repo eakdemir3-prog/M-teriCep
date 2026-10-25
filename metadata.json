@@ -2,5 +2,5 @@
   "name": "MüşteriCep",
   "description": "Esnaf ve küçük işletmeler için müşteri, borç ve tahsilat takip uygulaması.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

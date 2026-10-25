@@ -22,6 +22,9 @@ interface TemplateDao {
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun insertAll(templates: List<WhatsAppTemplate>)
 
+  @Query("SELECT * FROM whatsapp_templates ORDER BY id ASC")
+  suspend fun getAllOnce(): List<WhatsAppTemplate>
+
   @Update
   suspend fun updateTemplate(template: WhatsAppTemplate)
 

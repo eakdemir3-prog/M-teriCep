@@ -116,7 +116,7 @@ fun MusteriCepBottomBar(
       FloatingActionButton(
         onClick = onQuickActionClick,
         containerColor = EmeraldPrimary,
-        contentColor = androidx.compose.ui.graphics.Color.White,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
         shape = CircleShape,
         modifier = Modifier

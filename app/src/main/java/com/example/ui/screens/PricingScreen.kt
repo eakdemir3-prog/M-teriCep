@@ -62,7 +62,8 @@ fun PricingScreen(
   modifier: Modifier = Modifier
 ) {
   val profile by viewModel.profile.collectAsState()
-  val summary by viewModel.dashboardSummary.collectAsState()
+  val allCustomers by viewModel.allCustomersWithBalance.collectAsState()
+  val realCount = allCustomers.count { !it.customer.isDemo }
 
   BackHandler {
     viewModel.navigateBack()
@@ -91,12 +92,12 @@ fun PricingScreen(
       item {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-          text = "İşletmenize Uygun Planı Seçin",
+          text = "Paketler",
           style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
           color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-          text = "Şu anda kayıtlı: ${summary.activeCustomerCount} / ${if (profile.activeTier.maxCustomerLimit == Int.MAX_VALUE) "Sınırsız" else profile.activeTier.maxCustomerLimit} Müşteri",
+          text = "Kayıtlı müşteri (arşiv dahil): $realCount / ${if (profile.activeTier.maxCustomerLimit == Int.MAX_VALUE) "Sınırsız" else profile.activeTier.maxCustomerLimit} Müşteri",
           style = MaterialTheme.typography.bodyMedium,
           color = Slate500
         )
@@ -114,13 +115,13 @@ fun PricingScreen(
             Spacer(modifier = Modifier.width(10.dp))
             Column {
               Text(
-                "Şeffaf Faturalandırma Kuralı",
+                "Satın alma yakında",
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
                 color = NavyPrimary
               )
               Text(
-                "Google Play Billing entegrasyonu hazırlık aşamasındadır. Paket limitleri ve fiyatları tek noktadan dinamik olarak yönetilebilir şekilde tanımlanmıştır.",
+                "Ücretli paketler Google Play üzerinden satılacak. Bu sürümde ödeme alınmaz ve paket değiştirilemez; Ücretsiz paket tüm temel özellikleri içerir.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Slate500
               )
@@ -205,16 +206,16 @@ fun PricingScreen(
 
             if (!isCurrent) {
               Button(
-                onClick = { viewModel.setActiveTier(tier) },
+                onClick = { viewModel.requestUpgrade(tier) },
                 colors = ButtonDefaults.buttonColors(
-                  containerColor = if (isPro) NavyPrimary else MaterialTheme.colorScheme.surfaceVariant
+                  containerColor = if (isPro) NavyPrimary else MaterialTheme.colorScheme.surfaceVariant,
+                  contentColor = if (isPro) com.example.ui.theme.LocalAppPalette.current.onInk else MaterialTheme.colorScheme.onSurface
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
               ) {
                 Text(
-                  text = if (isPro) "Pro'ya Geç (Test Modu)" else "${tier.title} Seç",
-                  color = if (isPro) Color.White else MaterialTheme.colorScheme.onSurface,
+                  text = if (tier.priceMonthly == 0) "${tier.title} paket" else "${tier.title} • Yakında",
                   fontWeight = FontWeight.Bold
                 )
               }

@@ -1,346 +1,306 @@
 package com.example.data
 
+import androidx.room.withTransaction
 import com.example.model.CollectionRecord
 import com.example.model.Customer
 import com.example.model.CustomerWithBalance
 import com.example.model.Debt
-import com.example.model.DebtStatus
+import com.example.model.DebtWithStatus
 import com.example.model.DefaultTemplates
 import com.example.model.PaymentMethod
 import com.example.model.TransactionItem
 import com.example.model.WhatsAppTemplate
+import com.example.util.BackupSnapshot
+import com.example.util.Formatters
+import com.example.util.Ledger
+import com.example.util.Money
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import java.util.Calendar
+
+/** Kayıt sonuçları: başarı, kullanıcı onayı gereken uyarı veya hata. */
+sealed class SaveResult {
+  data class Saved(val id: Long) : SaveResult()
+  data class NeedsConfirmation(val reason: String) : SaveResult()
+  data class Failed(val message: String) : SaveResult()
+}
+
+/** Tüm müşterilerin bakiyeleri ve tüm borçların güncel durumları (tek hesaplamada). */
+data class LedgerSnapshot(
+  val customers: List<CustomerWithBalance> = emptyList(),
+  val debtStatuses: List<DebtWithStatus> = emptyList(),
+  val collections: List<CollectionRecord> = emptyList()
+)
 
 class MusteriCepRepository(
-  private val customerDao: CustomerDao,
-  private val debtDao: DebtDao,
-  private val collectionDao: CollectionDao,
-  private val templateDao: TemplateDao
+  private val db: AppDatabase
 ) {
+  private val customerDao = db.customerDao()
+  private val debtDao = db.debtDao()
+  private val collectionDao = db.collectionDao()
+  private val templateDao = db.templateDao()
 
   val allCustomers: Flow<List<Customer>> = customerDao.getAllCustomers()
-  val activeCustomers: Flow<List<Customer>> = customerDao.getActiveCustomers()
   val allDebts: Flow<List<Debt>> = debtDao.getAllDebts()
   val allCollections: Flow<List<CollectionRecord>> = collectionDao.getAllCollections()
   val allTemplates: Flow<List<WhatsAppTemplate>> = templateDao.getAllTemplates()
 
-  // Combined real-time Customer with Balance calculations
-  val customersWithBalances: Flow<List<CustomerWithBalance>> = combine(
-    allCustomers,
-    allDebts,
-    allCollections
-  ) { customers, debts, collections ->
-    val now = System.currentTimeMillis()
-    customers.map { customer ->
-      val customerDebts = debts.filter { it.customerId == customer.id }
-      val customerCollections = collections.filter { it.customerId == customer.id }
-
-      val totalDebt = customerDebts.sumOf { it.amount }
-      val totalPaid = customerCollections.sumOf { it.amount }
-      val balance = totalDebt - totalPaid
-
-      val overdueCount = customerDebts.count { it.dueDate != null && it.dueDate < now && balance > 0 }
-
-      val lastDebtDate = customerDebts.maxOfOrNull { it.date }
-      val lastCollectionDate = customerCollections.maxOfOrNull { it.date }
-      val lastActivity = listOfNotNull(lastDebtDate, lastCollectionDate).maxOrNull()
-
-      CustomerWithBalance(
-        customer = customer,
-        totalDebt = totalDebt,
-        totalPaid = totalPaid,
-        remainingBalance = if (balance < 0.001 && balance > -0.001) 0.0 else balance,
-        overdueDebtCount = overdueCount,
-        lastTransactionDate = lastActivity
-      )
-    }
+  val ledger: Flow<LedgerSnapshot> = combine(allCustomers, allDebts, allCollections) { customers, debts, collections ->
+    val (balances, statuses) = Ledger.buildAll(customers, debts, collections)
+    LedgerSnapshot(balances, statuses, collections)
   }
 
+  val customersWithBalances: Flow<List<CustomerWithBalance>> = ledger.map { it.customers }
+
+  // ---------------- Müşteri ----------------
+
+  suspend fun getCustomer(id: Long): Customer? = customerDao.getCustomerById(id)
+
+  suspend fun countRealCustomers(): Int = customerDao.countRealCustomers()
+
+  suspend fun hasDemoData(): Boolean = customerDao.countDemoCustomers() > 0
+
+  /** Aynı numara başka müşteride kayıtlı mı? (Numara biçimi farklı olsa da yakalar.) */
   suspend fun findCustomerByPhone(phone: String, excludeId: Long = 0): Customer? {
-    return customerDao.findCustomerByPhone(phone, excludeId)
-  }
-
-  suspend fun insertCustomer(customer: Customer): Long {
-    return customerDao.insertCustomer(customer)
-  }
-
-  suspend fun insertCustomers(customers: List<Customer>): List<Long> {
-    return customerDao.insertAll(customers)
-  }
-
-  suspend fun updateCustomer(customer: Customer) {
-    customerDao.updateCustomer(customer)
-  }
-
-  suspend fun deleteCustomer(customer: Customer) {
-    customerDao.deleteCustomer(customer)
-  }
-
-  suspend fun setCustomerArchived(id: Long, isArchived: Boolean) {
-    customerDao.setArchived(id, isArchived)
-  }
-
-  // Debt operations
-  suspend fun insertDebt(debt: Debt): Long {
-    require(debt.amount > 0) { "Borç tutarı 0'dan büyük olmalıdır." }
-    return debtDao.insertDebt(debt)
-  }
-
-  suspend fun updateDebt(debt: Debt) {
-    debtDao.updateDebt(debt)
-  }
-
-  suspend fun deleteDebt(debt: Debt) {
-    debtDao.deleteDebt(debt)
-  }
-
-  // Collection operations with duplicate checking
-  suspend fun insertCollection(collection: CollectionRecord): Result<Long> {
-    if (collection.amount <= 0) {
-      return Result.failure(IllegalArgumentException("Tahsilat tutarı 0'dan büyük olmalıdır."))
+    val clean = Formatters.cleanPhoneNumber(phone)
+    if (clean.length < 10) return null
+    return customerDao.getAllCustomersOnce().firstOrNull {
+      it.id != excludeId && Formatters.cleanPhoneNumber(it.phone) == clean
     }
+  }
 
-    // Check duplicate in last 60 seconds
-    val sixtySecondsAgo = System.currentTimeMillis() - 60_000
-    val recent = collectionDao.findRecentDuplicate(
-      customerId = collection.customerId,
-      amount = collection.amount,
-      afterTimestamp = sixtySecondsAgo
+  suspend fun insertCustomer(customer: Customer): Long = customerDao.insertCustomer(customer.copy(id = 0))
+
+  suspend fun updateCustomer(customer: Customer) = customerDao.updateCustomer(customer)
+
+  suspend fun deleteCustomer(customer: Customer) = customerDao.deleteCustomer(customer)
+
+  suspend fun setCustomerArchived(id: Long, isArchived: Boolean) = customerDao.setArchived(id, isArchived)
+
+  // ---------------- Borç ----------------
+
+  suspend fun insertDebt(debt: Debt): SaveResult {
+    if (Money.toCents(debt.amount) <= 0) return SaveResult.Failed("Borç tutarı 0'dan büyük olmalıdır.")
+    val now = System.currentTimeMillis()
+    val id = debtDao.insertDebt(debt.copy(id = 0, amount = Money.round(debt.amount), createdAt = now, updatedAt = now))
+    return SaveResult.Saved(id)
+  }
+
+  /** Düzenlemede ilk oluşturma zamanı korunur, sadece değişen alanlar güncellenir. */
+  suspend fun updateDebt(debt: Debt): SaveResult {
+    if (Money.toCents(debt.amount) <= 0) return SaveResult.Failed("Borç tutarı 0'dan büyük olmalıdır.")
+    val existing = debtDao.getById(debt.id) ?: return SaveResult.Failed("Kayıt bulunamadı.")
+    debtDao.updateDebt(
+      existing.copy(
+        amount = Money.round(debt.amount),
+        date = debt.date,
+        dueDate = debt.dueDate,
+        description = debt.description,
+        category = debt.category,
+        updatedAt = System.currentTimeMillis()
+      )
     )
-    if (recent.isNotEmpty()) {
-      return Result.failure(IllegalStateException("Bu müşteri için aynı tutarda tahsilat son 1 dakika içinde kaydedildi. Çift kaydı önlemek için kontrol ediniz."))
+    return SaveResult.Saved(debt.id)
+  }
+
+  suspend fun setDebtDeleted(id: Long, deleted: Boolean) = debtDao.setDeleted(id, deleted, System.currentTimeMillis())
+
+  // ---------------- Tahsilat ----------------
+
+  /**
+   * Tahsilat kaydı. [force] false ise iki kontrol yapılır ve kullanıcıya sorulur:
+   * 1) Son 2 dakikada aynı müşteriye aynı tutar girildiyse (çift kayıt şüphesi)
+   * 2) Tutar kalan borçtan fazlaysa (müşteri alacaklı duruma düşer)
+   */
+  suspend fun insertCollection(collection: CollectionRecord, force: Boolean = false): SaveResult {
+    val cents = Money.toCents(collection.amount)
+    if (cents <= 0) return SaveResult.Failed("Tahsilat tutarı 0'dan büyük olmalıdır.")
+
+    if (!force) {
+      val recent = collectionDao.findRecentDuplicate(
+        customerId = collection.customerId,
+        amount = Money.round(collection.amount),
+        createdAfter = System.currentTimeMillis() - 2 * 60_000
+      )
+      if (recent.isNotEmpty()) {
+        return SaveResult.NeedsConfirmation(
+          "Bu müşteriye aynı tutarda (${Formatters.formatCurrency(collection.amount)}) bir tahsilat az önce kaydedildi. " +
+            "Aynı ödemeyi iki kez girmediğinizden emin misiniz?"
+        )
+      }
+      val remaining = remainingFor(collection.customerId)
+      if (cents > Money.toCents(remaining)) {
+        val extra = Money.fromCents(cents - Money.toCents(maxOf(0.0, remaining)))
+        return SaveResult.NeedsConfirmation(
+          "Tahsilat, kalan borçtan ${Formatters.formatCurrency(extra)} fazla. " +
+            "Fark müşterinin alacağı (avans) olarak görünecek. Devam edilsin mi?"
+        )
+      }
     }
 
-    val id = collectionDao.insertCollection(collection)
-    return Result.success(id)
+    val now = System.currentTimeMillis()
+    val id = collectionDao.insertCollection(
+      collection.copy(id = 0, amount = Money.round(collection.amount), createdAt = now, updatedAt = now)
+    )
+    return SaveResult.Saved(id)
   }
 
-  suspend fun updateCollection(collection: CollectionRecord) {
-    collectionDao.updateCollection(collection)
+  suspend fun updateCollection(collection: CollectionRecord): SaveResult {
+    if (Money.toCents(collection.amount) <= 0) return SaveResult.Failed("Tahsilat tutarı 0'dan büyük olmalıdır.")
+    val existing = collectionDao.getById(collection.id) ?: return SaveResult.Failed("Kayıt bulunamadı.")
+    collectionDao.updateCollection(
+      existing.copy(
+        amount = Money.round(collection.amount),
+        date = collection.date,
+        paymentMethod = collection.paymentMethod,
+        notes = collection.notes,
+        updatedAt = System.currentTimeMillis()
+      )
+    )
+    return SaveResult.Saved(collection.id)
   }
 
-  suspend fun deleteCollection(collection: CollectionRecord) {
-    collectionDao.deleteCollection(collection)
+  suspend fun setCollectionDeleted(id: Long, deleted: Boolean) =
+    collectionDao.setDeleted(id, deleted, System.currentTimeMillis())
+
+  private suspend fun remainingFor(customerId: Long): Double {
+    val debts = debtDao.getAllDebtsOnce().filter { it.customerId == customerId }
+    val colls = collectionDao.getAllCollectionsOnce().filter { it.customerId == customerId }
+    return Money.fromCents(debts.sumOf { Money.toCents(it.amount) } - colls.sumOf { Money.toCents(it.amount) })
   }
 
-  // Timeline history for customer
+  // ---------------- Müşteri hareket geçmişi ----------------
+
   fun getTransactionsForCustomer(customerId: Long): Flow<List<TransactionItem>> {
     return combine(
       debtDao.getDebtsForCustomer(customerId),
       collectionDao.getCollectionsForCustomer(customerId)
     ) { debts, collections ->
-      val now = System.currentTimeMillis()
+      val statuses = Ledger.allocate(debts, collections)
       val items = mutableListOf<TransactionItem>()
-
-      // Total collected amount to allocate toward debts
-      var runningPaid = collections.sumOf { it.amount }
-
-      // Map debts with calculated status
-      debts.forEach { debt ->
-        val status = when {
-          runningPaid >= debt.amount -> {
-            runningPaid -= debt.amount
-            DebtStatus.PAID
-          }
-          runningPaid > 0 -> {
-            runningPaid = 0.0
-            DebtStatus.PARTIALLY_PAID
-          }
-          debt.dueDate != null && debt.dueDate < now -> DebtStatus.OVERDUE
-          else -> DebtStatus.UNPAID
-        }
-
-        items.add(
-          TransactionItem.DebtItem(
-            id = debt.id,
-            customerId = debt.customerId,
-            amount = debt.amount,
-            date = debt.date,
-            notesOrDesc = debt.description,
-            dueDate = debt.dueDate,
-            category = debt.category,
-            status = status
-          )
+      statuses.forEach { s ->
+        items += TransactionItem.DebtItem(
+          id = s.debt.id,
+          customerId = s.debt.customerId,
+          amount = s.debt.amount,
+          date = s.debt.date,
+          notesOrDesc = s.debt.description,
+          dueDate = s.debt.dueDate,
+          category = s.debt.category,
+          status = s.status,
+          remainingAmount = s.remainingAmount
         )
       }
-
-      collections.forEach { coll ->
-        items.add(
-          TransactionItem.CollectionItem(
-            id = coll.id,
-            customerId = coll.customerId,
-            amount = coll.amount,
-            date = coll.date,
-            notesOrDesc = coll.notes,
-            paymentMethod = coll.paymentMethod,
-            debtId = coll.debtId
-          )
+      collections.forEach { c ->
+        items += TransactionItem.CollectionItem(
+          id = c.id,
+          customerId = c.customerId,
+          amount = c.amount,
+          date = c.date,
+          notesOrDesc = c.notes,
+          paymentMethod = c.paymentMethod,
+          debtId = c.debtId
         )
       }
-
-      // Sort chronological descending (newest first)
-      items.sortedByDescending { it.date }
+      items.sortedWith(compareByDescending<TransactionItem> { it.date }.thenByDescending { it.id })
     }
   }
 
-  suspend fun updateTemplate(template: WhatsAppTemplate) {
-    templateDao.updateTemplate(template)
-  }
+  suspend fun getDebt(id: Long): Debt? = debtDao.getById(id)
+  suspend fun getCollection(id: Long): CollectionRecord? = collectionDao.getById(id)
+
+  // ---------------- Şablonlar ----------------
+
+  suspend fun updateTemplate(template: WhatsAppTemplate) = templateDao.updateTemplate(template)
 
   suspend fun ensureDefaultTemplates() {
-    if (templateDao.count() == 0) {
+    if (templateDao.count() == 0) templateDao.insertAll(DefaultTemplates.getDefaults())
+  }
+
+  suspend fun resetTemplates() {
+    db.withTransaction {
+      templateDao.clearAll()
       templateDao.insertAll(DefaultTemplates.getDefaults())
     }
   }
 
-  // Demo Sample Data for instant onboarding & testing
-  suspend fun loadSampleData() {
-    // Clear first to ensure pristine sample state
-    customerDao.clearAll()
-    debtDao.clearAll()
-    collectionDao.clearAll()
+  // ---------------- CSV içe aktarma ----------------
 
-    val cal = Calendar.getInstance()
-    val now = cal.timeInMillis
+  /** Var olan müşterilerle aynı telefona sahip satırları ayıklar. */
+  suspend fun existingPhones(): Set<String> =
+    customerDao.getAllCustomersOnce().map { Formatters.cleanPhoneNumber(it.phone) }.filter { it.length >= 10 }.toSet()
 
-    // 1. Örnek Müşteri 1: Ahmet Yılmaz (Borçlu, Vadesi Geçmiş)
-    val c1Id = customerDao.insertCustomer(
-      Customer(
-        name = "Ahmet Yılmaz (Yılmaz Market)",
-        phone = "0532 555 10 20",
-        email = "ahmet@yilmazmarket.com",
-        address = "İstiklal Cad. No: 42, Beyoğlu/İstanbul",
-        notes = "Haftalık toptan un ve şeker alımı yapar. Cuma günleri öder."
-      )
-    )
+  suspend fun insertCustomers(customers: List<Customer>): List<Long> =
+    customerDao.insertAll(customers.map { it.copy(id = 0) })
 
-    // 2. Örnek Müşteri 2: Mehmet Demir (Kısmen Ödemiş)
-    val c2Id = customerDao.insertCustomer(
-      Customer(
-        name = "Mehmet Demir (Demir Oto Servis)",
-        phone = "0543 444 30 40",
-        email = "demir@otoservis.com",
-        address = "Sanayi Sitesi 3. Blok No: 12, Ümraniye/İstanbul",
-        notes = "Yedek parça alımları. Havale ile çalışır."
-      )
-    )
+  // ---------------- Yedekleme ----------------
 
-    // 3. Örnek Müşteri 3: Ayşe Kaya (Bakiyesi Sıfır, Düzenli Müşteri)
-    val c3Id = customerDao.insertCustomer(
-      Customer(
-        name = "Ayşe Kaya (Kaya Butik)",
-        phone = "0505 333 50 60",
-        email = "ayse@kayabutik.com",
-        address = "Bağdat Caddesi No: 110, Kadıköy/İstanbul",
-        notes = "Kredi kartı ile düzenli ödeme yapar."
-      )
-    )
+  suspend fun snapshot(): BackupSnapshot = BackupSnapshot(
+    customers = customerDao.getAllCustomersOnce().filter { !it.isDemo },
+    debts = debtDao.getEverything(),
+    collections = collectionDao.getEverything(),
+    templates = templateDao.getAllOnce()
+  )
 
-    // 4. Örnek Müşteri 4: Canan Öztürk (Yeni Müşteri)
-    val c4Id = customerDao.insertCustomer(
-      Customer(
-        name = "Canan Öztürk (Mimarlık Ofisi)",
-        phone = "0530 222 70 80",
-        email = "canan@ozturkmimarlik.com",
-        address = "Levent Loft D: 8, Şişli/İstanbul",
-        notes = "Ofis tadilat malzemeleri temin edildi."
-      )
-    )
-
-    // Debts & Collections for c1 (Ahmet Yılmaz)
-    val pastDueDate = now - (5 * 86_400_000L) // 5 days ago
-    debtDao.insertDebt(
-      Debt(
-        customerId = c1Id,
-        amount = 4500.0,
-        date = now - (15 * 86_400_000L),
-        dueDate = pastDueDate,
-        description = "5 Çuval Un ve 2 Koli Şeker",
-        category = "Mal / Toptan Alım"
-      )
-    )
-    debtDao.insertDebt(
-      Debt(
-        customerId = c1Id,
-        amount = 1800.0,
-        date = now - (2 * 86_400_000L),
-        dueDate = now + (7 * 86_400_000L),
-        description = "Koli Yağ ve Bakliyat",
-        category = "Ürün Satışı"
-      )
-    )
-    collectionDao.insertCollection(
-      CollectionRecord(
-        customerId = c1Id,
-        amount = 2000.0,
-        date = now - (3 * 86_400_000L),
-        paymentMethod = PaymentMethod.CASH,
-        notes = "Dükkanda elden nakit alındı."
-      )
-    )
-
-    // Debts & Collections for c2 (Mehmet Demir)
-    val futureDueDate = now + (10 * 86_400_000L)
-    debtDao.insertDebt(
-      Debt(
-        customerId = c2Id,
-        amount = 7500.0,
-        date = now - (7 * 86_400_000L),
-        dueDate = futureDueDate,
-        description = "Motor Yağları ve Filtre Seti",
-        category = "Ürün Satışı"
-      )
-    )
-    collectionDao.insertCollection(
-      CollectionRecord(
-        customerId = c2Id,
-        amount = 4000.0,
-        date = now - (1 * 86_400_000L),
-        paymentMethod = PaymentMethod.BANK_TRANSFER,
-        notes = "İş Bankası hesabına EFT geldi."
-      )
-    )
-
-    // Debts & Collections for c3 (Ayşe Kaya - Tamamen Kapalı)
-    debtDao.insertDebt(
-      Debt(
-        customerId = c3Id,
-        amount = 3200.0,
-        date = now - (20 * 86_400_000L),
-        dueDate = now - (10 * 86_400_000L),
-        description = "Yazlık Kumaş Siparişi",
-        category = "Ürün Satışı"
-      )
-    )
-    collectionDao.insertCollection(
-      CollectionRecord(
-        customerId = c3Id,
-        amount = 3200.0,
-        date = now - (9 * 86_400_000L),
-        paymentMethod = PaymentMethod.CREDIT_CARD,
-        notes = "POS cihazı tek çekim."
-      )
-    )
-
-    // Debts for c4 (Canan Öztürk - Yeni Borç)
-    debtDao.insertDebt(
-      Debt(
-        customerId = c4Id,
-        amount = 12500.0,
-        date = now - (1 * 86_400_000L),
-        dueDate = now + (14 * 86_400_000L),
-        description = "Aydınlatma Armatürleri ve Kablolama",
-        category = "Hizmet & İşçilik"
-      )
-    )
+  /** Yedekten geri yükleme: mevcut tüm kayıtların yerine yedektekiler konur (tek işlemde). */
+  suspend fun restore(snapshot: BackupSnapshot) {
+    db.withTransaction {
+      collectionDao.clearAll()
+      debtDao.clearAll()
+      customerDao.clearAll()
+      templateDao.clearAll()
+      customerDao.insertAll(snapshot.customers)
+      val ids = snapshot.customers.map { it.id }.toSet()
+      debtDao.insertAll(snapshot.debts.filter { it.customerId in ids })
+      collectionDao.insertAll(snapshot.collections.filter { it.customerId in ids })
+      if (snapshot.templates.isNotEmpty()) templateDao.insertAll(snapshot.templates)
+      else templateDao.insertAll(DefaultTemplates.getDefaults())
+    }
   }
 
+  // ---------------- Örnek veri ----------------
+
+  /**
+   * Örnek veriler sadece hiç gerçek müşteri yokken yüklenir ve "örnek" olarak işaretlenir.
+   * Gerçek kayıtlar asla silinmez.
+   */
+  suspend fun loadSampleData(): Boolean {
+    if (customerDao.countRealCustomers() > 0) return false
+    db.withTransaction {
+      customerDao.deleteDemoCustomers()
+      val day = 86_400_000L
+      val now = System.currentTimeMillis()
+
+      fun c(name: String, phone: String, email: String, address: String, notes: String) =
+        Customer(name = name, phone = phone, email = email, address = address, notes = notes, isDemo = true)
+
+      val c1 = customerDao.insertCustomer(c("Ahmet Yılmaz (Yılmaz Market)", "0532 555 10 20", "", "Beyoğlu/İstanbul", "Cuma günleri öder."))
+      val c2 = customerDao.insertCustomer(c("Mehmet Demir (Demir Oto Servis)", "0543 444 30 40", "", "Ümraniye/İstanbul", "Havale ile çalışır."))
+      val c3 = customerDao.insertCustomer(c("Ayşe Kaya (Kaya Butik)", "0505 333 50 60", "", "Kadıköy/İstanbul", "Kartla düzenli öder."))
+      val c4 = customerDao.insertCustomer(c("Canan Öztürk (Mimarlık Ofisi)", "0530 222 70 80", "", "Şişli/İstanbul", ""))
+
+      debtDao.insertDebt(Debt(customerId = c1, amount = 4500.0, date = now - 15 * day, dueDate = now - 5 * day, description = "5 çuval un, 2 koli şeker", category = "Mal / Toptan Alım"))
+      debtDao.insertDebt(Debt(customerId = c1, amount = 1800.0, date = now - 2 * day, dueDate = now + 7 * day, description = "Koli yağ ve bakliyat", category = "Ürün Satışı"))
+      collectionDao.insertCollection(CollectionRecord(customerId = c1, amount = 2000.0, date = now - 3 * day, paymentMethod = PaymentMethod.CASH, notes = "Elden nakit", createdAt = now - 3 * day))
+
+      debtDao.insertDebt(Debt(customerId = c2, amount = 7500.0, date = now - 7 * day, dueDate = now + 3 * day, description = "Motor yağı ve filtre seti", category = "Ürün Satışı"))
+      collectionDao.insertCollection(CollectionRecord(customerId = c2, amount = 4000.0, date = now - day, paymentMethod = PaymentMethod.BANK_TRANSFER, notes = "EFT", createdAt = now - day))
+
+      debtDao.insertDebt(Debt(customerId = c3, amount = 3200.0, date = now - 20 * day, dueDate = now - 10 * day, description = "Kumaş siparişi", category = "Ürün Satışı"))
+      collectionDao.insertCollection(CollectionRecord(customerId = c3, amount = 3200.0, date = now - 9 * day, paymentMethod = PaymentMethod.CREDIT_CARD, notes = "POS tek çekim", createdAt = now - 9 * day))
+
+      debtDao.insertDebt(Debt(customerId = c4, amount = 12500.0, date = now - day, dueDate = now + 14 * day, description = "Aydınlatma ve kablolama", category = "Hizmet & İşçilik"))
+    }
+    return true
+  }
+
+  suspend fun clearDemoData() = customerDao.deleteDemoCustomers()
+
   suspend fun clearAllData() {
-    customerDao.clearAll()
-    debtDao.clearAll()
-    collectionDao.clearAll()
+    db.withTransaction {
+      collectionDao.clearAll()
+      debtDao.clearAll()
+      customerDao.clearAll()
+    }
   }
 }

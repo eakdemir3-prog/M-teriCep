@@ -52,6 +52,10 @@ import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.theme.Slate500
 import com.example.util.Formatters
+import com.example.util.Money
+import androidx.compose.foundation.horizontalScroll
+import com.example.ui.theme.moneyStyle
+import androidx.compose.material.icons.filled.Edit
 import com.example.viewmodel.DialogState
 import com.example.viewmodel.MusteriCepViewModel
 
@@ -64,18 +68,28 @@ fun CollectionsScreen(
   val customers by viewModel.allCustomersWithBalance.collectAsState(initial = emptyList())
   var selectedMethodFilter by remember { mutableStateOf<PaymentMethod?>(null) }
 
+  var period by remember { mutableStateOf(CollectionPeriod.MONTH) }
+  val now = System.currentTimeMillis()
+  val periodStart = when (period) {
+    CollectionPeriod.TODAY -> Formatters.startOfDay(now)
+    CollectionPeriod.WEEK -> Formatters.startOfWeek(now)
+    CollectionPeriod.MONTH -> Formatters.startOfMonth(now)
+    CollectionPeriod.ALL -> Long.MIN_VALUE
+  }
+  val inPeriod = collections.filter { it.date >= periodStart }
+
   val filteredCollections = if (selectedMethodFilter == null) {
-    collections
+    inPeriod
   } else {
-    collections.filter { it.paymentMethod == selectedMethodFilter }
+    inPeriod.filter { it.paymentMethod == selectedMethodFilter }
   }
 
-  val totalAmount = filteredCollections.sumOf { it.amount }
+  val totalAmount = Money.sum(filteredCollections.map { it.amount })
 
-  // Method breakdown totals
-  val cashTotal = collections.filter { it.paymentMethod == PaymentMethod.CASH }.sumOf { it.amount }
-  val bankTotal = collections.filter { it.paymentMethod == PaymentMethod.BANK_TRANSFER }.sumOf { it.amount }
-  val cardTotal = collections.filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }.sumOf { it.amount }
+  // Ödeme yöntemine göre dağılım (seçili dönem)
+  val cashTotal = Money.sum(inPeriod.filter { it.paymentMethod == PaymentMethod.CASH }.map { it.amount })
+  val bankTotal = Money.sum(inPeriod.filter { it.paymentMethod == PaymentMethod.BANK_TRANSFER }.map { it.amount })
+  val cardTotal = Money.sum(inPeriod.filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }.map { it.amount })
 
   LazyColumn(
     modifier = modifier
@@ -105,13 +119,26 @@ fun CollectionsScreen(
         modifier = Modifier.fillMaxWidth()
       ) {
         Column(modifier = Modifier.padding(18.dp)) {
-          Text("Toplam Alınan Tahsilat", style = MaterialTheme.typography.labelMedium, color = Slate500)
+          Text("${period.label} alınan tahsilat", style = MaterialTheme.typography.labelMedium, color = Slate500)
           Spacer(modifier = Modifier.height(4.dp))
           Text(
             text = Formatters.formatCurrency(totalAmount),
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+            style = moneyStyle(28),
             color = EmeraldPrimary
           )
+          Spacer(modifier = Modifier.height(10.dp))
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())
+          ) {
+            CollectionPeriod.entries.forEach { p ->
+              FilterChip(
+                selected = period == p,
+                onClick = { period = p },
+                label = { Text(p.label, fontSize = 12.sp) }
+              )
+            }
+          }
 
           Spacer(modifier = Modifier.height(14.dp))
 
@@ -135,11 +162,11 @@ fun CollectionsScreen(
           FilterChip(
             selected = selectedMethodFilter == null,
             onClick = { selectedMethodFilter = null },
-            label = { Text("Tümü (${collections.size})") }
+            label = { Text("Tümü (${inPeriod.size})") }
           )
         }
         items(PaymentMethod.values()) { method ->
-          val count = collections.count { it.paymentMethod == method }
+          val count = inPeriod.count { it.paymentMethod == method }
           FilterChip(
             selected = selectedMethodFilter == method,
             onClick = { selectedMethodFilter = method },
@@ -153,7 +180,7 @@ fun CollectionsScreen(
       item {
         EmptyStateView(
           icon = Icons.Default.MonetizationOn,
-          title = "Tahsilat kaydı bulunmuyor",
+          title = if (collections.isEmpty()) "Henüz tahsilat yok" else "Bu dönemde tahsilat yok",
           description = "Müşterilerinizden ödeme aldığınızda hızlı tahsilat düğmesi ile buraya kaydedebilirsiniz.",
           actionButtonLabel = "Yeni Tahsilat Al",
           onActionClick = { viewModel.openDialog(DialogState.AddCollection()) }
@@ -208,7 +235,7 @@ fun CollectionsScreen(
                 fontSize = 14.sp
               )
               Text(
-                text = "${coll.paymentMethod.label} • ${Formatters.formatDateTime(coll.date)}",
+                text = "${coll.paymentMethod.label} • ${Formatters.formatDate(coll.date)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Slate500
               )
@@ -225,23 +252,27 @@ fun CollectionsScreen(
           Column(horizontalAlignment = Alignment.End) {
             Text(
               text = "+" + Formatters.formatCurrency(coll.amount),
-              fontWeight = FontWeight.ExtraBold,
-              color = EmeraldPrimary,
-              fontSize = 15.sp
+              style = moneyStyle(15),
+              color = EmeraldPrimary
             )
-            IconButton(
-              onClick = {
-                viewModel.openDialog(
-                  DialogState.ConfirmDelete(
-                    title = "Tahsilatı Sil",
-                    message = "${Formatters.formatCurrency(coll.amount)} tutarındaki tahsilatı silmek istediğinize emin misiniz?",
-                    onConfirm = { viewModel.deleteCollection(coll) }
+            Row {
+              IconButton(onClick = { viewModel.editCollection(coll.id) }, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500, modifier = Modifier.size(16.dp))
+              }
+              IconButton(
+                onClick = {
+                  viewModel.openDialog(
+                    DialogState.ConfirmDelete(
+                      title = "Tahsilatı Sil",
+                      message = "${Formatters.formatCurrency(coll.amount)} tutarındaki tahsilat silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
+                      onConfirm = { viewModel.deleteCollection(coll.id) }
+                    )
                   )
-                )
-              },
-              modifier = Modifier.size(28.dp)
-            ) {
-              Icon(Icons.Default.Delete, contentDescription = "Sil", tint = Slate500, modifier = Modifier.size(16.dp))
+                },
+                modifier = Modifier.size(32.dp)
+              ) {
+                Icon(Icons.Default.Delete, contentDescription = "Sil", tint = Slate500, modifier = Modifier.size(16.dp))
+              }
             }
           }
         }
@@ -273,4 +304,11 @@ private fun MethodPill(label: String, amount: String, icon: androidx.compose.ui.
       }
     }
   }
+}
+
+private enum class CollectionPeriod(val label: String) {
+  TODAY("Bugün"),
+  WEEK("Bu hafta"),
+  MONTH("Bu ay"),
+  ALL("Tümü")
 }

@@ -78,6 +78,9 @@ import com.example.ui.theme.NavyPrimary
 import com.example.ui.theme.RoseError
 import com.example.ui.theme.Slate500
 import com.example.util.Formatters
+import com.example.ui.theme.moneyStyle
+import com.example.ui.theme.AmberWarning
+import com.example.model.DebtStatus
 import com.example.viewmodel.DialogState
 import com.example.viewmodel.MusteriCepViewModel
 
@@ -210,9 +213,27 @@ fun CustomerDetailScreen(
 
             Text(
               text = Formatters.formatCurrency(item.remainingBalance),
-              style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+              style = moneyStyle(30),
               color = if (item.remainingBalance > 0) RoseError else EmeraldPrimary
             )
+            if (item.overdueAmount > 0) {
+              Text(
+                text = "Vadesi geçen: ${Formatters.formatCurrency(item.overdueAmount)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = RoseError,
+                fontWeight = FontWeight.SemiBold
+              )
+            } else if (item.nextDueDate != null && item.remainingBalance > 0) {
+              Text(
+                text = "En yakın vade: ${Formatters.formatDate(item.nextDueDate)} (${Formatters.dueLabel(item.nextDueDate)})",
+                style = MaterialTheme.typography.bodySmall,
+                color = AmberWarning
+              )
+            }
+            if (customer.isDemo) {
+              Spacer(modifier = Modifier.height(6.dp))
+              com.example.ui.components.DemoBadge()
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -226,8 +247,7 @@ fun CustomerDetailScreen(
                 Text("Toplam Borç", style = MaterialTheme.typography.bodySmall, color = Slate500)
                 Text(
                   text = Formatters.formatCurrency(item.totalDebt),
-                  fontWeight = FontWeight.Bold,
-                  fontSize = 15.sp,
+                  style = moneyStyle(15),
                   color = MaterialTheme.colorScheme.onSurface
                 )
               }
@@ -236,8 +256,7 @@ fun CustomerDetailScreen(
                 Text("Toplam Tahsilat", style = MaterialTheme.typography.bodySmall, color = Slate500)
                 Text(
                   text = Formatters.formatCurrency(item.totalPaid),
-                  fontWeight = FontWeight.Bold,
-                  fontSize = 15.sp,
+                  style = moneyStyle(15),
                   color = EmeraldPrimary
                 )
               }
@@ -325,8 +344,8 @@ fun CustomerDetailScreen(
                 modifier = Modifier
                   .fillMaxWidth()
                   .clickable {
-                    val dial = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${customer.phone}"))
-                    context.startActivity(dial)
+                    val dial = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + customer.phone.filter { it.isDigit() || it == '+' }))
+                    try { context.startActivity(dial) } catch (e: Exception) { viewModel.showMessage("Arama uygulaması açılamadı.") }
                   }
                   .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -447,17 +466,23 @@ fun CustomerDetailScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                       Text(txn.category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                      Text(Formatters.formatDateTime(txn.date), style = MaterialTheme.typography.bodySmall, color = Slate500)
+                      Text(Formatters.formatDate(txn.date), style = MaterialTheme.typography.bodySmall, color = Slate500)
                     }
                   }
 
                   Column(horizontalAlignment = Alignment.End) {
                     Text(
-                      text = "-" + Formatters.formatCurrency(txn.amount),
-                      fontWeight = FontWeight.ExtraBold,
-                      color = RoseError,
-                      fontSize = 15.sp
+                      text = Formatters.formatCurrency(txn.amount),
+                      style = moneyStyle(15),
+                      color = RoseError
                     )
+                    if (txn.status == DebtStatus.PARTIALLY_PAID || (txn.status == DebtStatus.OVERDUE && txn.remainingAmount < txn.amount)) {
+                      Text(
+                        text = "Kalan ${Formatters.formatCurrency(txn.remainingAmount)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Slate500
+                      )
+                    }
                     Spacer(modifier = Modifier.height(2.dp))
                     StatusBadge(status = txn.status)
                   }
@@ -475,37 +500,32 @@ fun CustomerDetailScreen(
                 if (txn.dueDate != null) {
                   Spacer(modifier = Modifier.height(4.dp))
                   Text(
-                    text = "Vade: ${Formatters.formatDate(txn.dueDate)}",
+                    text = "Vade: ${Formatters.formatDate(txn.dueDate)}" +
+                      if (txn.status != DebtStatus.PAID) " • ${Formatters.dueLabel(txn.dueDate)}" else "",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (txn.dueDate < System.currentTimeMillis()) RoseError else Slate500
+                    color = when (txn.status) {
+                      DebtStatus.OVERDUE -> RoseError
+                      DebtStatus.PAID -> Slate500
+                      else -> AmberWarning
+                    }
                   )
                 }
 
-                // Delete transaction option
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                  IconButton(onClick = { viewModel.editDebt(txn.id) }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500, modifier = Modifier.size(16.dp))
+                  }
                   IconButton(
                     onClick = {
                       viewModel.openDialog(
                         DialogState.ConfirmDelete(
                           title = "Borç Kaydını Sil",
-                          message = "${Formatters.formatCurrency(txn.amount)} tutarındaki borç kaydını silmek istiyor musunuz?",
-                          onConfirm = {
-                            viewModel.deleteDebt(
-                              Debt(
-                                id = txn.id,
-                                customerId = txn.customerId,
-                                amount = txn.amount,
-                                date = txn.date,
-                                dueDate = txn.dueDate,
-                                description = txn.notesOrDesc,
-                                category = txn.category
-                              )
-                            )
-                          }
+                          message = "${Formatters.formatCurrency(txn.amount)} tutarındaki borç kaydı silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
+                          onConfirm = { viewModel.deleteDebt(txn.id) }
                         )
                       )
                     },
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(32.dp)
                   ) {
                     Icon(Icons.Default.Delete, contentDescription = "Sil", tint = Slate500, modifier = Modifier.size(16.dp))
                   }
@@ -539,15 +559,14 @@ fun CustomerDetailScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                       Text("Tahsilat (${txn.paymentMethod.label})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                      Text(Formatters.formatDateTime(txn.date), style = MaterialTheme.typography.bodySmall, color = Slate500)
+                      Text(Formatters.formatDate(txn.date), style = MaterialTheme.typography.bodySmall, color = Slate500)
                     }
                   }
 
                   Text(
                     text = "+" + Formatters.formatCurrency(txn.amount),
-                    fontWeight = FontWeight.ExtraBold,
-                    color = EmeraldPrimary,
-                    fontSize = 15.sp
+                    style = moneyStyle(15),
+                    color = EmeraldPrimary
                   )
                 }
 
@@ -560,31 +579,21 @@ fun CustomerDetailScreen(
                   )
                 }
 
-                // Delete collection option
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                  IconButton(onClick = { viewModel.editCollection(txn.id) }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500, modifier = Modifier.size(16.dp))
+                  }
                   IconButton(
                     onClick = {
                       viewModel.openDialog(
                         DialogState.ConfirmDelete(
                           title = "Tahsilat Kaydını Sil",
-                          message = "${Formatters.formatCurrency(txn.amount)} tutarındaki tahsilat kaydını silmek istiyor musunuz?",
-                          onConfirm = {
-                            viewModel.deleteCollection(
-                              CollectionRecord(
-                                id = txn.id,
-                                customerId = txn.customerId,
-                                debtId = txn.debtId,
-                                amount = txn.amount,
-                                date = txn.date,
-                                paymentMethod = txn.paymentMethod,
-                                notes = txn.notesOrDesc
-                              )
-                            )
-                          }
+                          message = "${Formatters.formatCurrency(txn.amount)} tutarındaki tahsilat silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
+                          onConfirm = { viewModel.deleteCollection(txn.id) }
                         )
                       )
                     },
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(32.dp)
                   ) {
                     Icon(Icons.Default.Delete, contentDescription = "Sil", tint = Slate500, modifier = Modifier.size(16.dp))
                   }

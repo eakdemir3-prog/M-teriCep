@@ -4,15 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.model.CollectionRecord
 import com.example.model.Customer
 import com.example.model.Debt
-import com.example.model.DefaultTemplates
 import com.example.model.WhatsAppTemplate
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Database(
   entities = [
@@ -21,7 +18,7 @@ import kotlinx.coroutines.launch
     CollectionRecord::class,
     WhatsAppTemplate::class
   ],
-  version = 1,
+  version = 2,
   exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -34,31 +31,33 @@ abstract class AppDatabase : RoomDatabase() {
     @Volatile
     private var INSTANCE: AppDatabase? = null
 
-    fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
+    /**
+     * v1 -> v2: örnek veri işareti, kayıt güncelleme zamanı ve "silindi" işareti eklendi.
+     * Kullanıcı verisi korunur. (Eski sürümdeki "fallbackToDestructiveMigration" her
+     * şema değişikliğinde tüm kayıtları siliyordu; kaldırıldı.)
+     */
+    val MIGRATION_1_2 = object : Migration(1, 2) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE customers ADD COLUMN isDemo INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE debts ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE debts ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE collections ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE collections ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE debts SET updatedAt = createdAt")
+        db.execSQL("UPDATE collections SET updatedAt = createdAt")
+      }
+    }
+
+    fun getDatabase(context: Context): AppDatabase {
       return INSTANCE ?: synchronized(this) {
-        val instance = Room.databaseBuilder(
+        INSTANCE ?: Room.databaseBuilder(
           context.applicationContext,
           AppDatabase::class.java,
           "mustericep_database"
         )
-          .addCallback(DatabaseCallback(scope))
-          .fallbackToDestructiveMigration()
+          .addMigrations(MIGRATION_1_2)
           .build()
-        INSTANCE = instance
-        instance
-      }
-    }
-
-    private class DatabaseCallback(
-      private val scope: CoroutineScope
-    ) : RoomDatabase.Callback() {
-      override fun onCreate(db: SupportSQLiteDatabase) {
-        super.onCreate(db)
-        INSTANCE?.let { database ->
-          scope.launch(Dispatchers.IO) {
-            database.templateDao().insertAll(DefaultTemplates.getDefaults())
-          }
-        }
+          .also { INSTANCE = it }
       }
     }
   }

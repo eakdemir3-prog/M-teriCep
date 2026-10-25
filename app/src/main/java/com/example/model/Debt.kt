@@ -1,5 +1,6 @@
 package com.example.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -26,7 +27,20 @@ data class Debt(
   val dueDate: Long? = null,
   val description: String = "",
   val category: String = "Genel Satış",
-  val createdAt: Long = System.currentTimeMillis()
+  val createdAt: Long = System.currentTimeMillis(),
+  @ColumnInfo(defaultValue = "0")
+  val updatedAt: Long = System.currentTimeMillis(),
+  /** Silinen kayıtlar geçmişte iz kalsın diye tamamen silinmez, işaretlenir. */
+  @ColumnInfo(defaultValue = "0")
+  val isDeleted: Boolean = false
+)
+
+/** Borç kaydı + ödeme dağıtımından sonra hesaplanan güncel durumu. */
+data class DebtWithStatus(
+  val debt: Debt,
+  val paidAmount: Double,
+  val remainingAmount: Double,
+  val status: DebtStatus
 )
 
 enum class DebtStatus(val label: String) {
