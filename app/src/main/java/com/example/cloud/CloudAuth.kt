@@ -7,6 +7,8 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -55,14 +57,31 @@ class CloudAuth(private val context: Context) {
     val a = auth ?: throw IllegalStateException("Bulut bağlantısı henüz kurulmadı.")
     val clientId = CloudGate.webClientId(context)
       ?: throw IllegalStateException("Google giriş ayarı eksik (Firebase'de Google girişini açın).")
-    val option = GetSignInWithGoogleOption.Builder(clientId).build()
-    val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+    val manager = CredentialManager.create(activity)
+
+    suspend fun attempt(option: androidx.credentials.CredentialOption) =
+      manager.getCredential(activity, GetCredentialRequest.Builder().addCredentialOption(option).build())
+
+    // 1. deneme: hesap seçici alt pencere (en uyumlu yöntem)
+    // 2. deneme: "Google ile oturum aç" tam ekran akışı
     val result = try {
-      CredentialManager.create(activity).getCredential(activity, request)
-    } catch (e: GetCredentialCancellationException) {
-      throw IllegalStateException("Giriş iptal edildi.")
-    } catch (e: NoCredentialException) {
-      throw IllegalStateException("Telefonda Google hesabı bulunamadı.")
+      attempt(
+        GetGoogleIdOption.Builder()
+          .setServerClientId(clientId)
+          .setFilterByAuthorizedAccounts(false)
+          .setAutoSelectEnabled(false)
+          .build()
+      )
+    } catch (first: GetCredentialException) {
+      try {
+        attempt(GetSignInWithGoogleOption.Builder(clientId).build())
+      } catch (e: GetCredentialCancellationException) {
+        throw IllegalStateException(explain(e, first))
+      } catch (e: NoCredentialException) {
+        throw IllegalStateException("Telefonda Google hesabı bulunamadı. Ayarlar > Hesaplar'dan Google hesabı ekleyin.")
+      } catch (e: GetCredentialException) {
+        throw IllegalStateException(explain(e, first))
+      }
     }
     val credential = result.credential
     if (credential !is CustomCredential || credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
@@ -71,6 +90,18 @@ class CloudAuth(private val context: Context) {
     val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
     val authResult = a.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await()
     return authResult.user ?: throw IllegalStateException("Giriş yapılamadı.")
+  }
+
+  /** Kullanıcının bastığı iptal ile yapılandırma hatasını ayırt eder (hata kodu ekranda görünür). */
+  private fun explain(e: GetCredentialException, first: GetCredentialException): String {
+    val detail = listOfNotNull(first.message, e.message).joinToString(" | ").take(160)
+    val configProblem = detail.contains("16") || detail.contains("10") || detail.contains("reauth", true) ||
+      detail.contains("developer", true) || detail.contains("DEVELOPER_ERROR")
+    return if (configProblem || detail.isNotBlank() && !detail.contains("cancel", true)) {
+      "Google girişi şu an yapılamıyor (uygulama imzası doğrulanamadı). Hata: $detail"
+    } else {
+      "Giriş iptal edildi. ($detail)"
+    }
   }
 
   suspend fun signOut() {
