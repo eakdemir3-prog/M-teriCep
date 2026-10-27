@@ -16,7 +16,7 @@ android {
     applicationId = "com.eavisionlabs.mustericep"
     minSdk = 24
     targetSdk = 36
-    versionCode = 7
+    versionCode = 8
     versionName = "1.0.3"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -95,6 +95,7 @@ dependencies {
   implementation(libs.androidx.credentials)
   implementation(libs.androidx.credentials.play.services)
   implementation(libs.googleid)
+  implementation(libs.androidx.core.splashscreen)
   implementation(libs.play.services.auth)
   implementation(libs.kotlinx.coroutines.play.services)
   implementation(libs.androidx.activity.compose)

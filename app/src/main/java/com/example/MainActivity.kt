@@ -70,9 +70,26 @@ import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
+    val splash = androidx.core.splashscreen.SplashScreen.installSplashScreen(this)
+    // Sistem açılış ekranı hemen sönsün; yerine uygulama içi animasyon başlar.
+    splash.setOnExitAnimationListener { provider ->
+      provider.view.animate().alpha(0f).setDuration(160L).withEndAction { provider.remove() }.start()
+    }
     super.onCreate(savedInstanceState)
-    enableEdgeToEdge()
+    // Açılış katmanı beyaz olduğu için başta koyu durum çubuğu simgeleri; tema yüklenince güncellenir.
+    val light = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+    enableEdgeToEdge(statusBarStyle = light, navigationBarStyle = light)
     setContent {
+      var showIntro by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(savedInstanceState == null) }
+      Box(modifier = Modifier.fillMaxSize()) {
+        AppRoot()
+        if (showIntro) com.example.ui.components.IntroAnimation(onFinished = { showIntro = false })
+      }
+    }
+  }
+
+  @Composable
+  private fun AppRoot() {
       val viewModel: MusteriCepViewModel = viewModel()
       val loadedProfile by viewModel.loadedProfile.collectAsState()
       val profile = loadedProfile
@@ -96,7 +113,6 @@ class MainActivity : ComponentActivity() {
           }
         }
       }
-    }
   }
 }
 
