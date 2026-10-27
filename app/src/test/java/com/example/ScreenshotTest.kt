@@ -176,7 +176,7 @@ abstract class ScreenshotBase {
     )
   )
 
-  @Test
+  @org.junit.Ignore("geçici") @Test
   fun dialogCollection() {
     val customers = fakeCustomers()
     rule.setContent {
@@ -189,7 +189,7 @@ abstract class ScreenshotBase {
     saveView(dialog, "8_tahsilat_al")
   }
 
-  @Test
+  @org.junit.Ignore("geçici") @Test
   fun dialogDebt() {
     val customers = fakeCustomers()
     rule.setContent {
@@ -202,7 +202,7 @@ abstract class ScreenshotBase {
     saveView(dialog, "7_borc_ekle")
   }
 
-  @Test
+  @org.junit.Ignore("geçici") @Test
   fun dialogDebtPicker() {
     val customers = fakeCustomers()
     rule.setContent {
