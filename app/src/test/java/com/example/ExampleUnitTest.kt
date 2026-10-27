@@ -1,5 +1,7 @@
 package com.example
 
+import com.example.model.allows
+
 import com.example.model.Customer
 import com.example.model.CustomerWithBalance
 import com.example.model.SubscriptionTier
@@ -62,9 +64,13 @@ class ExampleUnitTest {
 
   @Test
   fun testSubscriptionTierLimits() {
-    assertTrue(SubscriptionTier.getTierForCustomerCount(24, SubscriptionTier.FREE))
-    assertFalse(SubscriptionTier.getTierForCustomerCount(25, SubscriptionTier.FREE))
-    assertTrue(SubscriptionTier.getTierForCustomerCount(99, SubscriptionTier.STARTER))
-    assertTrue(SubscriptionTier.getTierForCustomerCount(1000, SubscriptionTier.PRO))
+    assertEquals(25, SubscriptionTier.FREE.maxCustomerLimit)
+    assertEquals(150, SubscriptionTier.STARTER.maxCustomerLimit)
+    assertEquals(com.example.model.UNLIMITED, SubscriptionTier.PRO.maxCustomerLimit)
+    assertFalse(SubscriptionTier.FREE.allows(com.example.model.Feature.CSV_EXPORT))
+    assertTrue(SubscriptionTier.STARTER.allows(com.example.model.Feature.CSV_EXPORT))
+    assertFalse(SubscriptionTier.STARTER.allows(com.example.model.Feature.CSV_IMPORT))
+    assertTrue(SubscriptionTier.PRO.allows(com.example.model.Feature.CSV_IMPORT))
+    assertEquals(SubscriptionTier.PRO, SubscriptionTier.fromProductId("mustericep_pro"))
   }
 }
