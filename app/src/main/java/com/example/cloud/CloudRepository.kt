@@ -38,6 +38,19 @@ class CloudRepository {
 
   fun userFlow(uid: String): Flow<UserProfile?> = docFlow(users().document(uid)) { if (it.exists()) CloudMappers.user(it) else null }
 
+  /**
+   * Hesap silinirken buluttaki kişisel verileri kaldırır: kullanıcı profili ve (işletmeyse)
+   * işletme vitrini, logo, konum ve hizmetler.
+   */
+  suspend fun deleteUserData(uid: String) {
+    runCatching {
+      val services = businesses().document(uid).collection("services").get().await()
+      services.documents.forEach { it.reference.delete().await() }
+    }
+    runCatching { businesses().document(uid).delete().await() }
+    users().document(uid).delete().await()
+  }
+
   suspend fun saveUser(user: UserProfile) {
     users().document(user.uid).set(CloudMappers.userToMap(user), SetOptions.merge()).await()
   }

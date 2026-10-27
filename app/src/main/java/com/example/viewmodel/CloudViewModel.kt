@@ -174,17 +174,14 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
-  /** Hesabı ve buluttaki profil bilgisini siler. Telefondaki defter kayıtları silinmez. */
+  /** Hesabı ve buluttaki profil/işletme bilgilerini siler. Telefondaki defter kayıtları silinmez. */
   fun deleteAccount() {
     val user = firebaseUser.value ?: return
     viewModelScope.launch {
       _busy.value = true
       try {
-        val profile = userProfile.value
-        if (profile?.role == UserRole.BUSINESS) {
-          // İşletme vitrini listeden kaldırılır ki kimse randevu alamasın.
-          runCatching { cloud.getBusiness(user.uid)?.let { cloud.saveBusiness(it.copy(isListed = false, name = it.name.ifBlank { "Kapalı" })) } }
-        }
+        // Önce buluttaki veriler (giriş açıkken kurallar izin verir), sonra hesabın kendisi.
+        kotlinx.coroutines.withTimeoutOrNull(20_000) { runCatching { cloud.deleteUserData(user.uid) } }
         auth.deleteAccount()
         settings.setLocalOnly(false)
         say("Hesabınız silindi.")
