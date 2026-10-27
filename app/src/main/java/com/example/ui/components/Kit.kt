@@ -33,6 +33,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -170,7 +173,10 @@ fun QuickActionTile(icon: ImageVector, label: String, modifier: Modifier = Modif
   }
 }
 
-/** Basit çubuk grafik (gerçek verilerle). Değerler 0 ise ince taban çizgisi görünür. */
+/**
+ * Basit çubuk grafik (gerçek verilerle). Etiketler çubukların tam altına çizilir;
+ * çok çubuk varsa boş etiketler atlanır, hiçbir etiket kırpılmaz.
+ */
 @Composable
 fun BarChart(
   values: List<Double>,
@@ -181,45 +187,35 @@ fun BarChart(
 ) {
   val palette = LocalAppPalette.current
   val max = (values.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
-  val barColor = palette.accent
-  val dimColor = palette.accent.copy(alpha = 0.35f)
-  val baseColor = palette.cardBorder
-  Column(modifier = modifier.fillMaxWidth()) {
-    Canvas(
-      modifier = Modifier
-        .fillMaxWidth()
-        .height(height)
-    ) {
-      val n = values.size.coerceAtLeast(1)
-      val slot = size.width / n
-      val barW = (slot * 0.52f).coerceAtMost(28.dp.toPx())
-      drawLine(baseColor, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), strokeWidth = 1.dp.toPx())
-      values.forEachIndexed { i, v ->
-        val h = ((v / max) * (size.height - 4.dp.toPx())).toFloat()
-        if (h > 0f) {
-          val x = i * slot + (slot - barW) / 2f
-          drawRoundRect(
-            color = if (highlightIndex < 0 || i == highlightIndex) barColor else dimColor,
-            topLeft = Offset(x, size.height - h),
-            size = Size(barW, h),
-            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-          )
-        }
-      }
-    }
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-      labels.forEachIndexed { i, l ->
-        Text(
-          l,
-          fontSize = 10.sp,
-          color = if (i == highlightIndex) palette.ink else palette.muted,
-          fontWeight = if (i == highlightIndex) FontWeight.SemiBold else FontWeight.Normal,
-          textAlign = TextAlign.Center,
-          maxLines = 1,
-          softWrap = false,
-          modifier = Modifier.weight(1f)
+  val measurer = rememberTextMeasurer()
+  val labelStyle = TextStyle(fontSize = 10.sp, color = palette.muted)
+  val hiStyle = TextStyle(fontSize = 10.sp, color = palette.ink, fontWeight = FontWeight.SemiBold)
+  Canvas(
+    modifier = modifier
+      .fillMaxWidth()
+      .height(height + 20.dp)
+  ) {
+    val chartH = size.height - 20.dp.toPx()
+    val n = values.size.coerceAtLeast(1)
+    val slot = size.width / n
+    val barW = (slot * 0.56f).coerceIn(2.dp.toPx(), 28.dp.toPx())
+    drawLine(palette.cardBorder, Offset(0f, chartH), Offset(size.width, chartH), strokeWidth = 1.dp.toPx())
+    values.forEachIndexed { i, v ->
+      val cx = i * slot + slot / 2f
+      val h = ((v / max) * (chartH - 4.dp.toPx())).toFloat()
+      if (h > 0f) {
+        drawRoundRect(
+          color = palette.accent,
+          topLeft = Offset(cx - barW / 2f, chartH - h),
+          size = Size(barW, h),
+          cornerRadius = CornerRadius(minOf(4.dp.toPx(), barW / 2f), minOf(4.dp.toPx(), barW / 2f))
         )
+      }
+      val label = labels.getOrNull(i).orEmpty()
+      if (label.isNotEmpty()) {
+        val layout = measurer.measure(label, if (i == highlightIndex) hiStyle else labelStyle)
+        val x = (cx - layout.size.width / 2f).coerceIn(0f, size.width - layout.size.width)
+        drawText(layout, topLeft = Offset(x, chartH + 5.dp.toPx()))
       }
     }
   }

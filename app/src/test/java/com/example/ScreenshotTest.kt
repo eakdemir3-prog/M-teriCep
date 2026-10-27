@@ -161,25 +161,50 @@ abstract class ScreenshotBase {
     save(null, "3_musteri_detay")
   }
 
+  private fun idleLooperOnly() {
+    repeat(20) { ShadowLooper.idleMainLooper(); Thread.sleep(25) }
+  }
+
   @Test
-  fun dialogs() {
+  fun dialogCollection() {
     val vm = viewModel()
     val customers = vm.allCustomersWithBalance.value
-    var which by androidx.compose.runtime.mutableIntStateOf(0)
     rule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
-        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-          if (which == 0) {
-            AddDebtDialog(allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _, _ -> })
-          } else {
-            AddCollectionDialog(preselectedCustomerId = customers.first { it.remainingBalance > 0 }.customer.id, allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _ -> })
-          }
-        }
+        AddCollectionDialog(preselectedCustomerId = customers.first { it.remainingBalance > 0 }.customer.id, allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _ -> })
       }
     }
-    saveDialog("7_borc_ekle")
-    which = 1
-    saveDialog("8_tahsilat_al")
+    idleLooperOnly()
+    val dialog = rootViews().lastOrNull { it !== rule.activity.window.decorView } ?: return
+    saveView(dialog, "8_tahsilat_al")
+  }
+
+  @Test
+  fun dialogDebt() {
+    val vm = viewModel()
+    val customers = vm.allCustomersWithBalance.value
+    rule.setContent {
+      MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
+        AddDebtDialog(preselectedCustomerId = customers.first().customer.id, allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _, _ -> })
+      }
+    }
+    idleLooperOnly()
+    val dialog = rootViews().lastOrNull { it !== rule.activity.window.decorView } ?: return
+    saveView(dialog, "7_borc_ekle")
+  }
+
+  @Test
+  fun dialogDebtPicker() {
+    val vm = viewModel()
+    val customers = vm.allCustomersWithBalance.value
+    rule.setContent {
+      MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
+        AddDebtDialog(allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _, _ -> })
+      }
+    }
+    idleLooperOnly()
+    val dialog = rootViews().lastOrNull { it !== rule.activity.window.decorView } ?: return
+    saveView(dialog, "9_borc_ekle_secici")
   }
 }
 

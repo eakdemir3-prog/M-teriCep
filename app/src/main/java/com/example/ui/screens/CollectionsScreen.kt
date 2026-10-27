@@ -267,12 +267,15 @@ private fun CollectionRow(coll: CollectionRecord, name: String, onOpen: () -> Un
     Column(modifier = Modifier.weight(1f)) {
       Text(name, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
       Text(
-        listOf(coll.paymentMethod.label, Formatters.formatDate(coll.date), coll.notes).filter { it.isNotBlank() }.joinToString(" • "),
+        "${coll.paymentMethod.shortLabel} • ${Formatters.formatShortDate(coll.date)}",
         fontSize = 12.sp,
         color = palette.muted,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
       )
+      if (coll.notes.isNotBlank()) {
+        Text(coll.notes, fontSize = 12.sp, color = palette.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+      }
     }
     Spacer(modifier = Modifier.width(8.dp))
     Text("+" + Formatters.formatCurrency(coll.amount), style = moneyStyle(14), color = palette.success, maxLines = 1)

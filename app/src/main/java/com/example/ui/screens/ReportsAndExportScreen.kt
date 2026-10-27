@@ -471,7 +471,7 @@ private fun buildRangeChart(items: List<Pair<Long, Double>>, startIn: Long, endI
       values += Money.sum(items.filter { it.first in cur until next }.map { it.second })
       val d = Calendar.getInstance().apply { timeInMillis = cur }.get(Calendar.DAY_OF_MONTH)
       // Çok gün varsa etiketleri seyrelt
-      labels += if (days <= 7 || d == 1 || d % 5 == 0) d.toString() else ""
+      labels += if (days <= 10 || d == 1 || d % 5 == 0) d.toString() else ""
       if (now in cur until next) hi = idx
       cur = next; idx++
     }

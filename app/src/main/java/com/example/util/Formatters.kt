@@ -126,6 +126,17 @@ object Formatters {
     return rawPhone
   }
 
+  /** Dar alanlar için: "0532 123 45 67". */
+  fun formatPhoneCompact(rawPhone: String): String {
+    val digits = rawPhone.filter { it.isDigit() }
+    val clean = when {
+      digits.startsWith("90") && digits.length == 12 -> digits.substring(2)
+      digits.startsWith("0") && digits.length == 11 -> digits.substring(1)
+      else -> digits
+    }
+    return if (clean.length == 10) "0${clean.substring(0, 3)} ${clean.substring(3, 6)} ${clean.substring(6, 8)} ${clean.substring(8)}" else rawPhone
+  }
+
   fun isValidEmail(email: String): Boolean =
     email.isBlank() || Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$").matches(email.trim())
 }

@@ -185,7 +185,7 @@ fun CustomersScreen(
       item {
         AppCard(padding = 0.dp) {
           customers.forEachIndexed { i, item ->
-            if (i > 0) HorizontalDivider(color = palette.cardBorder, modifier = Modifier.padding(start = 68.dp))
+            if (i > 0) HorizontalDivider(color = palette.cardBorder, modifier = Modifier.padding(start = 62.dp))
             CustomerRow(
               item = item,
               onClick = { viewModel.selectCustomer(item.customer.id) },
@@ -215,12 +215,12 @@ private fun CustomerRow(item: CustomerWithBalance, onClick: () -> Unit, onWhatsA
     modifier = Modifier
       .fillMaxWidth()
       .clickable(onClick = onClick)
-      .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)
+      .padding(start = 14.dp, end = 2.dp, top = 12.dp, bottom = 12.dp)
       .testTag("customer_card_${c.id}"),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    InitialsAvatar(c.name, size = 40.dp)
-    Spacer(modifier = Modifier.width(12.dp))
+    InitialsAvatar(c.name, size = 38.dp)
+    Spacer(modifier = Modifier.width(10.dp))
     Column(modifier = Modifier.weight(1f)) {
       Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -231,15 +231,11 @@ private fun CustomerRow(item: CustomerWithBalance, onClick: () -> Unit, onWhatsA
           overflow = TextOverflow.Ellipsis,
           modifier = Modifier.weight(1f, fill = false)
         )
-        if (c.isDemo) {
-          Spacer(modifier = Modifier.width(6.dp))
-          StatusPill("Örnek", palette.warning, palette.warningSoft)
-        }
       }
       Text(
         listOfNotNull(
-          Formatters.formatPhoneForDisplay(c.phone).takeIf { c.phone.isNotBlank() },
-          item.lastTransactionDate?.let { "Son işlem ${Formatters.formatShortDate(it)}" }
+          Formatters.formatPhoneCompact(c.phone).takeIf { c.phone.isNotBlank() },
+          item.lastTransactionDate?.let { "Son ${Formatters.formatShortDate(it)}" }
         ).joinToString(" • ").ifBlank { "Telefon yok" },
         style = MaterialTheme.typography.bodySmall,
         color = palette.muted,
@@ -263,7 +259,7 @@ private fun CustomerRow(item: CustomerWithBalance, onClick: () -> Unit, onWhatsA
       StatusPill(statusText, statusColor, statusBg)
     }
     if (c.phone.isNotBlank() && item.remainingBalance > 0) {
-      IconButton(onClick = onWhatsApp, modifier = Modifier.size(40.dp)) {
+      IconButton(onClick = onWhatsApp, modifier = Modifier.size(36.dp)) {
         Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "WhatsApp ile hatırlat", tint = WhatsAppGreen, modifier = Modifier.size(20.dp))
       }
     } else {

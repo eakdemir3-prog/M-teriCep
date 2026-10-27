@@ -34,10 +34,10 @@ data class CollectionRecord(
   val isDeleted: Boolean = false
 )
 
-enum class PaymentMethod(val label: String) {
-  CASH("Nakit"),
-  BANK_TRANSFER("Havale / EFT"),
-  CREDIT_CARD("Kredi / Banka Kartı"),
-  CHECK_PROMISSORY("Çek / Senet"),
-  OTHER("Diğer")
+enum class PaymentMethod(val label: String, val shortLabel: String) {
+  CASH("Nakit", "Nakit"),
+  BANK_TRANSFER("Havale / EFT", "Havale"),
+  CREDIT_CARD("Kredi / Banka Kartı", "Kart"),
+  CHECK_PROMISSORY("Çek / Senet", "Çek/Senet"),
+  OTHER("Diğer", "Diğer")
 }
