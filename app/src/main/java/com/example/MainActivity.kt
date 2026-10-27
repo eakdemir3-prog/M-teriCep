@@ -1,6 +1,7 @@
 package com.example
 
 import android.os.Bundle
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -70,7 +71,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
-    val splash = androidx.core.splashscreen.SplashScreen.installSplashScreen(this)
+    val splash = installSplashScreen()
     // Sistem açılış ekranı hemen sönsün; yerine uygulama içi animasyon başlar.
     splash.setOnExitAnimationListener { provider ->
       provider.view.animate().alpha(0f).setDuration(160L).withEndAction { provider.remove() }.start()
