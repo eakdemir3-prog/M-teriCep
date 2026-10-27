@@ -53,6 +53,8 @@ abstract class ScreenshotBase {
   @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
   abstract val tag: String
+  /** Robolectric, qualifier verilen yapılandırmada Dialog ölçümünde takılıyor; diyaloglar varsayılan ekranda çekilir. */
+  open val dialogs = false
 
   /** Açık pencerelerin kök görünümleri (etkinlik + varsa iletişim kutusu). */
   @Suppress("UNCHECKED_CAST")
@@ -117,7 +119,7 @@ abstract class ScreenshotBase {
   }
 
   @Test
-  fun screens() {
+  open fun screens() {
     val vm = viewModel()
     var current: Screen by androidx.compose.runtime.mutableStateOf(Screen.Dashboard)
     rule.setContent {
@@ -176,8 +178,9 @@ abstract class ScreenshotBase {
     )
   )
 
-  @org.junit.Ignore("geçici") @Test
+  @Test
   fun dialogCollection() {
+    org.junit.Assume.assumeTrue(dialogs)
     val customers = fakeCustomers()
     rule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
@@ -189,8 +192,9 @@ abstract class ScreenshotBase {
     saveView(dialog, "8_tahsilat_al")
   }
 
-  @org.junit.Ignore("geçici") @Test
+  @Test
   fun dialogDebt() {
+    org.junit.Assume.assumeTrue(dialogs)
     val customers = fakeCustomers()
     rule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
@@ -202,8 +206,9 @@ abstract class ScreenshotBase {
     saveView(dialog, "7_borc_ekle")
   }
 
-  @org.junit.Ignore("geçici") @Test
+  @Test
   fun dialogDebtPicker() {
+    org.junit.Assume.assumeTrue(dialogs)
     val customers = fakeCustomers()
     rule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
@@ -228,4 +233,13 @@ class ScreenshotSmallTest : ScreenshotBase() {
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-xhdpi")
 class ScreenshotNormalTest : ScreenshotBase() {
   override val tag = "n411"
+}
+
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34])
+class ScreenshotDialogTest : ScreenshotBase() {
+  override val tag = "d"
+  override val dialogs = true
+  override fun screens() {}
 }
