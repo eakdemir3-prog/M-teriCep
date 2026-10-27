@@ -58,6 +58,9 @@ jobs:
       - name: Hataları özetle
         if: failure()
         run: |
+          for x in app/build/test-results/testDebugUnitTest/*.xml; do
+            grep -A12 "<failure" "$x" | head -30 | while IFS= read -r line; do echo "::error::$(basename $x): ${line//%/%25}"; done
+          done
           for f in build.log test.log; do
             [ -f "$f" ] || continue
             grep -E "^e: |error:|FAILED|What went wrong|Exception|expected|but was" "$f" | head -60 | while IFS= read -r line; do
