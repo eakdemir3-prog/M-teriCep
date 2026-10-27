@@ -303,7 +303,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       if (existing == null) {
         val tier = profile.value.activeTier
         val count = repository.countRealCustomers()
-        if (count >= tier.maxCustomerLimit) {
+        if (com.example.model.Billing.ENABLED && count >= tier.maxCustomerLimit) {
           openDialog(DialogState.TierLimitReached(count, tier.maxCustomerLimit))
           return@guardedSave
         }
@@ -475,7 +475,8 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   fun executeCsvImport(validCustomers: List<Customer>) {
     viewModelScope.launch {
       val tier = profile.value.activeTier
-      val available = (tier.maxCustomerLimit - repository.countRealCustomers()).coerceAtLeast(0)
+      val available = if (!com.example.model.Billing.ENABLED) Int.MAX_VALUE
+        else (tier.maxCustomerLimit - repository.countRealCustomers()).coerceAtLeast(0)
       val toImport = validCustomers.take(available)
       if (toImport.isNotEmpty()) repository.insertCustomers(toImport)
       val skipped = validCustomers.size - toImport.size

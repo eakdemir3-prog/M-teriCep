@@ -1,5 +1,13 @@
 package com.example.model
 
+/**
+ * Google Play Faturalandırma henüz bağlı değil. Kapalıyken müşteri sınırı uygulanmaz ve
+ * paketler menüsü gizlenir; böylece kimse satın alamayacağı bir sınıra takılmaz.
+ */
+object Billing {
+  const val ENABLED = false
+}
+
 enum class SubscriptionTier(
   val title: String,
   val priceMonthly: Int,

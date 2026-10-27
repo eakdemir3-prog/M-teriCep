@@ -288,6 +288,7 @@ fun SettingsScreen(
           iconTint = EmeraldPrimary,
           onClick = { viewModel.navigate(Screen.ReportsAndExport) }
         )
+        if (com.example.model.Billing.ENABLED) {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp), color = palette.cardBorder)
         SettingsMenuItem(
           title = "Paketler",
@@ -296,6 +297,7 @@ fun SettingsScreen(
           iconTint = AmberWarning,
           onClick = { viewModel.navigate(Screen.Pricing) }
         )
+        }
       }
     }
 
