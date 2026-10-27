@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.compose.material.icons.filled.CalendarMonth
+
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -159,6 +161,28 @@ fun SettingsScreen(
           OutlinedButton(onClick = { showProfileEditDialog = true }, shape = RoundedCornerShape(10.dp)) {
             Text("Düzenle", fontSize = 12.sp)
           }
+        }
+      }
+    }
+
+    // Müşteri moduna geçiş (aynı hesapla başka işletmelerden randevu)
+    if (cloud.isConfigured) item {
+      val palette = com.example.ui.theme.LocalAppPalette.current
+      androidx.compose.material3.Card(
+        onClick = { cloud.switchMode(context as? android.app.Activity, com.example.cloud.UserRole.CUSTOMER) },
+        shape = RoundedCornerShape(16.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = palette.accentSoft),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, palette.ink),
+        modifier = Modifier.fillMaxWidth()
+      ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = palette.ink, modifier = Modifier.size(28.dp))
+          Spacer(modifier = Modifier.width(12.dp))
+          Column(modifier = Modifier.weight(1f)) {
+            Text("Randevu al", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text("Başka işletmelerden randevu almak için müşteri moduna geçin. Aynı hesap, aynı bilgiler.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+          }
+          Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = palette.ink)
         }
       }
     }

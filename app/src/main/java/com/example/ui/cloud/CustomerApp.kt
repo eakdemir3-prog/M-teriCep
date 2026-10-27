@@ -1,5 +1,11 @@
 package com.example.ui.cloud
 
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+
+import androidx.compose.ui.graphics.Color
+
+import androidx.compose.foundation.background
+
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -126,13 +132,32 @@ fun CustomerApp(cloud: CloudViewModel, themeMode: AppThemeMode, onThemeChange: (
       }
     }
   ) { padding ->
-    Box(modifier = Modifier.padding(padding)) {
+    val myBusiness by cloud.myBusiness.collectAsState()
+    val ctx = LocalContext.current
+    Column(modifier = Modifier.padding(padding)) {
+      if (myBusiness != null) {
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .background(com.example.ui.theme.LocalAppPalette.current.text)
+            .clickable { cloud.switchMode(ctx as? android.app.Activity, com.example.cloud.UserRole.BUSINESS) }
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+          Spacer(modifier = Modifier.width(8.dp))
+          Text("Müşteri modundasınız", color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
+          Text("İşletmeme dön →", color = Color(0xFF5EEAD4), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+      }
+    Box(modifier = Modifier.weight(1f)) {
       when (val s = screen) {
         is CustomerScreen.Discover -> DiscoverScreen(cloud)
         is CustomerScreen.MyAppointments -> MyAppointmentsScreen(cloud)
         is CustomerScreen.Profile -> CustomerProfileScreen(cloud, themeMode, onThemeChange)
         is CustomerScreen.BusinessDetail -> BookingScreen(cloud, s.businessId)
       }
+    }
     }
   }
 }
@@ -509,6 +534,32 @@ private fun CustomerProfileScreen(cloud: CloudViewModel, themeMode: AppThemeMode
         )
         Spacer(modifier = Modifier.height(8.dp))
         Button(onClick = { cloud.saveCustomerProfile(name, phone) }) { Text("Kaydet") }
+      }
+    }
+    item {
+      val palette = LocalAppPalette.current
+      val hasBusiness = cloud.myBusiness.collectAsState().value != null
+      val ctx = LocalContext.current
+      Card(
+        onClick = { cloud.switchMode(ctx as? android.app.Activity, com.example.cloud.UserRole.BUSINESS) },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = palette.accentSoft),
+        border = BorderStroke(1.5.dp, palette.ink),
+        modifier = Modifier.fillMaxWidth()
+      ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          Icon(Icons.Default.Storefront, contentDescription = null, tint = palette.ink, modifier = Modifier.size(28.dp))
+          Spacer(modifier = Modifier.width(12.dp))
+          Column(modifier = Modifier.weight(1f)) {
+            Text(if (hasBusiness) "İşletmeme dön" else "İşletmem var", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(
+              if (hasBusiness) "İşletme moduna geç: takvim, müşteriler, tahsilat"
+              else "İşletme moduna geçin; ücretsiz vitrin açın, randevu ve tahsilat yönetin. Aldığınız randevular kaybolmaz.",
+              style = MaterialTheme.typography.bodySmall, color = Slate500
+            )
+          }
+          Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = palette.ink)
+        }
       }
     }
     item {

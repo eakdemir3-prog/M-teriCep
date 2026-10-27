@@ -87,26 +87,35 @@ fun WelcomeScreen(cloud: CloudViewModel) {
       )
       Spacer(modifier = Modifier.height(28.dp))
 
-      Text("Nasıl kullanacaksınız?", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+      Text("Nasıl başlamak istersiniz?", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
       Spacer(modifier = Modifier.height(10.dp))
 
       RoleCard(
         selected = role == UserRole.BUSINESS,
         icon = { Icon(Icons.Default.Storefront, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(30.dp)) },
         title = "İşletmeyim",
-        text = "Randevularımı, müşterilerimi, veresiye ve tahsilatlarımı yöneteceğim.",
+        text = "Randevu, müşteri ve tahsilatlarımı yöneteceğim.",
         onClick = { role = UserRole.BUSINESS }
       )
       Spacer(modifier = Modifier.height(10.dp))
       RoleCard(
         selected = role == UserRole.CUSTOMER,
         icon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(30.dp)) },
-        title = "Müşteriyim",
-        text = "Gittiğim işletmeden kolayca randevu alacağım.",
+        title = "Randevu almak istiyorum",
+        text = "İşletme bulur, kolayca randevu alırım.",
         onClick = { role = UserRole.CUSTOMER }
       )
 
-      Spacer(modifier = Modifier.height(24.dp))
+      Spacer(modifier = Modifier.height(10.dp))
+      androidx.compose.material3.Surface(shape = RoundedCornerShape(12.dp), color = palette.accentSoft, modifier = Modifier.fillMaxWidth()) {
+        Text(
+          "Aynı Google hesabıyla ikisini de kullanabilirsiniz. Sonradan Ayarlar veya Profil'den tek dokunuşla geçiş yaparsınız.",
+          style = MaterialTheme.typography.bodySmall,
+          color = palette.ink,
+          modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+        )
+      }
+      Spacer(modifier = Modifier.height(20.dp))
 
       if (cloud.isConfigured) {
         Button(

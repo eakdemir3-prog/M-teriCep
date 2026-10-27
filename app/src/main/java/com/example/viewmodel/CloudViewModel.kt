@@ -122,6 +122,32 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
+  /**
+   * Aynı Google hesabıyla işletme ve müşteri modları arasında geçiş. Son kullanılan mod
+   * kullanıcı profilinde saklanır; uygulama bir sonraki açılışta o modda başlar.
+   */
+  fun switchMode(activity: Activity?, to: UserRole) {
+    val u = firebaseUser.value
+    if (u == null) {
+      if (activity != null) signIn(activity, to) else say("Önce Google ile giriş yapın.")
+      return
+    }
+    val p = userProfile.value ?: UserProfile(uid = u.uid, role = null, displayName = u.displayName ?: "", email = u.email ?: "")
+    viewModelScope.launch {
+      _busy.value = true
+      try {
+        kotlinx.coroutines.withTimeoutOrNull(15_000) { cloud.saveUser(p.copy(role = to)) }
+        if (to == UserRole.BUSINESS) settings.setLocalOnly(false)
+        if (to == UserRole.CUSTOMER) _customerStack.value = listOf(CustomerScreen.Discover)
+        say(if (to == UserRole.CUSTOMER) "Müşteri modundasınız. İşletmenize üstteki şeritten dönebilirsiniz." else "İşletme moduna geçildi.")
+      } catch (e: Exception) {
+        say("Mod değiştirilemedi: ${e.message}")
+      } finally {
+        _busy.value = false
+      }
+    }
+  }
+
   fun continueLocalOnly() {
     viewModelScope.launch { settings.setLocalOnly(true) }
   }
@@ -137,10 +163,8 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         settings.setPendingRole(role.name)
         val user = auth.signInWithGoogle(activity)
         val existing = runCatching { kotlinx.coroutines.withTimeout(15_000) { cloud.getUser(user.uid) } }.getOrNull()
-        if (existing?.role == null) saveRole(user, role)
-        else if (existing.role != role) {
-          say("Bu hesap daha önce ${if (existing.role == UserRole.BUSINESS) "işletme" else "müşteri"} olarak açılmış; o şekilde devam ediliyor.")
-        }
+        // Aynı hesap iki modu da kullanabilir: seçilen moda geçilir.
+        if (existing?.role != role) saveRole(user, role)
         settings.setPendingRole(null)
         if (role == UserRole.BUSINESS) settings.setLocalOnly(false)
       } catch (e: Exception) {
@@ -410,7 +434,9 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     if (!isSignedIn) return
     viewModelScope.launch {
       try {
+        val me = firebaseUser.value?.uid
         _listed.value = cloud.listBusinesses(city)
+          .filter { it.id != me }
           .sortedWith(compareByDescending<BusinessProfile> { it.tierRank >= 2 }.thenBy { it.name.lowercase() })
       } catch (e: Exception) { say("İşletmeler yüklenemedi: ${e.message}") }
     }
@@ -491,6 +517,10 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     if (p.phone.filter { it.isDigit() }.length < 10) {
       say("Randevu için önce Profil'den telefon numaranızı girin.")
       openCustomerTab(CustomerScreen.Profile)
+      return
+    }
+    if (business.id == u.uid) {
+      say("Kendi işletmenizden randevu alamazsınız. Takviminize randevu eklemek için işletme moduna dönün.")
       return
     }
     if (business.bookingFull) {
