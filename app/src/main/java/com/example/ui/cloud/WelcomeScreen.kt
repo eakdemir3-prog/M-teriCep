@@ -110,7 +110,7 @@ fun WelcomeScreen(cloud: CloudViewModel) {
 
       if (cloud.isConfigured) {
         Button(
-          onClick = { role?.let { r -> (context as? Activity)?.let { cloud.signIn(it, r) } } },
+          onClick = { role?.let { r -> context.findActivity()?.let { cloud.signIn(it, r) } } },
           enabled = role != null && !busy,
           shape = RoundedCornerShape(14.dp),
           modifier = Modifier
@@ -179,4 +179,10 @@ private fun RoleCard(selected: Boolean, icon: @Composable () -> Unit, title: Str
       }
     }
   }
+}
+
+private tailrec fun android.content.Context.findActivity(): Activity? = when (this) {
+  is Activity -> this
+  is android.content.ContextWrapper -> baseContext.findActivity()
+  else -> null
 }

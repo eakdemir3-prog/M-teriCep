@@ -134,7 +134,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
       try {
         settings.setPendingRole(role.name)
         val user = auth.signInWithGoogle(activity)
-        val existing = runCatching { cloud.getUser(user.uid) }.getOrNull()
+        val existing = runCatching { kotlinx.coroutines.withTimeout(15_000) { cloud.getUser(user.uid) } }.getOrNull()
         if (existing?.role == null) saveRole(user, role)
         else if (existing.role != role) {
           say("Bu hesap daha önce ${if (existing.role == UserRole.BUSINESS) "işletme" else "müşteri"} olarak açılmış; o şekilde devam ediliyor.")
@@ -151,9 +151,12 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
 
   private suspend fun saveRole(user: FirebaseUser, role: UserRole) {
     try {
-      cloud.saveUser(
-        UserProfile(uid = user.uid, role = role, displayName = user.displayName ?: "", email = user.email ?: "")
-      )
+      // Firestore yazımı yerelde hemen geçerli olur; sunucu onayı gecikirse arayüzü bekletme.
+      kotlinx.coroutines.withTimeoutOrNull(15_000) {
+        cloud.saveUser(
+          UserProfile(uid = user.uid, role = role, displayName = user.displayName ?: "", email = user.email ?: "")
+        )
+      }
       settings.setPendingRole(null)
     } catch (e: Exception) {
       say("Hesap kaydedilemedi: ${e.message}")

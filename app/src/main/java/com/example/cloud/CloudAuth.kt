@@ -21,6 +21,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
+import kotlin.coroutines.resume
 
 /**
  * Firebase yapılandırılmamışsa (google-services.json yoksa) bulut özellikleri kapalı kalır
@@ -52,44 +62,97 @@ class CloudAuth(private val context: Context) {
     }
   }
 
-  /** Google hesabıyla giriş. Hata olursa kullanıcıya gösterilecek Türkçe mesajla istisna fırlatır. */
+  /**
+   * Google hesabıyla giriş. Önce her cihazda hesap seçiciyi açan klasik Google girişi denenir;
+   * o kullanılamazsa Credential Manager'a geçilir. Hiçbir adım sonsuza kadar beklemez.
+   */
   suspend fun signInWithGoogle(activity: Activity): FirebaseUser {
     val a = auth ?: throw IllegalStateException("Bulut bağlantısı henüz kurulmadı.")
     val clientId = CloudGate.webClientId(context)
       ?: throw IllegalStateException("Google giriş ayarı eksik (Firebase'de Google girişini açın).")
-    val manager = CredentialManager.create(activity)
 
-    suspend fun attempt(option: androidx.credentials.CredentialOption) =
-      manager.getCredential(activity, GetCredentialRequest.Builder().addCredentialOption(option).build())
+    val idToken = (activity as? ComponentActivity)?.let { legacyIdToken(it, clientId) }
+      ?: credentialManagerIdToken(activity, clientId)
 
-    // 1. deneme: hesap seçici alt pencere (en uyumlu yöntem)
-    // 2. deneme: "Google ile oturum aç" tam ekran akışı
-    val result = try {
-      attempt(
-        GetGoogleIdOption.Builder()
-          .setServerClientId(clientId)
-          .setFilterByAuthorizedAccounts(false)
-          .setAutoSelectEnabled(false)
-          .build()
-      )
-    } catch (first: GetCredentialException) {
-      try {
-        attempt(GetSignInWithGoogleOption.Builder(clientId).build())
-      } catch (e: GetCredentialCancellationException) {
-        throw IllegalStateException(explain(e, first))
-      } catch (e: NoCredentialException) {
-        throw IllegalStateException("Telefonda Google hesabı bulunamadı. Ayarlar > Hesaplar'dan Google hesabı ekleyin.")
-      } catch (e: GetCredentialException) {
-        throw IllegalStateException(explain(e, first))
+    val authResult = try {
+      withTimeout(30_000) { a.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await() }
+    } catch (e: TimeoutCancellationException) {
+      throw IllegalStateException("Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.")
+    }
+    return authResult.user ?: throw IllegalStateException("Giriş yapılamadı.")
+  }
+
+  /** Klasik Google girişi (hesap seçici). Kullanılamıyorsa null döner, iptal/hata durumunda mesaj fırlatır. */
+  private suspend fun legacyIdToken(activity: ComponentActivity, clientId: String): String? {
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+      .requestIdToken(clientId)
+      .requestEmail()
+      .build()
+    val client = GoogleSignIn.getClient(activity, gso)
+    // Her seferinde hesap seçilebilsin diye önceki seçimi unut.
+    runCatching { withTimeout(5_000) { client.signOut().await() } }
+    val data = suspendCancellableCoroutine<android.content.Intent?> { cont ->
+      val key = "google_sign_in_" + System.nanoTime()
+      var launcher: androidx.activity.result.ActivityResultLauncher<android.content.Intent>? = null
+      launcher = activity.activityResultRegistry.register(key, ActivityResultContracts.StartActivityForResult()) { res ->
+        launcher?.unregister()
+        if (cont.isActive) cont.resume(res.data)
       }
+      cont.invokeOnCancellation { launcher?.unregister() }
+      try {
+        launcher!!.launch(client.signInIntent)
+      } catch (e: Exception) {
+        launcher?.unregister()
+        if (cont.isActive) cont.resume(null)
+      }
+    } ?: throw IllegalStateException("Giriş iptal edildi.")
+    return try {
+      GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException::class.java).idToken
+        ?: throw IllegalStateException("Google girişi tamamlanamadı (kimlik bilgisi alınamadı).")
+    } catch (e: ApiException) {
+      when (e.statusCode) {
+        12501, CommonStatusCodes.CANCELED -> throw IllegalStateException("Giriş iptal edildi.")
+        CommonStatusCodes.NETWORK_ERROR -> throw IllegalStateException("İnternet bağlantısı yok. Bağlanıp tekrar deneyin.")
+        CommonStatusCodes.DEVELOPER_ERROR -> throw IllegalStateException("Google girişi şu an yapılamıyor (uygulama imzası doğrulanamadı, kod 10).")
+        else -> null // Credential Manager ile denensin
+      }
+    }
+  }
+
+  private suspend fun credentialManagerIdToken(activity: Activity, clientId: String): String {
+    val manager = CredentialManager.create(activity)
+    suspend fun attempt(option: androidx.credentials.CredentialOption) =
+      withTimeout(60_000) {
+        manager.getCredential(activity, GetCredentialRequest.Builder().addCredentialOption(option).build())
+      }
+    val result = try {
+      try {
+        attempt(
+          GetGoogleIdOption.Builder()
+            .setServerClientId(clientId)
+            .setFilterByAuthorizedAccounts(false)
+            .setAutoSelectEnabled(false)
+            .build()
+        )
+      } catch (first: GetCredentialException) {
+        try {
+          attempt(GetSignInWithGoogleOption.Builder(clientId).build())
+        } catch (e: GetCredentialCancellationException) {
+          throw IllegalStateException(explain(e, first))
+        } catch (e: NoCredentialException) {
+          throw IllegalStateException("Telefonda Google hesabı bulunamadı. Ayarlar > Hesaplar'dan Google hesabı ekleyin.")
+        } catch (e: GetCredentialException) {
+          throw IllegalStateException(explain(e, first))
+        }
+      }
+    } catch (e: TimeoutCancellationException) {
+      throw IllegalStateException("Google girişi yanıt vermedi. Google Play Hizmetleri'ni güncelleyip tekrar deneyin.")
     }
     val credential = result.credential
     if (credential !is CustomCredential || credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
       throw IllegalStateException("Google girişi tamamlanamadı.")
     }
-    val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
-    val authResult = a.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await()
-    return authResult.user ?: throw IllegalStateException("Giriş yapılamadı.")
+    return GoogleIdTokenCredential.createFrom(credential.data).idToken
   }
 
   /** Kullanıcının bastığı iptal ile yapılandırma hatasını ayırt eder (hata kodu ekranda görünür). */
@@ -106,6 +169,9 @@ class CloudAuth(private val context: Context) {
 
   suspend fun signOut() {
     auth?.signOut()
+    runCatching {
+      GoogleSignIn.getClient(context, GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()).signOut()
+    }
     runCatching { CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest()) }
   }
 
