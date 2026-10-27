@@ -170,7 +170,7 @@ fun DashboardScreen(
         InfoBanner(
           icon = { Icon(Icons.Default.Store, contentDescription = null, tint = palette.ink) },
           text = "İşletme adınızı girin; WhatsApp mesajlarında bu ad görünür.",
-          action = "Ayarlar",
+          action = "İşletme adını gir",
           onAction = { viewModel.navigate(Screen.Settings) }
         )
       }
@@ -180,7 +180,7 @@ fun DashboardScreen(
       item {
         InfoBanner(
           icon = { Icon(Icons.Default.Science, contentDescription = null, tint = AmberWarning) },
-          text = "Şu an ÖRNEK veriler gösteriliyor. Gerçek müşterilerinizi eklemeden önce silebilirsiniz.",
+          text = "Şu an örnek veriler gösteriliyor. Gerçek kayıtlarınızdan önce silebilirsiniz.",
           action = "Örnekleri sil",
           onAction = { viewModel.clearDemoData() }
         )
@@ -507,12 +507,14 @@ private fun InfoBanner(icon: @Composable () -> Unit, text: String, action: Strin
     border = BorderStroke(1.dp, palette.cardBorder),
     modifier = Modifier.fillMaxWidth()
   ) {
-    Row(modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-      icon()
-      Spacer(modifier = Modifier.width(10.dp))
-      Text(text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-      OutlinedButton(onClick = onAction, modifier = Modifier.padding(start = 6.dp)) {
-        Text(action, fontSize = 12.sp)
+    Column(modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 2.dp)) {
+      Row(verticalAlignment = Alignment.Top) {
+        icon()
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(end = 8.dp))
+      }
+      TextButton(onClick = onAction, modifier = Modifier.align(Alignment.End)) {
+        Text(action, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
       }
     }
   }

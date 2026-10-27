@@ -100,7 +100,7 @@ fun CollectionsScreen(
     item {
       Spacer(modifier = Modifier.height(8.dp))
       Text(
-        text = "Tahsilatlar & Kasa",
+        text = "Kasa",
         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
         color = MaterialTheme.colorScheme.onSurface
       )
@@ -127,15 +127,15 @@ fun CollectionsScreen(
             color = EmeraldPrimary
           )
           Spacer(modifier = Modifier.height(10.dp))
-          Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())
-          ) {
+          Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
             CollectionPeriod.entries.forEach { p ->
               FilterChip(
                 selected = period == p,
                 onClick = { period = p },
-                label = { Text(p.label, fontSize = 12.sp) }
+                label = {
+                  Text(p.label, fontSize = 12.sp, maxLines = 1, softWrap = false, modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                },
+                modifier = Modifier.weight(1f)
               )
             }
           }
@@ -145,11 +145,11 @@ fun CollectionsScreen(
           // Breakdown pills
           Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
           ) {
-            MethodPill("Nakit", Formatters.formatCurrency(cashTotal), Icons.Default.Payments)
-            MethodPill("Havale/EFT", Formatters.formatCurrency(bankTotal), Icons.Default.AccountBalance)
-            MethodPill("Kart", Formatters.formatCurrency(cardTotal), Icons.Default.CreditCard)
+            MethodPill("Nakit", Formatters.formatCurrencyShort(cashTotal), Icons.Default.Payments, Modifier.weight(1f))
+            MethodPill("Havale/EFT", Formatters.formatCurrencyShort(bankTotal), Icons.Default.AccountBalance, Modifier.weight(1f))
+            MethodPill("Kart", Formatters.formatCurrencyShort(cardTotal), Icons.Default.CreditCard, Modifier.weight(1f))
           }
         }
       }
@@ -208,7 +208,7 @@ fun CollectionsScreen(
           Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Box(
               modifier = Modifier
-                .size(42.dp)
+                .size(38.dp)
                 .clip(CircleShape)
                 .background(EmeraldPrimary.copy(alpha = 0.12f)),
               contentAlignment = Alignment.Center
@@ -232,7 +232,9 @@ fun CollectionsScreen(
               Text(
                 text = customer?.customer?.name ?: "Bilinmeyen Müşteri",
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
               )
               Text(
                 text = "${coll.paymentMethod.label} • ${Formatters.formatDate(coll.date)}",
@@ -241,6 +243,8 @@ fun CollectionsScreen(
               )
               if (coll.notes.isNotBlank()) {
                 Text(
+                  maxLines = 1,
+                  overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                   text = coll.notes,
                   style = MaterialTheme.typography.bodySmall,
                   color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -249,8 +253,11 @@ fun CollectionsScreen(
             }
           }
 
+          Spacer(modifier = Modifier.width(8.dp))
           Column(horizontalAlignment = Alignment.End) {
             Text(
+              maxLines = 1,
+              softWrap = false,
               text = "+" + Formatters.formatCurrency(coll.amount),
               style = moneyStyle(15),
               color = EmeraldPrimary
@@ -286,22 +293,20 @@ fun CollectionsScreen(
 }
 
 @Composable
-private fun MethodPill(label: String, amount: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+private fun MethodPill(label: String, amount: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
   Surface(
-    shape = RoundedCornerShape(10.dp),
-    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-    modifier = Modifier.padding(horizontal = 2.dp)
+    shape = RoundedCornerShape(12.dp),
+    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+    modifier = modifier
   ) {
-    Row(
-      modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Icon(icon, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(14.dp))
-      Spacer(modifier = Modifier.width(4.dp))
-      Column {
-        Text(label, fontSize = 10.sp, color = Slate500)
-        Text(amount, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(label, fontSize = 11.sp, color = Slate500, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
       }
+      Spacer(modifier = Modifier.height(2.dp))
+      Text(amount, style = moneyStyle(13), maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
   }
 }

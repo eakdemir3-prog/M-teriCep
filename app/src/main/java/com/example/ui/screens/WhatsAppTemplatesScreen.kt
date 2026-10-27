@@ -137,15 +137,18 @@ fun WhatsAppTemplatesScreen(
                 text = template.title,
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                modifier = Modifier.weight(1f)
               )
-
+              Spacer(modifier = Modifier.width(8.dp))
               OutlinedButton(
-                onClick = { viewModel.openDialog(DialogState.EditTemplate(template)) }
+                onClick = { viewModel.openDialog(DialogState.EditTemplate(template)) },
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
               ) {
                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Düzenle", fontSize = 12.sp)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Düzenle", fontSize = 12.sp, maxLines = 1, softWrap = false)
               }
             }
 

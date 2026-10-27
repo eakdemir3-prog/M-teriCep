@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -353,7 +355,13 @@ fun DatePickField(
     ) {
       Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
       Spacer(modifier = Modifier.width(8.dp))
-      Text(if (value == null) label else "$label: ${Formatters.formatDate(value)}")
+      Text(
+        if (value == null) label else "$label: ${Formatters.formatDate(value)}",
+        maxLines = 1,
+        softWrap = false,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        fontSize = 14.sp
+      )
     }
     if (allowClear && value != null) {
       IconButton(onClick = { onChange(null) }) {
@@ -368,7 +376,7 @@ private fun endOfDayPlus(days: Int): Long = Calendar.getInstance().apply {
   set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 0)
 }.timeInMillis
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddDebtDialog(
   preselectedCustomerId: Long? = null,
@@ -455,16 +463,15 @@ fun AddDebtDialog(
         )
 
         Spacer(modifier = Modifier.height(6.dp))
-        DatePickField(label = "İşlem tarihi", value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
+        DatePickField(label = "Tarih", value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
 
         Spacer(modifier = Modifier.height(10.dp))
         Text("Vade Tarihi", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
-        DatePickField(label = "Vade seç", value = dueDate, onChange = { dueDate = it }, allowClear = true, endOfDay = true)
+        DatePickField(label = "Vade", value = dueDate, onChange = { dueDate = it }, allowClear = true, endOfDay = true)
         Spacer(modifier = Modifier.height(6.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          val quick = listOf(3 to "+3 Gün", 7 to "+1 Hafta", 15 to "+15 Gün", 30 to "+1 Ay")
-          items(quick) { (days, label) ->
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+          listOf(3 to "+3 gün", 7 to "+1 hafta", 15 to "+15 gün", 30 to "+1 ay").forEach { (days, label) ->
             FilterChip(selected = false, onClick = { dueDate = endOfDayPlus(days) }, label = { Text(label, fontSize = 12.sp) })
           }
         }
@@ -472,8 +479,8 @@ fun AddDebtDialog(
         Spacer(modifier = Modifier.height(10.dp))
         Text("Kategori", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          items(categories) { cat ->
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+          categories.forEach { cat ->
             FilterChip(
               selected = selectedCategory == cat,
               onClick = { selectedCategory = cat },
@@ -493,7 +500,7 @@ fun AddDebtDialog(
 
         Spacer(modifier = Modifier.height(20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-          TextButton(onClick = onDismiss) { Text("Vazgeç") }
+          TextButton(onClick = onDismiss) { Text("Vazgeç", maxLines = 1, softWrap = false) }
           Spacer(modifier = Modifier.width(8.dp))
           Button(
             onClick = {
@@ -511,7 +518,7 @@ fun AddDebtDialog(
             colors = ButtonDefaults.buttonColors(containerColor = RoseError),
             modifier = Modifier.testTag("btn_save_debt")
           ) {
-            Text(if (isEdit) "Güncelle" else "Borcu Kaydet")
+            Text(if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
           }
         }
       }
@@ -519,7 +526,7 @@ fun AddDebtDialog(
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddCollectionDialog(
   preselectedCustomerId: Long? = null,
@@ -646,17 +653,15 @@ fun AddCollectionDialog(
         )
 
         if (!isEdit) {
-          LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+          FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             if (remainingBalance > 0) {
-              item {
-                FilterChip(
-                  selected = false,
-                  onClick = { amountText = Money.toInput(remainingBalance); amountError = null },
-                  label = { Text("Tamamı (${Formatters.formatCurrency(remainingBalance)})", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-                )
-              }
+              FilterChip(
+                selected = false,
+                onClick = { amountText = Money.toInput(remainingBalance); amountError = null },
+                label = { Text("Tamamı (${Formatters.formatCurrency(remainingBalance)})", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+              )
             }
-            items(listOf(100.0, 500.0, 1000.0)) { delta ->
+            listOf(100.0, 500.0, 1000.0).forEach { delta ->
               FilterChip(
                 selected = false,
                 onClick = { addToAmount(delta) },
@@ -667,13 +672,13 @@ fun AddCollectionDialog(
         }
 
         Spacer(modifier = Modifier.height(10.dp))
-        DatePickField(label = "Ödeme tarihi", value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
+        DatePickField(label = "Tarih", value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
 
         Spacer(modifier = Modifier.height(10.dp))
         Text("Ödeme Yöntemi", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          items(PaymentMethod.entries.toList()) { method ->
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+          PaymentMethod.entries.forEach { method ->
             FilterChip(
               selected = selectedMethod == method,
               onClick = { selectedMethod = method },
@@ -693,7 +698,7 @@ fun AddCollectionDialog(
 
         Spacer(modifier = Modifier.height(20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-          TextButton(onClick = onDismiss) { Text("Vazgeç") }
+          TextButton(onClick = onDismiss) { Text("Vazgeç", maxLines = 1, softWrap = false) }
           Spacer(modifier = Modifier.width(8.dp))
           Button(
             onClick = {
@@ -711,7 +716,7 @@ fun AddCollectionDialog(
             colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
             modifier = Modifier.testTag("btn_save_collection")
           ) {
-            Text(if (isEdit) "Güncelle" else "Tahsilatı Kaydet")
+            Text(if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
           }
         }
       }

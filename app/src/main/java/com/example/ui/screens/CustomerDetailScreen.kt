@@ -289,7 +289,7 @@ fun CustomerDetailScreen(
           ) {
             Icon(Icons.Default.MonetizationOn, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Tahsilat Al", fontSize = 13.sp)
+            Text("Tahsilat Al", fontSize = 13.sp, maxLines = 1, softWrap = false)
           }
 
           // Yeni Borç (Kırmızı)
@@ -304,7 +304,7 @@ fun CustomerDetailScreen(
           ) {
             Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = RoseError, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Borç Ekle", color = RoseError, fontSize = 13.sp)
+            Text("Borç Ekle", color = RoseError, fontSize = 13.sp, maxLines = 1, softWrap = false)
           }
         }
       }

@@ -1,50 +1,57 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.People
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.EmeraldPrimary
+import com.example.ui.theme.AmberWarning
+import com.example.ui.theme.LocalAppPalette
 import com.example.viewmodel.Screen
 
+/**
+ * Alt menü: 5 eşit sütun. Ortadaki "+" kendi sütununda durur; hiçbir yazının üstüne binmez
+ * ve her ekran genişliğinde etiketler tek satırda kalır.
+ */
 @Composable
 fun MusteriCepBottomBar(
   currentScreen: Screen,
@@ -52,27 +59,20 @@ fun MusteriCepBottomBar(
   onQuickActionClick: () -> Unit,
   pendingCount: Int = 0
 ) {
+  val palette = LocalAppPalette.current
   Surface(
     modifier = Modifier.fillMaxWidth(),
-    color = MaterialTheme.colorScheme.surface,
-    tonalElevation = 8.dp,
-    shadowElevation = 12.dp
+    color = MaterialTheme.colorScheme.surface
   ) {
-    Box(
-      modifier = Modifier
-        .fillMaxWidth()
-        .navigationBarsPadding()
-    ) {
+    Column(modifier = Modifier.navigationBarsPadding()) {
+      HorizontalDivider(color = palette.cardBorder)
       Row(
         modifier = Modifier
           .fillMaxWidth()
-          .height(64.dp)
-          .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
+          .height(68.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        // 1. Ana Sayfa
-        BottomNavItem(
+        NavCell(
           label = "Ana Sayfa",
           selectedIcon = Icons.Filled.Dashboard,
           unselectedIcon = Icons.Outlined.Dashboard,
@@ -80,22 +80,42 @@ fun MusteriCepBottomBar(
           testTag = "nav_dashboard",
           onClick = { onNavigate(Screen.Dashboard) }
         )
-
-        // 2. Randevular
-        BottomNavItem(
-          label = if (pendingCount > 0) "Randevu ($pendingCount)" else "Randevular",
+        NavCell(
+          label = "Randevu",
           selectedIcon = Icons.Filled.CalendarMonth,
           unselectedIcon = Icons.Outlined.CalendarMonth,
           isSelected = currentScreen is Screen.Appointments,
           testTag = "nav_appointments",
+          badge = pendingCount,
           onClick = { onNavigate(Screen.Appointments) }
         )
 
-        // Empty space for center elevated FAB
-        Spacer(modifier = Modifier.size(56.dp))
+        // Ortadaki hızlı işlem düğmesi (kendi sütununda)
+        Box(
+          modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight(),
+          contentAlignment = Alignment.Center
+        ) {
+          Box(
+            modifier = Modifier
+              .size(52.dp)
+              .clip(CircleShape)
+              .background(MaterialTheme.colorScheme.secondary)
+              .clickable(role = Role.Button, onClick = onQuickActionClick)
+              .testTag("fab_quick_action"),
+            contentAlignment = Alignment.Center
+          ) {
+            Icon(
+              imageVector = Icons.Default.Add,
+              contentDescription = "Hızlı işlem",
+              tint = MaterialTheme.colorScheme.onSecondary,
+              modifier = Modifier.size(28.dp)
+            )
+          }
+        }
 
-        // 3. Müşteriler
-        BottomNavItem(
+        NavCell(
           label = "Müşteriler",
           selectedIcon = Icons.Filled.People,
           unselectedIcon = Icons.Outlined.People,
@@ -103,9 +123,7 @@ fun MusteriCepBottomBar(
           testTag = "nav_customers",
           onClick = { onNavigate(Screen.Customers) }
         )
-
-        // 4. Kasa (tahsilatlar)
-        BottomNavItem(
+        NavCell(
           label = "Kasa",
           selectedIcon = Icons.Filled.AccountBalanceWallet,
           unselectedIcon = Icons.Outlined.AccountBalanceWallet,
@@ -113,68 +131,74 @@ fun MusteriCepBottomBar(
           testTag = "nav_collections",
           onClick = { onNavigate(Screen.Collections) }
         )
-
-      }
-
-      // Elevated Center "+" Quick Action Button
-      FloatingActionButton(
-        onClick = onQuickActionClick,
-        containerColor = EmeraldPrimary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
-        shape = CircleShape,
-        modifier = Modifier
-          .align(Alignment.Center)
-          .offset(y = (-14).dp)
-          .size(56.dp)
-          .testTag("fab_quick_action")
-      ) {
-        Icon(
-          imageVector = Icons.Default.Add,
-          contentDescription = "Hızlı İşlem Menüsü",
-          modifier = Modifier.size(28.dp)
-        )
       }
     }
   }
 }
 
 @Composable
-private fun BottomNavItem(
+private fun androidx.compose.foundation.layout.RowScope.NavCell(
   label: String,
   selectedIcon: ImageVector,
   unselectedIcon: ImageVector,
   isSelected: Boolean,
   testTag: String,
+  badge: Int = 0,
   onClick: () -> Unit
 ) {
-  val interactionSource = remember { MutableInteractionSource() }
-  val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-
+  val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
   Column(
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.Center,
     modifier = Modifier
-      .clickable(
-        interactionSource = interactionSource,
-        indication = null,
-        onClick = onClick
-      )
-      .padding(horizontal = 8.dp, vertical = 6.dp)
+      .weight(1f)
+      .fillMaxHeight()
+      .clickable(role = Role.Tab, onClick = onClick)
       .testTag(testTag)
   ) {
-    Icon(
-      imageVector = if (isSelected) selectedIcon else unselectedIcon,
-      contentDescription = label,
-      tint = tint,
-      modifier = Modifier.size(24.dp)
-    )
-    Spacer(modifier = Modifier.height(2.dp))
+    // Seçili sekme için yumuşak hap arka plan
+    Box(
+      modifier = Modifier
+        .width(52.dp)
+        .height(30.dp)
+        .clip(RoundedCornerShape(15.dp))
+        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),
+      contentAlignment = Alignment.Center
+    ) {
+      Icon(
+        imageVector = if (isSelected) selectedIcon else unselectedIcon,
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier.size(22.dp)
+      )
+      if (badge > 0) {
+        Surface(
+          shape = CircleShape,
+          color = AmberWarning,
+          border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+          modifier = Modifier
+            .align(Alignment.TopEnd)
+            .offset(x = (-4).dp, y = (-2).dp)
+        ) {
+          Text(
+            text = if (badge > 9) "9+" else badge.toString(),
+            color = MaterialTheme.colorScheme.surface,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 4.dp)
+          )
+        }
+      }
+    }
+    Spacer(modifier = Modifier.height(3.dp))
     Text(
       text = label,
       fontSize = 11.sp,
       fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-      color = tint
+      color = tint,
+      maxLines = 1,
+      softWrap = false,
+      overflow = TextOverflow.Ellipsis
     )
   }
 }

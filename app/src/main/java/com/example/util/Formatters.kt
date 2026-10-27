@@ -30,6 +30,12 @@ object Formatters {
     return currencyFormat.get()!!.format(if (Money.isZero(v)) 0.0 else v)
   }
 
+  /** Dar alanlar için: kuruşu yoksa ondalıksız ("3.200 ₺"), varsa tam ("3.200,50 ₺"). */
+  fun formatCurrencyShort(amount: Double): String {
+    val full = formatCurrency(amount)
+    return full.replace(",00 ₺", " ₺")
+  }
+
   fun formatDate(timestamp: Long?): String {
     if (timestamp == null || timestamp == 0L) return "-"
     return dateFormat.get()!!.format(Date(timestamp))
