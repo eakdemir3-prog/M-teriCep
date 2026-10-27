@@ -68,6 +68,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   private val _messages = MutableSharedFlow<UiMessage>(extraBufferCapacity = 4)
   val messages: SharedFlow<UiMessage> = _messages.asSharedFlow()
   private fun say(text: String) { _messages.tryEmit(UiMessage(text)) }
+  fun notify(text: String) = say(text)
 
   private val _busy = MutableStateFlow(false)
   val busy: StateFlow<Boolean> = _busy.asStateFlow()
@@ -460,7 +461,9 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
             businessId = business.id, businessName = business.name, customerUid = u.uid,
             customerName = p.displayName.ifBlank { u.displayName ?: "Müşteri" }, customerPhone = p.phone,
             serviceId = service.id, serviceName = service.name, durationMinutes = service.durationMinutes,
-            price = service.price, start = start, status = status, note = note.trim()
+            price = service.price, start = start, status = status, note = note.trim(),
+            businessAddress = com.example.cloud.BusinessLocation.addressText(business),
+            businessLat = business.latitude, businessLng = business.longitude
           )
         )
         runCatching { cloud.setFavorite(u.uid, business.id, true) }

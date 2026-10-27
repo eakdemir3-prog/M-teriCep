@@ -16,7 +16,7 @@ android {
     applicationId = "com.eavisionlabs.mustericep"
     minSdk = 24
     targetSdk = 36
-    versionCode = 6
+    versionCode = 7
     versionName = "1.0.3"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -120,7 +120,7 @@ dependencies {
   // implementation(libs.coil.compose)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
-  // implementation(libs.play.services.location)
+  implementation(libs.play.services.location)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

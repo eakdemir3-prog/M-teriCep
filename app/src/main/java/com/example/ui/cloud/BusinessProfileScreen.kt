@@ -1,11 +1,28 @@
 package com.example.ui.cloud
 
+import android.Manifest
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.core.content.ContextCompat
+import com.example.cloud.BusinessLocation
+import com.example.cloud.BusinessLogo
+import com.example.cloud.BusinessLogoImage
+import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +40,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -95,13 +113,60 @@ fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCit
   var window by remember(existing?.id) { mutableStateOf(base.bookingWindowDays) }
   val hours = remember(existing?.id) { mutableStateListOf<WorkingDay>().apply { addAll(base.workingHours.sortedBy { it.dayOfWeek }) } }
   var editService by remember { mutableStateOf<ServiceItem?>(null) }
+  var logo by remember(existing?.id) { mutableStateOf(base.logo) }
+  var lat by remember(existing?.id) { mutableStateOf(base.latitude) }
+  var lng by remember(existing?.id) { mutableStateOf(base.longitude) }
+  var logoBusy by remember { mutableStateOf(false) }
+  var locBusy by remember { mutableStateOf(false) }
+  var locMessage by remember { mutableStateOf<String?>(null) }
+  val context = LocalContext.current
+  val scope = rememberCoroutineScope()
+
+  val pickLogo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+    if (uri != null) {
+      logoBusy = true
+      scope.launch {
+        val encoded = BusinessLogo.encode(context, uri)
+        if (encoded != null) logo = encoded else cloud.notify("Görsel okunamadı, başka bir görsel deneyin.")
+        logoBusy = false
+      }
+    }
+  }
+
+  fun fetchLocation() {
+    locBusy = true
+    locMessage = null
+    scope.launch {
+      val p = BusinessLocation.current(context)
+      if (p != null) {
+        lat = p.first; lng = p.second
+        locMessage = "Konum alındı. Kaydet'e basmayı unutmayın."
+      } else {
+        locMessage = "Konum alınamadı. Telefonun konum (GPS) ayarı açık mı? Açık alanda tekrar deneyin."
+      }
+      locBusy = false
+    }
+  }
+
+  val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+    if (result.values.any { it }) fetchLocation()
+    else locMessage = "Konum izni verilmedi. Ayarlar > Uygulamalar > MüşteriCep > İzinler'den açabilirsiniz."
+  }
+
+  fun requestLocation() {
+    val granted = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+      .any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+    if (granted) fetchLocation()
+    else locationPermission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+  }
 
   fun save() {
     cloud.saveBusiness(
       base.copy(
         name = name, category = category, city = city, district = district, address = address,
         phone = phone, description = description, isListed = listed, autoApprove = autoApprove,
-        minNoticeMinutes = minNotice, bookingWindowDays = window, workingHours = hours.toList()
+        minNoticeMinutes = minNotice, bookingWindowDays = window, workingHours = hours.toList(),
+        logo = logo, latitude = lat, longitude = lng
       )
     )
   }
@@ -129,6 +194,33 @@ fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCit
       // 1. Vitrin bilgileri
       item {
         FormCard("İşletme bilgileri") {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(contentAlignment = Alignment.Center) {
+              BusinessLogoImage(logo = logo, size = 72.dp, corner = 18.dp)
+              if (logoBusy) CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Logo", fontWeight = FontWeight.SemiBold)
+              Text("Müşteriler sizi listede ve randevu ekranında logonuzla görür.", fontSize = 12.sp, color = Slate500)
+              Row {
+                TextButton(
+                  onClick = { pickLogo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                  enabled = !logoBusy,
+                  contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp)
+                ) {
+                  Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                  Spacer(modifier = Modifier.width(4.dp))
+                  Text(if (logo.isBlank()) "Logo seç" else "Değiştir")
+                }
+                if (logo.isNotBlank()) {
+                  Spacer(modifier = Modifier.width(12.dp))
+                  TextButton(onClick = { logo = "" }) { Text("Kaldır", color = RoseError) }
+                }
+              }
+            }
+          }
+          Spacer(modifier = Modifier.height(10.dp))
           OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("İşletme adı *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
           Spacer(modifier = Modifier.height(8.dp))
           Text("Kategori", style = MaterialTheme.typography.labelMedium, color = Slate500)
@@ -149,6 +241,66 @@ fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCit
           )
           Spacer(modifier = Modifier.height(8.dp))
           OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Kısa tanıtım") }, maxLines = 3, modifier = Modifier.fillMaxWidth())
+        }
+      }
+
+      // 1b. Harita konumu
+      item {
+        FormCard("Konum") {
+          Text(
+            "İşletmenizdeyken \"Şu anki konumu kullan\"a basın. Randevu alan müşteriler tek dokunuşla yol tarifi alır.",
+            fontSize = 12.sp, color = Slate500
+          )
+          Spacer(modifier = Modifier.height(10.dp))
+          val la = lat
+          val lo = lng
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+              Icons.Default.LocationOn, contentDescription = null,
+              tint = if (la != null) palette.success else palette.inactive, modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+              if (la != null && lo != null) "Konum kayıtlı (${BusinessLocation.format(la, lo)})" else "Henüz konum eklenmedi",
+              fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f)
+            )
+          }
+          locMessage?.let {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(it, fontSize = 12.sp, color = if (la != null && it.startsWith("Konum alındı")) palette.success else palette.warning)
+          }
+          Spacer(modifier = Modifier.height(10.dp))
+          Button(
+            onClick = { requestLocation() }, enabled = !locBusy,
+            modifier = Modifier.fillMaxWidth().height(46.dp), shape = RoundedCornerShape(12.dp)
+          ) {
+            if (locBusy) {
+              CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = palette.onInk)
+              Spacer(modifier = Modifier.width(8.dp))
+              Text("Konum alınıyor…")
+            } else {
+              Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
+              Spacer(modifier = Modifier.width(8.dp))
+              Text(if (la == null) "Şu anki konumu kullan" else "Konumu güncelle")
+            }
+          }
+          if (la != null && lo != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+              OutlinedButton(
+                onClick = { runCatching { context.startActivity(BusinessLocation.showIntent(la, lo, name.ifBlank { "İşletme" })) } },
+                modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
+              ) {
+                Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Haritada gör", maxLines = 1)
+              }
+              OutlinedButton(
+                onClick = { lat = null; lng = null; locMessage = null },
+                modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
+              ) { Text("Kaldır", color = RoseError, maxLines = 1) }
+            }
+          }
         }
       }
 

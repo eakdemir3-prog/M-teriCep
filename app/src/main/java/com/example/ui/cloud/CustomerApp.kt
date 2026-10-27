@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
@@ -230,11 +231,7 @@ private fun BusinessRow(b: BusinessProfile, onClick: () -> Unit) {
     modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
   ) {
     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-      Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(42.dp)) {
-        Box(contentAlignment = Alignment.Center) {
-          Icon(Icons.Default.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-        }
-      }
+      com.example.cloud.BusinessLogoImage(logo = b.logo, size = 46.dp)
       Spacer(modifier = Modifier.width(12.dp))
       Column(modifier = Modifier.weight(1f)) {
         Text(b.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -282,25 +279,53 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
     } else LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
       item {
         CardBox {
-          if (b.category.isNotBlank()) Text(b.category, style = MaterialTheme.typography.labelMedium, color = Slate500)
-          if (b.description.isNotBlank()) Text(b.description, style = MaterialTheme.typography.bodyMedium)
-          if (b.address.isNotBlank() || b.city.isNotBlank()) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp).clickable {
-              val q = Uri.encode(listOf(b.name, b.address, b.district, b.city).filter { it.isNotBlank() }.joinToString(", "))
-              runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=$q"))) }
-            }) {
-              Icon(Icons.Default.LocationOn, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(16.dp))
-              Spacer(modifier = Modifier.width(4.dp))
-              Text(listOf(b.address, b.district, b.city).filter { it.isNotBlank() }.joinToString(", "), style = MaterialTheme.typography.bodySmall)
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            com.example.cloud.BusinessLogoImage(logo = b.logo, size = 60.dp, corner = 16.dp)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+              Text(b.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+              if (b.category.isNotBlank()) Text(b.category, style = MaterialTheme.typography.labelMedium, color = Slate500)
             }
           }
-          if (b.phone.isNotBlank()) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp).clickable {
-              runCatching { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + b.phone.filter { it.isDigit() || it == '+' }))) }
-            }) {
-              Icon(Icons.Default.Call, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(16.dp))
+          if (b.description.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(b.description, style = MaterialTheme.typography.bodyMedium)
+          }
+          val addr = com.example.cloud.BusinessLocation.addressText(b)
+          if (addr.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+              Icon(Icons.Default.LocationOn, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(16.dp))
               Spacer(modifier = Modifier.width(4.dp))
-              Text(Formatters.formatPhoneForDisplay(b.phone), style = MaterialTheme.typography.bodySmall)
+              Text(addr, style = MaterialTheme.typography.bodySmall)
+            }
+          }
+          if (b.hasLocation || addr.isNotBlank() || b.phone.isNotBlank()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+              if (b.hasLocation || addr.isNotBlank()) {
+                Button(
+                  onClick = {
+                    runCatching {
+                      context.startActivity(com.example.cloud.BusinessLocation.directionsIntent(b.latitude, b.longitude, listOf(b.name, addr).filter { it.isNotBlank() }.joinToString(", ")))
+                    }
+                  },
+                  modifier = Modifier.weight(1f).height(44.dp), shape = RoundedCornerShape(12.dp)
+                ) {
+                  Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
+                  Spacer(modifier = Modifier.width(6.dp))
+                  Text("Yol tarifi", maxLines = 1)
+                }
+              }
+              if (b.phone.isNotBlank()) {
+                OutlinedButton(
+                  onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + b.phone.filter { it.isDigit() || it == '+' }))) } },
+                  modifier = Modifier.weight(1f).height(44.dp), shape = RoundedCornerShape(12.dp)
+                ) {
+                  Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                  Spacer(modifier = Modifier.width(6.dp))
+                  Text("Ara", maxLines = 1)
+                }
+              }
             }
           }
           Spacer(modifier = Modifier.height(6.dp))
@@ -438,6 +463,18 @@ private fun CustomerAppointmentCard(a: Appointment, onCancel: (() -> Unit)?, onR
       Spacer(modifier = Modifier.height(6.dp))
       Text("${Formatters.formatFriendlyDate(a.start)} • ${timeOf(a.start)}", style = moneyStyle(15), color = NavyPrimary)
       Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+        if (onCancel != null && (a.businessLat != null || a.businessAddress.isNotBlank())) {
+          val context = LocalContext.current
+          TextButton(onClick = {
+            runCatching {
+              context.startActivity(com.example.cloud.BusinessLocation.directionsIntent(a.businessLat, a.businessLng, listOf(a.businessName, a.businessAddress).filter { it.isNotBlank() }.joinToString(", ")))
+            }
+          }) {
+            Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Yol tarifi")
+          }
+        }
         if (onCancel != null) TextButton(onClick = onCancel) { Text("İptal et", color = RoseError) }
         TextButton(onClick = onRebook) { Text(if (onCancel != null) "İşletme" else "Tekrar al") }
       }

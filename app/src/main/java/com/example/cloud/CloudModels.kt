@@ -65,8 +65,14 @@ data class BusinessProfile(
   /** Müşteri en fazla kaç gün sonrasına randevu alabilir. */
   val bookingWindowDays: Int = 30,
   /** Randevu en az kaç saat önceden alınabilir / iptal edilebilir. */
-  val minNoticeMinutes: Int = 60
+  val minNoticeMinutes: Int = 60,
+  /** Küçük JPEG logo (base64). Boşsa simge gösterilir. */
+  val logo: String = "",
+  /** Harita konumu (müşterilere yol tarifi için). */
+  val latitude: Double? = null,
+  val longitude: Double? = null
 ) {
+  val hasLocation: Boolean get() = latitude != null && longitude != null
   fun dayFor(timestamp: Long): WorkingDay {
     val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
     val d = WorkingDay.fromCalendarDay(cal.get(Calendar.DAY_OF_WEEK))
@@ -105,7 +111,11 @@ data class Appointment(
   val createdAt: Long = System.currentTimeMillis(),
   val updatedAt: Long = System.currentTimeMillis(),
   /** İşletme bu randevuyu defterine (borç/tahsilat) işledi mi? */
-  val ledgerPosted: Boolean = false
+  val ledgerPosted: Boolean = false,
+  /** Randevu alınırken işletmenin adresi ve konumu (yol tarifi için). */
+  val businessAddress: String = "",
+  val businessLat: Double? = null,
+  val businessLng: Double? = null
 ) {
   val end: Long get() = start + durationMinutes * 60_000L
 }

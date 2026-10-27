@@ -59,6 +59,9 @@ internal object CloudMappers {
     "workingHours" to b.workingHours.map { dayToMap(it) },
     "bookingWindowDays" to b.bookingWindowDays,
     "minNoticeMinutes" to b.minNoticeMinutes,
+    "logo" to b.logo,
+    "lat" to b.latitude,
+    "lng" to b.longitude,
     "updatedAt" to System.currentTimeMillis()
   )
 
@@ -78,7 +81,10 @@ internal object CloudMappers {
     workingHours = (doc.get("workingHours") as? List<*>)?.mapNotNull { (it as? Map<*, *>)?.let(::day) }
       ?.takeIf { it.isNotEmpty() } ?: WorkingDay.defaultWeek(),
     bookingWindowDays = doc.getLong("bookingWindowDays")?.toInt() ?: 30,
-    minNoticeMinutes = doc.getLong("minNoticeMinutes")?.toInt() ?: 60
+    minNoticeMinutes = doc.getLong("minNoticeMinutes")?.toInt() ?: 60,
+    logo = doc.getString("logo") ?: "",
+    latitude = doc.getDouble("lat"),
+    longitude = doc.getDouble("lng")
   )
 
   fun serviceToMap(s: ServiceItem): Map<String, Any?> = mapOf(
@@ -113,7 +119,10 @@ internal object CloudMappers {
     "cancelledBy" to a.cancelledBy,
     "createdAt" to a.createdAt,
     "updatedAt" to a.updatedAt,
-    "ledgerPosted" to a.ledgerPosted
+    "ledgerPosted" to a.ledgerPosted,
+    "businessAddress" to a.businessAddress,
+    "businessLat" to a.businessLat,
+    "businessLng" to a.businessLng
   )
 
   fun appointment(doc: DocumentSnapshot): Appointment = Appointment(
@@ -134,6 +143,9 @@ internal object CloudMappers {
     dayKey = doc.getString("dayKey") ?: "",
     createdAt = doc.getLong("createdAt") ?: 0L,
     updatedAt = doc.getLong("updatedAt") ?: 0L,
-    ledgerPosted = doc.getBoolean("ledgerPosted") ?: false
+    ledgerPosted = doc.getBoolean("ledgerPosted") ?: false,
+    businessAddress = doc.getString("businessAddress") ?: "",
+    businessLat = doc.getDouble("businessLat"),
+    businessLng = doc.getDouble("businessLng")
   )
 }
