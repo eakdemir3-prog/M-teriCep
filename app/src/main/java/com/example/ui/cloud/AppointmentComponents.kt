@@ -4,8 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+
+
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -96,7 +96,6 @@ fun DayStrip(
 }
 
 /** Boş saatlerin ızgarası. [slots] null ise yükleniyor. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SlotGrid(slots: List<Long>?, selected: Long?, onSelect: (Long) -> Unit, emptyText: String) {
   val palette = LocalAppPalette.current
@@ -105,24 +104,30 @@ fun SlotGrid(slots: List<Long>?, selected: Long?, onSelect: (Long) -> Unit, empt
       CircularProgressIndicator()
     }
     slots.isEmpty() -> Text(emptyText, style = MaterialTheme.typography.bodySmall, color = Slate500, modifier = Modifier.padding(vertical = 8.dp))
-    else -> FlowRow(
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-      slots.forEach { t ->
-        val isSel = t == selected
-        Surface(
-          shape = RoundedCornerShape(10.dp),
-          color = if (isSel) EmeraldPrimary else MaterialTheme.colorScheme.surface,
-          border = BorderStroke(1.dp, if (isSel) EmeraldPrimary else palette.cardBorder),
-          modifier = Modifier.clickable { onSelect(t) }
-        ) {
-          Text(
-            text = timeOf(t),
-            fontWeight = FontWeight.SemiBold,
-            color = if (isSel) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-          )
+    else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+      slots.chunked(4).forEach { row ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+          row.forEach { t ->
+            val isSel = t == selected
+            Surface(
+              shape = RoundedCornerShape(10.dp),
+              color = if (isSel) palette.ink else MaterialTheme.colorScheme.surface,
+              border = BorderStroke(1.dp, if (isSel) palette.ink else palette.cardBorder),
+              modifier = Modifier
+                .weight(1f)
+                .clickable { onSelect(t) }
+            ) {
+              Text(
+                text = timeOf(t),
+                fontWeight = FontWeight.SemiBold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 1,
+                color = if (isSel) palette.onInk else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(vertical = 10.dp)
+              )
+            }
+          }
+          repeat(4 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
         }
       }
     }

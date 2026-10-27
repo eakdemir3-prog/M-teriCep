@@ -8,8 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+
+
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -373,12 +373,45 @@ fun DatePickField(
   }
 }
 
+/** Seçenekleri sabit sütunlu ızgarada gösterir (dar ekranda taşmaz, yeniden ölçüm döngüsüne girmez). */
+@Composable
+fun <T> ChipGrid(items: List<T>, columns: Int, content: @Composable androidx.compose.foundation.layout.RowScope.(T) -> Unit) {
+  Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+    items.chunked(columns).forEach { row ->
+      Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+        row.forEach { content(it) }
+        repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+      }
+    }
+  }
+}
+
+@Composable
+fun androidx.compose.foundation.layout.RowScope.GridChip(label: String, selected: Boolean, onClick: () -> Unit) {
+  FilterChip(
+    selected = selected,
+    onClick = onClick,
+    label = {
+      Text(
+        label,
+        fontSize = 12.sp,
+        maxLines = 1,
+        softWrap = false,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        modifier = Modifier.fillMaxWidth()
+      )
+    },
+    modifier = Modifier.weight(1f)
+  )
+}
+
 private fun endOfDayPlus(days: Int): Long = Calendar.getInstance().apply {
   add(Calendar.DAY_OF_MONTH, days)
   set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 0)
 }.timeInMillis
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddDebtDialog(
   preselectedCustomerId: Long? = null,
@@ -473,23 +506,15 @@ fun AddDebtDialog(
         Spacer(modifier = Modifier.height(6.dp))
         DatePickField(label = "Vade", value = dueDate, onChange = { dueDate = it }, allowClear = true, endOfDay = true)
         Spacer(modifier = Modifier.height(6.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          listOf(3 to "+3 gün", 7 to "+1 hafta", 15 to "+15 gün", 30 to "+1 ay").forEach { (days, label) ->
-            FilterChip(selected = false, onClick = { dueDate = endOfDayPlus(days) }, label = { Text(label, fontSize = 12.sp) })
-          }
+        ChipGrid(listOf(3 to "+3 gün", 7 to "+1 hafta", 15 to "+15 gün", 30 to "+1 ay"), columns = 4) { (days, label) ->
+          GridChip(label, selected = false) { dueDate = endOfDayPlus(days) }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
         Text("Kategori", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          categories.forEach { cat ->
-            FilterChip(
-              selected = selectedCategory == cat,
-              onClick = { selectedCategory = cat },
-              label = { Text(cat, fontSize = 12.sp) }
-            )
-          }
+        ChipGrid(categories, columns = 2) { cat ->
+          GridChip(cat, selected = selectedCategory == cat) { selectedCategory = cat }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -530,7 +555,7 @@ fun AddDebtDialog(
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddCollectionDialog(
   preselectedCustomerId: Long? = null,
@@ -658,20 +683,16 @@ fun AddCollectionDialog(
         )
 
         if (!isEdit) {
-          FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+          Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (remainingBalance > 0) {
-              FilterChip(
-                selected = false,
-                onClick = { amountText = Money.toInput(remainingBalance); amountError = null },
-                label = { Text("Tamamı (${Formatters.formatCurrency(remainingBalance)})", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-              )
+              Row(modifier = Modifier.fillMaxWidth()) {
+                GridChip("Tamamı: ${Formatters.formatCurrency(remainingBalance)}", selected = false) {
+                  amountText = Money.toInput(remainingBalance); amountError = null
+                }
+              }
             }
-            listOf(100.0, 500.0, 1000.0).forEach { delta ->
-              FilterChip(
-                selected = false,
-                onClick = { addToAmount(delta) },
-                label = { Text("+" + Formatters.formatCurrency(delta).replace(",00", ""), fontSize = 12.sp) }
-              )
+            ChipGrid(listOf(100.0, 500.0, 1000.0), columns = 3) { delta ->
+              GridChip("+" + Formatters.formatCurrencyShort(delta), selected = false) { addToAmount(delta) }
             }
           }
         }
@@ -682,14 +703,8 @@ fun AddCollectionDialog(
         Spacer(modifier = Modifier.height(10.dp))
         Text("Ödeme Yöntemi", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          PaymentMethod.entries.forEach { method ->
-            FilterChip(
-              selected = selectedMethod == method,
-              onClick = { selectedMethod = method },
-              label = { Text(method.label, fontSize = 12.sp) }
-            )
-          }
+        ChipGrid(PaymentMethod.entries.toList(), columns = 3) { method ->
+          GridChip(method.shortLabel, selected = selectedMethod == method) { selectedMethod = method }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
