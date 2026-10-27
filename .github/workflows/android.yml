@@ -9,6 +9,9 @@ concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,6 +40,20 @@ jobs:
         run: |
           set -o pipefail
           gradle :app:testDebugUnitTest --no-configuration-cache 2>&1 | tee test.log
+
+      - name: Ekran görüntülerini shots dalına koy
+        if: always()
+        run: |
+          [ -d app/build/shots ] || exit 0
+          mkdir -p /tmp/shots && cp app/build/shots/*.png /tmp/shots/ || exit 0
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan shots-tmp
+          git rm -rf . >/dev/null 2>&1 || true
+          cp /tmp/shots/*.png .
+          git add *.png
+          git commit -m "Ekran görüntüleri ${GITHUB_SHA::7}"
+          git push origin shots-tmp:shots --force
 
       - name: Hataları özetle
         if: failure()
