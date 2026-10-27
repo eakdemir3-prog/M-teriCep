@@ -15,7 +15,11 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.isRoot
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.activity.ComponentActivity
+import android.graphics.Canvas
+import android.view.View
+import org.robolectric.shadows.ShadowLooper
 import androidx.compose.ui.test.onRoot
 import androidx.test.core.app.ApplicationProvider
 import com.example.model.AppThemeMode
@@ -46,14 +50,43 @@ import org.robolectric.annotation.GraphicsMode
  * telefon genişliklerinde gözle kontrol etmek için CI'da çalışır.
  */
 abstract class ScreenshotBase {
-  @get:Rule val rule = createComposeRule()
+  @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
   abstract val tag: String
 
-  private fun save(node: SemanticsNodeInteraction, name: String) {
-    val bmp: Bitmap = node.captureToImage().asAndroidBitmap()
+  /** Açık pencerelerin kök görünümleri (etkinlik + varsa iletişim kutusu). */
+  @Suppress("UNCHECKED_CAST")
+  private fun rootViews(): List<View> {
+    val wmg = Class.forName("android.view.WindowManagerGlobal")
+    val inst = wmg.getMethod("getInstance").invoke(null)
+    val f = wmg.getDeclaredField("mViews").apply { isAccessible = true }
+    return (f.get(inst) as List<View>).toList()
+  }
+
+  private fun idle() {
+    repeat(5) {
+      ShadowLooper.idleMainLooper()
+      rule.waitForIdle()
+      Thread.sleep(40)
+    }
+  }
+
+  private fun saveView(v: View, name: String) {
+    val bmp = Bitmap.createBitmap(v.width.coerceAtLeast(1), v.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+    v.draw(Canvas(bmp))
     val dir = File("build/shots").apply { mkdirs() }
     File(dir, "${tag}_$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+  }
+
+  private fun save(@Suppress("UNUSED_PARAMETER") node: SemanticsNodeInteraction?, name: String) {
+    idle()
+    saveView(rule.activity.window.decorView, name)
+  }
+
+  private fun saveDialog(name: String) {
+    idle()
+    val dialog = rootViews().lastOrNull { it !== rule.activity.window.decorView } ?: rule.activity.window.decorView
+    saveView(dialog, name)
   }
 
   private fun frame(vm: MusteriCepViewModel, screen: Screen, content: @Composable () -> Unit) {
@@ -72,13 +105,14 @@ abstract class ScreenshotBase {
   private fun viewModel(): MusteriCepViewModel {
     val app = ApplicationProvider.getApplicationContext<Application>()
     val vm = MusteriCepViewModel(app)
-    vm.clearAllData()
-    rule.waitForIdle()
     vm.loadDemoData()
-    rule.waitUntil(timeoutMillis = 15_000) {
+    val deadline = System.currentTimeMillis() + 20_000
+    while (System.currentTimeMillis() < deadline &&
+      !(vm.allCustomersWithBalance.value.size >= 4 && vm.allCollections.value.isNotEmpty())) {
+      ShadowLooper.idleMainLooper()
       Thread.sleep(50)
-      vm.allCustomersWithBalance.value.size >= 4 && vm.allCollections.value.isNotEmpty()
     }
+    check(vm.allCustomersWithBalance.value.size >= 4) { "Örnek veri yüklenemedi" }
     return vm
   }
 
@@ -115,19 +149,16 @@ abstract class ScreenshotBase {
     )
     for ((screen, name) in shots) {
       current = screen
-      rule.waitForIdle()
-      Thread.sleep(300)
-      rule.waitForIdle()
-      save(rule.onRoot(), name)
+      save(null, name)
     }
     val first = vm.allCustomersWithBalance.value.maxByOrNull { it.totalDebt }!!.customer.id
     vm.selectCustomer(first)
-    rule.waitUntil(10_000) { Thread.sleep(50); vm.selectedCustomerTransactions.value.isNotEmpty() }
+    val dl = System.currentTimeMillis() + 10_000
+    while (System.currentTimeMillis() < dl && vm.selectedCustomerTransactions.value.isEmpty()) {
+      ShadowLooper.idleMainLooper(); Thread.sleep(50)
+    }
     current = Screen.CustomerDetail(first)
-    rule.waitForIdle()
-    Thread.sleep(300)
-    rule.waitForIdle()
-    save(rule.onRoot(), "3_musteri_detay")
+    save(null, "3_musteri_detay")
   }
 
   @Test
@@ -146,11 +177,9 @@ abstract class ScreenshotBase {
         }
       }
     }
-    rule.waitForIdle()
-    save(rule.onAllNodes(isRoot())[1], "7_borc_ekle")
+    saveDialog("7_borc_ekle")
     which = 1
-    rule.waitForIdle()
-    save(rule.onAllNodes(isRoot())[1], "8_tahsilat_al")
+    saveDialog("8_tahsilat_al")
   }
 }
 
