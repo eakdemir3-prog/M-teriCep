@@ -165,10 +165,20 @@ abstract class ScreenshotBase {
     repeat(20) { ShadowLooper.idleMainLooper(); Thread.sleep(25) }
   }
 
+  private fun fakeCustomers() = listOf(
+    com.example.model.CustomerWithBalance(
+      customer = com.example.model.Customer(id = 1, name = "Ahmet Yılmaz (Yılmaz Market)", phone = "05325551020"),
+      totalDebt = 6300.0, totalPaid = 2000.0, remainingBalance = 4300.0, overdueAmount = 2500.0
+    ),
+    com.example.model.CustomerWithBalance(
+      customer = com.example.model.Customer(id = 2, name = "Mehmet Demir", phone = "05434443040"),
+      totalDebt = 7500.0, totalPaid = 4000.0, remainingBalance = 3500.0
+    )
+  )
+
   @Test
   fun dialogCollection() {
-    val vm = viewModel()
-    val customers = vm.allCustomersWithBalance.value
+    val customers = fakeCustomers()
     rule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
         AddCollectionDialog(preselectedCustomerId = customers.first { it.remainingBalance > 0 }.customer.id, allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _ -> })
@@ -181,8 +191,7 @@ abstract class ScreenshotBase {
 
   @Test
   fun dialogDebt() {
-    val vm = viewModel()
-    val customers = vm.allCustomersWithBalance.value
+    val customers = fakeCustomers()
     rule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
         AddDebtDialog(preselectedCustomerId = customers.first().customer.id, allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _, _ -> })
@@ -195,8 +204,7 @@ abstract class ScreenshotBase {
 
   @Test
   fun dialogDebtPicker() {
-    val vm = viewModel()
-    val customers = vm.allCustomersWithBalance.value
+    val customers = fakeCustomers()
     rule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
         AddDebtDialog(allCustomers = customers, onDismiss = {}, onSave = { _, _, _, _, _, _ -> })
