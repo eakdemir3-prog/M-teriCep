@@ -56,6 +56,7 @@ sealed class DialogState {
   ) : DialogState()
 
   data class TierLimitReached(val currentCount: Int, val maxLimit: Int) : DialogState()
+  data class FeatureLocked(val feature: com.example.model.Feature) : DialogState()
   data class QuickCalculator(val onApplyAmount: (Double) -> Unit) : DialogState()
 }
 

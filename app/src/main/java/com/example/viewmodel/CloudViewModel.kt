@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -237,6 +238,37 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     if (u == null) flowOf(emptyList()) else cloud.businessPendingFlow(u.uid).catch { emit(emptyList()) }
   }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+  // ---------- Paket sınırları ----------
+  val tier: StateFlow<com.example.model.SubscriptionTier> = settings.profile
+    .map { it.activeTier }
+    .stateIn(viewModelScope, SharingStarted.Eagerly, com.example.model.SubscriptionTier.FREE)
+
+  private val _monthCount = MutableStateFlow<Long?>(null)
+  /** Bu ayki randevu sayısı (bilinmiyorsa null). */
+  val monthAppointmentCount: StateFlow<Long?> = _monthCount.asStateFlow()
+
+  init {
+    viewModelScope.launch {
+      combine(myBusiness, tier, todayAppointments, pendingAppointments) { b, t, today, p -> Triple(b, t, today.size + p.size) }
+        .collectLatest { (b, t, _) ->
+          if (b == null) return@collectLatest
+          kotlinx.coroutines.delay(800)
+          refreshUsage(b, t)
+        }
+    }
+  }
+
+  private suspend fun refreshUsage(b: BusinessProfile, t: com.example.model.SubscriptionTier) {
+    val limited = com.example.model.Billing.ENABLED && t.monthlyAppointments != com.example.model.UNLIMITED
+    val count = runCatching { cloud.monthAppointmentCount(b.id) }.getOrNull()
+    _monthCount.value = count
+    val full = limited && count != null && count >= t.monthlyAppointments
+    val rank = if (com.example.model.Billing.ENABLED) t.rank else 0
+    if (count != null && (b.bookingFull != full || b.tierRank != rank)) {
+      runCatching { cloud.setBusinessUsage(b.id, rank, full) }
+    }
+  }
+
   fun saveBusiness(b: BusinessProfile) {
     val u = firebaseUser.value ?: return
     if (b.name.isBlank()) { say("İşletme adı zorunludur."); return }
@@ -257,6 +289,11 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     val u = firebaseUser.value ?: return
     if (s.name.isBlank()) { say("Hizmet adı girin."); return }
     if (s.durationMinutes < 5) { say("Süre en az 5 dakika olmalı."); return }
+    val t = tier.value
+    if (com.example.model.Billing.ENABLED && s.id.isBlank() && myServices.value.size >= t.maxServices) {
+      say("${t.title} paketinde en fazla ${t.maxServices} hizmet eklenebilir. Ayarlar > Paketler'den paketinizi yükseltebilirsiniz.")
+      return
+    }
     viewModelScope.launch {
       try { cloud.saveService(u.uid, s); say("Hizmet kaydedildi.") } catch (e: Exception) { say("Kaydedilemedi: ${e.message}") }
     }
@@ -286,6 +323,10 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     val u = firebaseUser.value ?: return
     val b = myBusiness.value ?: run { say("Önce işletme bilgilerini kaydedin."); return }
     if (customerName.isBlank()) { say("Müşteri adını girin."); return }
+    if (b.bookingFull) {
+      say("${tier.value.title} paketinin aylık ${tier.value.monthlyAppointments} randevu sınırı doldu. Ayarlar > Paketler'den paketinizi yükseltebilirsiniz.")
+      return
+    }
     viewModelScope.launch {
       _busy.value = true
       try {
@@ -368,7 +409,10 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   fun loadListed(city: String?) {
     if (!isSignedIn) return
     viewModelScope.launch {
-      try { _listed.value = cloud.listBusinesses(city).sortedBy { it.name.lowercase() } } catch (e: Exception) { say("İşletmeler yüklenemedi: ${e.message}") }
+      try {
+        _listed.value = cloud.listBusinesses(city)
+          .sortedWith(compareByDescending<BusinessProfile> { it.tierRank >= 2 }.thenBy { it.name.lowercase() })
+      } catch (e: Exception) { say("İşletmeler yüklenemedi: ${e.message}") }
     }
   }
 
@@ -447,6 +491,10 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     if (p.phone.filter { it.isDigit() }.length < 10) {
       say("Randevu için önce Profil'den telefon numaranızı girin.")
       openCustomerTab(CustomerScreen.Profile)
+      return
+    }
+    if (business.bookingFull) {
+      say("Bu işletme bu ay online randevu kapasitesine ulaştı. Telefonla arayarak randevu alabilirsiniz.")
       return
     }
     viewModelScope.launch {

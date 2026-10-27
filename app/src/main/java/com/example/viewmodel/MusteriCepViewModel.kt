@@ -1,5 +1,6 @@
 package com.example.viewmodel
 
+import com.example.model.allows
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -121,6 +122,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
 
   /** Bildirim izni ekranda istendikten sonra çağrılır. */
   fun setNotifications(enabled: Boolean) {
+    if (enabled && !requireFeature(com.example.model.Feature.DUE_REMINDERS)) return
     viewModelScope.launch {
       settings.setNotifications(enabled)
       val ctx = getApplication<Application>()
@@ -149,12 +151,11 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     showMessage("Kontrol edildi. Vadesi gelen alacak varsa bildirim gelecek.")
   }
 
-  /**
-   * Paket satın alma. Google Play Faturalandırma henüz bağlanmadığı için paket
-   * değiştirilmez; kullanıcıya dürüstçe bilgi verilir.
-   */
-  fun requestUpgrade(tier: SubscriptionTier) {
-    showMessage("${tier.title} paketi Google Play üzerinden satın alınabilir olacak. Bu sürümde ödeme henüz aktif değil.")
+  /** Özellik mevcut pakette varsa true; yoksa paket önerisi penceresini açar. */
+  fun requireFeature(f: com.example.model.Feature): Boolean {
+    if (profile.value.activeTier.allows(f)) return true
+    openDialog(DialogState.FeatureLocked(f))
+    return false
   }
 
   // ---------------- Veri akışları ----------------
@@ -443,6 +444,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   // ---------------- WhatsApp şablonları ----------------
 
   fun updateTemplate(template: WhatsAppTemplate) {
+    if (!requireFeature(com.example.model.Feature.EDIT_TEMPLATES)) return
     if (template.templateText.isBlank()) { showMessage("Mesaj metni boş olamaz."); return }
     viewModelScope.launch {
       repository.updateTemplate(template.copy(isCustom = true))
@@ -473,9 +475,10 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   }
 
   fun executeCsvImport(validCustomers: List<Customer>) {
+    if (!requireFeature(com.example.model.Feature.CSV_IMPORT)) return
     viewModelScope.launch {
       val tier = profile.value.activeTier
-      val available = if (!com.example.model.Billing.ENABLED) Int.MAX_VALUE
+      val available = if (!com.example.model.Billing.ENABLED || tier.maxCustomerLimit == com.example.model.UNLIMITED) Int.MAX_VALUE
         else (tier.maxCustomerLimit - repository.countRealCustomers()).coerceAtLeast(0)
       val toImport = validCustomers.take(available)
       if (toImport.isNotEmpty()) repository.insertCustomers(toImport)

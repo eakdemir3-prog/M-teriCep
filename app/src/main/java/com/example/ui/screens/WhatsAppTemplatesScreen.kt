@@ -133,7 +133,7 @@ fun WhatsAppTemplatesScreen(
               maxLines = 2,
               modifier = Modifier.weight(1f)
             )
-            androidx.compose.material3.TextButton(onClick = { viewModel.openDialog(DialogState.EditTemplate(template)) }) {
+            androidx.compose.material3.TextButton(onClick = { if (viewModel.requireFeature(com.example.model.Feature.EDIT_TEMPLATES)) viewModel.openDialog(DialogState.EditTemplate(template)) }) {
               Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = palette.ink)
               Spacer(modifier = Modifier.width(4.dp))
               Text("Düzenle", color = palette.ink, maxLines = 1, softWrap = false)

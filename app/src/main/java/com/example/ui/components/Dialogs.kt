@@ -1351,11 +1351,11 @@ fun TierLimitReachedDialog(
       Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.Star, contentDescription = null, tint = AmberWarning)
         Spacer(modifier = Modifier.width(8.dp))
-        Text("Müşteri Limiti Doldu", fontWeight = FontWeight.Bold)
+        Text("Müşteri sınırı doldu", fontWeight = FontWeight.Bold)
       }
     },
     text = {
-      Text("Mevcut paketinizde en fazla $maxLimit müşteri kaydedebilirsiniz (arşivdekiler dahil). Şu an $currentCount müşteri kayıtlı. Daha fazlası için paketleri inceleyebilirsiniz.")
+      Text("Paketinizde en fazla $maxLimit müşteri kaydedebilirsiniz (arşivdekiler dahil). Şu an $currentCount müşteri kayıtlı. Daha fazla müşteri için paketinizi yükseltebilirsiniz.")
     },
     confirmButton = {
       Button(
@@ -1365,7 +1365,7 @@ fun TierLimitReachedDialog(
         },
         colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
       ) {
-        Text("Paketleri İncele")
+        Text("Paketleri gör")
       }
     },
     dismissButton = {
@@ -1373,5 +1373,31 @@ fun TierLimitReachedDialog(
         Text("Anladım")
       }
     }
+  )
+}
+
+/** Paket gerektiren bir özelliğe dokunulduğunda gösterilir. */
+@Composable
+fun FeatureLockedDialog(feature: com.example.model.Feature, onDismiss: () -> Unit, onViewPlans: () -> Unit) {
+  val palette = com.example.ui.theme.LocalAppPalette.current
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.Star, contentDescription = null, tint = palette.warning)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("${feature.required.title} paketinde", fontWeight = FontWeight.Bold)
+      }
+    },
+    text = {
+      Text("\"${feature.label}\" ${feature.required.title} ve üstü paketlerde var. Paketleri inceleyip dilediğiniz zaman geçebilirsiniz.")
+    },
+    confirmButton = {
+      Button(
+        onClick = { onDismiss(); onViewPlans() },
+        colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk)
+      ) { Text("Paketleri gör") }
+    },
+    dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
   )
 }

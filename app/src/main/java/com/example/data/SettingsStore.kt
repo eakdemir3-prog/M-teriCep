@@ -83,6 +83,9 @@ class SettingsStore(private val context: Context) {
     context.settingsDataStore.edit { it[Keys.THEME] = mode.name }
   }
 
+  suspend fun currentTier(): SubscriptionTier =
+    context.settingsDataStore.data.first()[Keys.TIER]?.let { runCatching { SubscriptionTier.valueOf(it) }.getOrNull() } ?: SubscriptionTier.FREE
+
   /** Yalnızca doğrulanmış bir Google Play satın alımından sonra çağrılmalı. */
   suspend fun setTier(tier: SubscriptionTier) {
     context.settingsDataStore.edit { it[Keys.TIER] = tier.name }

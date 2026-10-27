@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.model.allows
+import androidx.compose.material.icons.filled.Lock
+
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -113,6 +116,7 @@ fun ReportsAndExportScreen(
   val ledger by viewModel.ledger.collectAsState()
   val palette = LocalAppPalette.current
   var range by rememberSaveable { mutableStateOf(ReportRange.MONTH) }
+  val profileTier = viewModel.profile.collectAsState().value.activeTier
   var importCsvText by remember { mutableStateOf("") }
   var showPaste by remember { mutableStateOf(false) }
   var showAllHistory by remember { mutableStateOf(false) }
@@ -218,8 +222,21 @@ fun ReportsAndExportScreen(
           items(ReportRange.entries.toList()) { r ->
             FilterChip(
               selected = range == r,
-              onClick = { range = r; showAllHistory = false },
-              label = { Text(r.label, maxLines = 1, softWrap = false) },
+              onClick = {
+                val free = r == ReportRange.TODAY || r == ReportRange.WEEK || r == ReportRange.MONTH
+                if (free || viewModel.requireFeature(com.example.model.Feature.ALL_REPORTS)) { range = r; showAllHistory = false }
+              },
+              label = {
+                val locked = !(r == ReportRange.TODAY || r == ReportRange.WEEK || r == ReportRange.MONTH) &&
+                  !profileTier.allows(com.example.model.Feature.ALL_REPORTS)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  if (locked) {
+                    Icon(Icons.Default.Lock, contentDescription = "Paket gerekli", modifier = Modifier.size(14.dp), tint = palette.muted)
+                    Spacer(modifier = Modifier.width(4.dp))
+                  }
+                  Text(r.label, maxLines = 1, softWrap = false)
+                }
+              },
               colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = palette.accentSoft,
                 selectedLabelColor = palette.ink,
@@ -342,7 +359,8 @@ fun ReportsAndExportScreen(
           Spacer(modifier = Modifier.height(12.dp))
           Button(
             onClick = {
-              if (realCount == 0) viewModel.showMessage("Dışa aktarılacak müşteri yok.")
+              if (!viewModel.requireFeature(com.example.model.Feature.CSV_EXPORT)) Unit
+              else if (realCount == 0) viewModel.showMessage("Dışa aktarılacak müşteri yok.")
               else FileShare.shareText(context, "MusteriCep_Musteriler_$today.csv", "text/csv", viewModel.exportCustomersCsv(), "Müşteri listesini gönder")
             },
             shape = RoundedCornerShape(12.dp),
@@ -358,7 +376,8 @@ fun ReportsAndExportScreen(
           Spacer(modifier = Modifier.height(8.dp))
           OutlinedButton(
             onClick = {
-              if (realCount == 0) viewModel.showMessage("Dışa aktarılacak kayıt yok.")
+              if (!viewModel.requireFeature(com.example.model.Feature.CSV_EXPORT)) Unit
+              else if (realCount == 0) viewModel.showMessage("Dışa aktarılacak kayıt yok.")
               else FileShare.shareText(context, "MusteriCep_Hareketler_$today.csv", "text/csv", viewModel.exportTransactionsCsv(), "Hareket dökümünü gönder")
             },
             shape = RoundedCornerShape(12.dp),
@@ -387,7 +406,7 @@ fun ReportsAndExportScreen(
           )
           Spacer(modifier = Modifier.height(10.dp))
           OutlinedButton(
-            onClick = { csvOpener.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain", "application/vnd.ms-excel", "*/*")) },
+            onClick = { if (viewModel.requireFeature(com.example.model.Feature.CSV_IMPORT)) csvOpener.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain", "application/vnd.ms-excel", "*/*")) },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
               .fillMaxWidth()
@@ -415,7 +434,8 @@ fun ReportsAndExportScreen(
             Spacer(modifier = Modifier.height(8.dp))
             Button(
               onClick = {
-                if (importCsvText.isNotBlank()) viewModel.parseAndPreviewCsv(importCsvText)
+                if (!viewModel.requireFeature(com.example.model.Feature.CSV_IMPORT)) Unit
+                else if (importCsvText.isNotBlank()) viewModel.parseAndPreviewCsv(importCsvText)
                 else viewModel.showMessage("Önce CSV metnini yapıştırın.")
               },
               colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk),

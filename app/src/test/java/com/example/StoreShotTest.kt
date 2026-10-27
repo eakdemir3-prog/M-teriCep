@@ -63,6 +63,7 @@ class StoreShotTest {
     val db = AppDatabase.getDatabase(app)
     // Aynı süreçteki diğer testlerin örnek verileri karışmasın.
     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { db.clearAllTables() }
+    com.example.data.SettingsStore(app).setTier(com.example.model.SubscriptionTier.PRO)
     val c = db.customerDao(); val d = db.debtDao(); val k = db.collectionDao()
     val day = 86_400_000L
     val now = System.currentTimeMillis()

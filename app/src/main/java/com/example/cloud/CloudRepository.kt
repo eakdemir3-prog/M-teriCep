@@ -51,6 +51,26 @@ class CloudRepository {
     users().document(uid).delete().await()
   }
 
+  /** Bu ayki randevu sayısı (gün anahtarlarıyla, ek dizin gerektirmeden sayılır). */
+  suspend fun monthAppointmentCount(businessId: String, now: Long = System.currentTimeMillis()): Long {
+    val cal = java.util.Calendar.getInstance().apply { timeInMillis = now; set(java.util.Calendar.DAY_OF_MONTH, 1) }
+    val days = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+    val keys = (0 until days).map { i ->
+      val c = (cal.clone() as java.util.Calendar).apply { add(java.util.Calendar.DAY_OF_MONTH, i) }
+      dayKeyOf(c.timeInMillis)
+    }
+    var total = 0L
+    for (chunk in keys.chunked(30)) {
+      total += appointments().whereEqualTo("businessId", businessId).whereIn("dayKey", chunk)
+        .count().get(com.google.firebase.firestore.AggregateSource.SERVER).await().count
+    }
+    return total
+  }
+
+  suspend fun setBusinessUsage(uid: String, tierRank: Int, full: Boolean) {
+    businesses().document(uid).update(mapOf("tierRank" to tierRank, "bookingFull" to full)).await()
+  }
+
   suspend fun saveUser(user: UserProfile) {
     users().document(user.uid).set(CloudMappers.userToMap(user), SetOptions.merge()).await()
   }

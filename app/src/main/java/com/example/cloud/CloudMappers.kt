@@ -62,6 +62,8 @@ internal object CloudMappers {
     "logo" to b.logo,
     "lat" to b.latitude,
     "lng" to b.longitude,
+    "tierRank" to b.tierRank,
+    "bookingFull" to b.bookingFull,
     "updatedAt" to System.currentTimeMillis()
   )
 
@@ -84,7 +86,9 @@ internal object CloudMappers {
     minNoticeMinutes = doc.getLong("minNoticeMinutes")?.toInt() ?: 60,
     logo = doc.getString("logo") ?: "",
     latitude = doc.getDouble("lat"),
-    longitude = doc.getDouble("lng")
+    longitude = doc.getDouble("lng"),
+    tierRank = doc.getLong("tierRank")?.toInt() ?: 0,
+    bookingFull = doc.getBoolean("bookingFull") ?: false
   )
 
   fun serviceToMap(s: ServiceItem): Map<String, Any?> = mapOf(

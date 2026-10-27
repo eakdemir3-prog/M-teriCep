@@ -70,7 +70,11 @@ data class BusinessProfile(
   val logo: String = "",
   /** Harita konumu (müşterilere yol tarifi için). */
   val latitude: Double? = null,
-  val longitude: Double? = null
+  val longitude: Double? = null,
+  /** İşletmenin paket seviyesi (0 ücretsiz, 1 Başlangıç, 2 Pro): Pro işletmeler listede üstte. */
+  val tierRank: Int = 0,
+  /** Aylık randevu sınırı doldu mu? Doluysa müşteriler online randevu alamaz. */
+  val bookingFull: Boolean = false
 ) {
   val hasLocation: Boolean get() = latitude != null && longitude != null
   fun dayFor(timestamp: Long): WorkingDay {

@@ -1,5 +1,6 @@
 package com.example.reminder
 
+import com.example.model.allows
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -37,6 +38,7 @@ class DueReminderWorker(context: Context, params: WorkerParameters) : CoroutineW
     val ctx = applicationContext
     val profile = SettingsStore(ctx).current()
     if (!profile.notificationsEnabled) return Result.success()
+    if (!profile.activeTier.allows(com.example.model.Feature.DUE_REMINDERS)) return Result.success()
     if (!canNotify(ctx)) return Result.success()
 
     val db = AppDatabase.getDatabase(ctx)

@@ -79,8 +79,11 @@ import com.example.viewmodel.CloudViewModel
 fun BusinessAppointmentsScreen(
   cloud: CloudViewModel,
   onOpenBusinessProfile: () -> Unit,
-  onAddAppointment: () -> Unit
+  onAddAppointment: () -> Unit,
+  onOpenPlans: () -> Unit = {}
 ) {
+  val tier by cloud.tier.collectAsState()
+  val monthCount by cloud.monthAppointmentCount.collectAsState()
   val context = LocalContext.current
   val user by cloud.firebaseUser.collectAsState()
   val business by cloud.myBusiness.collectAsState()
@@ -149,6 +152,40 @@ fun BusinessAppointmentsScreen(
             action = "Hizmet ekle",
             onAction = onOpenBusinessProfile
           )
+        }
+      }
+      val limit = tier.monthlyAppointments
+      val used = monthCount
+      if (com.example.model.Billing.ENABLED && limit != com.example.model.UNLIMITED && used != null) {
+        item {
+          val palette = LocalAppPalette.current
+          val full = used >= limit
+          Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = if (full) palette.warningSoft else MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, if (full) palette.warning.copy(alpha = 0.4f) else palette.cardBorder),
+            modifier = Modifier.fillMaxWidth()
+          ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Bu ay: $used / $limit randevu", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                TextButton(onClick = onOpenPlans) { Text("Paketler", color = palette.ink) }
+              }
+              androidx.compose.material3.LinearProgressIndicator(
+                progress = { (used.toFloat() / limit).coerceIn(0f, 1f) },
+                color = if (full) palette.warning else palette.ink,
+                trackColor = palette.cardBorder,
+                modifier = Modifier.fillMaxWidth().height(6.dp)
+              )
+              if (full) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                  "Sınır doldu: müşterileriniz bu ay online randevu alamıyor. Paketinizi yükseltince hemen açılır.",
+                  style = MaterialTheme.typography.bodySmall, color = palette.warning
+                )
+              }
+            }
+          }
         }
       }
       item { JoinCodeCard(business!!) }

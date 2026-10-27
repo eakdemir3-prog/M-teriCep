@@ -1,6 +1,8 @@
 package com.example
 
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -77,6 +79,7 @@ class MainActivity : ComponentActivity() {
       provider.view.animate().alpha(0f).setDuration(160L).withEndAction { provider.remove() }.start()
     }
     super.onCreate(savedInstanceState)
+    com.example.billing.BillingManager.init(this)
     // Açılış katmanı beyaz olduğu için başta koyu durum çubuğu simgeleri; tema yüklenince güncellenir.
     val light = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
     enableEdgeToEdge(statusBarStyle = light, navigationBarStyle = light)
@@ -87,6 +90,12 @@ class MainActivity : ComponentActivity() {
         if (showIntro) com.example.ui.components.IntroAnimation(onFinished = { showIntro = false })
       }
     }
+  }
+
+  override fun onResume() {
+    super.onResume()
+    // Başka cihazda iptal/yenileme olmuş olabilir; paketi Play'den tazele.
+    lifecycleScope.launch { com.example.billing.BillingManager.refresh() }
   }
 
   @Composable
@@ -148,6 +157,9 @@ fun MusteriCepApp(
 
   LaunchedEffect(Unit) {
     cloud.messages.collectLatest { msg -> snackbarHostState.showSnackbar(msg.text) }
+  }
+  LaunchedEffect(Unit) {
+    com.example.billing.BillingManager.messages.collect { viewModel.showMessage(it) }
   }
 
   // ViewModel'den gelen kısa mesajlar (bazılarında "Geri Al" düğmesi var)
@@ -215,7 +227,8 @@ fun MusteriCepApp(
           is Screen.Appointments -> BusinessAppointmentsScreen(
             cloud = cloud,
             onOpenBusinessProfile = { viewModel.navigate(Screen.BusinessProfile) },
-            onAddAppointment = { showManualAppointment = true }
+            onAddAppointment = { showManualAppointment = true },
+            onOpenPlans = { viewModel.navigate(Screen.Pricing) }
           )
           is Screen.BusinessProfile -> BusinessProfileScreen(
             cloud = cloud,
@@ -374,6 +387,14 @@ fun MusteriCepApp(
         isDestructive = state.isDestructive,
         onConfirm = state.onConfirm,
         onDismiss = { viewModel.dismissDialog() }
+      )
+    }
+
+    is DialogState.FeatureLocked -> {
+      com.example.ui.components.FeatureLockedDialog(
+        feature = state.feature,
+        onDismiss = { viewModel.dismissDialog() },
+        onViewPlans = { viewModel.navigate(Screen.Pricing) }
       )
     }
 
