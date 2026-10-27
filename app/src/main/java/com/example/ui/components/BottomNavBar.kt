@@ -65,11 +65,11 @@ fun MusteriCepBottomBar(
     color = MaterialTheme.colorScheme.surface
   ) {
     Column(modifier = Modifier.navigationBarsPadding()) {
-      HorizontalDivider(color = palette.cardBorder)
+      HorizontalDivider(thickness = 0.5.dp, color = palette.cardBorder)
       Row(
         modifier = Modifier
           .fillMaxWidth()
-          .height(68.dp),
+          .height(64.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
         NavCell(
@@ -99,9 +99,9 @@ fun MusteriCepBottomBar(
         ) {
           Box(
             modifier = Modifier
-              .size(52.dp)
+              .size(46.dp)
               .clip(CircleShape)
-              .background(MaterialTheme.colorScheme.secondary)
+              .background(palette.ink)
               .clickable(role = Role.Button, onClick = onQuickActionClick)
               .testTag("fab_quick_action"),
             contentAlignment = Alignment.Center
@@ -109,8 +109,8 @@ fun MusteriCepBottomBar(
             Icon(
               imageVector = Icons.Default.Add,
               contentDescription = "Hızlı işlem",
-              tint = MaterialTheme.colorScheme.onSecondary,
-              modifier = Modifier.size(28.dp)
+              tint = palette.onInk,
+              modifier = Modifier.size(26.dp)
             )
           }
         }
@@ -146,7 +146,8 @@ private fun androidx.compose.foundation.layout.RowScope.NavCell(
   badge: Int = 0,
   onClick: () -> Unit
 ) {
-  val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+  val palette = LocalAppPalette.current
+  val tint = if (isSelected) palette.ink else palette.inactive
   Column(
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.Center,
@@ -156,20 +157,17 @@ private fun androidx.compose.foundation.layout.RowScope.NavCell(
       .clickable(role = Role.Tab, onClick = onClick)
       .testTag(testTag)
   ) {
-    // Seçili sekme için yumuşak hap arka plan
     Box(
       modifier = Modifier
-        .width(52.dp)
-        .height(30.dp)
-        .clip(RoundedCornerShape(15.dp))
-        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),
+        .width(40.dp)
+        .height(26.dp),
       contentAlignment = Alignment.Center
     ) {
       Icon(
         imageVector = if (isSelected) selectedIcon else unselectedIcon,
         contentDescription = null,
         tint = tint,
-        modifier = Modifier.size(22.dp)
+        modifier = Modifier.size(24.dp)
       )
       if (badge > 0) {
         Surface(
@@ -195,7 +193,7 @@ private fun androidx.compose.foundation.layout.RowScope.NavCell(
       text = label,
       fontSize = 11.sp,
       fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-      color = tint,
+      color = if (isSelected) palette.ink else palette.muted,
       maxLines = 1,
       softWrap = false,
       overflow = TextOverflow.Ellipsis

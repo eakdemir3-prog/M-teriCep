@@ -214,7 +214,16 @@ class MusteriCepRepository(
   suspend fun updateTemplate(template: WhatsAppTemplate) = templateDao.updateTemplate(template)
 
   suspend fun ensureDefaultTemplates() {
-    if (templateDao.count() == 0) templateDao.insertAll(DefaultTemplates.getDefaults())
+    if (templateDao.count() == 0) {
+      templateDao.insertAll(DefaultTemplates.getDefaults())
+      return
+    }
+    // Kullanıcının değiştirmediği şablonların başlıkları yeni adlarla güncellenir.
+    val defaults = DefaultTemplates.getDefaults().associateBy { it.key }
+    templateDao.getAllOnce().forEach { t ->
+      val d = defaults[t.key] ?: return@forEach
+      if (!t.isCustom && t.title != d.title) templateDao.updateTemplate(t.copy(title = d.title))
+    }
   }
 
   suspend fun resetTemplates() {

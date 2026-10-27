@@ -107,13 +107,15 @@ fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCit
   }
 
   Scaffold(
+    contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
     containerColor = MaterialTheme.colorScheme.background,
     topBar = {
       TopAppBar(
         title = { Text("Randevu ayarları", fontWeight = FontWeight.Bold) },
         navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri") } },
         actions = { TextButton(onClick = { save() }) { Text("Kaydet", fontWeight = FontWeight.Bold) } },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
       )
     }
   ) { padding ->

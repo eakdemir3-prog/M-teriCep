@@ -19,7 +19,7 @@ data class UserBusinessProfile(
 }
 
 enum class AppThemeMode(val label: String, val description: String) {
-  DEFTER("Esnaf Defteri", "Açık, krem zemin"),
-  KOMUTA("Komuta Merkezi", "Koyu, gece modu"),
-  SISTEM("Sisteme Uy", "Telefon gece modundaysa koyu")
+  DEFTER("Açık", "Beyaz ve yeşil"),
+  KOMUTA("Koyu", "Gece modu"),
+  SISTEM("Sistem", "Telefona göre")
 }

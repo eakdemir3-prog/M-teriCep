@@ -120,6 +120,7 @@ fun MusteriCepApp(
   val allCustomers by viewModel.allCustomersWithBalance.collectAsState()
   val templates by viewModel.allTemplates.collectAsState(initial = emptyList())
   val profile by viewModel.profile.collectAsState()
+  val saving by viewModel.saving.collectAsState()
 
   val snackbarHostState = remember { SnackbarHostState() }
   var showQuickActionSheet by remember { mutableStateOf(false) }
@@ -254,7 +255,8 @@ fun MusteriCepApp(
             notes = notes,
             existing = state.existingCustomer
           )
-        }
+        },
+        saving = saving
       )
     }
 
@@ -274,7 +276,8 @@ fun MusteriCepApp(
             category = category,
             existingId = state.existing?.id ?: 0L
           )
-        }
+        },
+        saving = saving
       )
     }
 
@@ -294,7 +297,8 @@ fun MusteriCepApp(
             notes = notes,
             existingId = state.existing?.id ?: 0L
           )
-        }
+        },
+        saving = saving
       )
     }
 

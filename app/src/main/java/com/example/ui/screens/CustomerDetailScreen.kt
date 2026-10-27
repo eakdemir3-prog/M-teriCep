@@ -3,13 +3,13 @@ package com.example.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,29 +18,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.NorthEast
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.SouthWest
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,7 +45,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -60,27 +56,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.model.Debt
-import com.example.model.CollectionRecord
-import com.example.model.TransactionItem
-import com.example.ui.components.BalanceStatusBadge
-import com.example.ui.components.EmptyStateView
-import com.example.ui.components.StatusBadge
-import com.example.ui.theme.EmeraldPrimary
-import com.example.ui.theme.NavyPrimary
-import com.example.ui.theme.RoseError
-import com.example.ui.theme.Slate500
-import com.example.util.Formatters
-import com.example.ui.theme.moneyStyle
-import com.example.ui.theme.AmberWarning
 import com.example.model.DebtStatus
+import com.example.model.TransactionItem
+import com.example.ui.components.AppCard
+import com.example.ui.components.EmptyStateView
+import com.example.ui.components.IconBadge
+import com.example.ui.components.InitialsAvatar
+import com.example.ui.components.SectionHeader
+import com.example.ui.components.StatusPill
+import com.example.ui.theme.LocalAppPalette
+import com.example.ui.theme.WhatsAppGreen
+import com.example.ui.theme.moneyStyle
+import com.example.util.Formatters
+import com.example.util.Money
 import com.example.viewmodel.DialogState
 import com.example.viewmodel.MusteriCepViewModel
 
@@ -93,519 +88,356 @@ fun CustomerDetailScreen(
   val context = LocalContext.current
   val customerWithBalance by viewModel.selectedCustomerWithBalance.collectAsState()
   val transactions by viewModel.selectedCustomerTransactions.collectAsState()
-  val profile by viewModel.profile.collectAsState()
-
+  val palette = LocalAppPalette.current
   var showMenu by remember { mutableStateOf(false) }
 
-  // Handle Android back button
-  BackHandler {
-    viewModel.navigateBack()
-  }
+  BackHandler { viewModel.navigateBack() }
 
-  if (customerWithBalance == null) {
+  val item = customerWithBalance
+  if (item == null) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-      Text("Müşteri bulunamadı.")
+      Text("Müşteri bulunamadı.", color = palette.muted)
     }
     return
   }
-
-  val item = customerWithBalance!!
   val customer = item.customer
 
+  // Her hareketten sonraki bakiye (eskiden yeniye borç − tahsilat)
+  val balanceAfter = remember(transactions) {
+    var running = 0L
+    val map = HashMap<String, Double>()
+    transactions
+      .sortedWith(compareBy<TransactionItem> { it.date }.thenBy { if (it is TransactionItem.DebtItem) 0 else 1 }.thenBy { it.id })
+      .forEach { t ->
+        running += if (t is TransactionItem.DebtItem) Money.toCents(t.amount) else -Money.toCents(t.amount)
+        map[key(t)] = Money.fromCents(running)
+      }
+    map
+  }
+
+  fun dial() {
+    if (customer.phone.isBlank()) return
+    try {
+      context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + customer.phone.filter { it.isDigit() || it == '+' })))
+    } catch (e: Exception) {
+      viewModel.showMessage("Arama uygulaması açılamadı.")
+    }
+  }
+
   Scaffold(
+    containerColor = MaterialTheme.colorScheme.background,
+    contentWindowInsets = WindowInsets(0, 0, 0, 0),
     topBar = {
       TopAppBar(
-        title = {
-          Text(
-            text = customer.name,
-            maxLines = 1,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-          )
-        },
+        title = { Text("Müşteri", style = MaterialTheme.typography.titleMedium) },
         navigationIcon = {
-          IconButton(onClick = { viewModel.navigateBack() }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
-          }
+          IconButton(onClick = { viewModel.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri") }
         },
         actions = {
-          IconButton(onClick = { showMenu = true }) {
-            Icon(Icons.Default.MoreVert, contentDescription = "Seçenekler")
+          IconButton(onClick = { viewModel.openDialog(DialogState.AddEditCustomer(customer)) }) {
+            Icon(Icons.Default.Edit, contentDescription = "Düzenle")
           }
-
-          DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false }
-          ) {
-            DropdownMenuItem(
-              text = { Text("Müşteriyi Düzenle") },
-              leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-              onClick = {
-                showMenu = false
-                viewModel.openDialog(DialogState.AddEditCustomer(customer))
-              }
-            )
-            DropdownMenuItem(
-              text = { Text(if (customer.isArchived) "Arşivden Çıkar" else "Arşivle") },
-              leadingIcon = {
-                Icon(
-                  if (customer.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
-                  contentDescription = null
-                )
-              },
-              onClick = {
-                showMenu = false
-                viewModel.toggleArchiveCustomer(customer)
-              }
-            )
-            DropdownMenuItem(
-              text = { Text("Müşteriyi Sil", color = RoseError) },
-              leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = RoseError) },
-              onClick = {
-                showMenu = false
-                viewModel.openDialog(
-                  DialogState.ConfirmDelete(
-                    title = "Müşteriyi Sil",
-                    message = "${customer.name} müşterisini ve müşteriye ait tüm borç/tahsilat kayıtlarını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
-                    onConfirm = { viewModel.deleteCustomer(customer) }
+          Box {
+            IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Diğer") }
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+              DropdownMenuItem(
+                text = { Text(if (customer.isArchived) "Arşivden çıkar" else "Arşive kaldır") },
+                leadingIcon = { Icon(if (customer.isArchived) Icons.Default.Unarchive else Icons.Default.Archive, contentDescription = null) },
+                onClick = { showMenu = false; viewModel.toggleArchiveCustomer(customer) }
+              )
+              DropdownMenuItem(
+                text = { Text("Müşteriyi sil", color = palette.danger) },
+                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = palette.danger) },
+                onClick = {
+                  showMenu = false
+                  viewModel.openDialog(
+                    DialogState.ConfirmDelete(
+                      title = "Müşteriyi sil",
+                      message = "${customer.name} ve tüm borç/tahsilat kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+                      onConfirm = { viewModel.deleteCustomer(customer) }
+                    )
                   )
-                )
-              }
-            )
+                }
+              )
+            }
           }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
       )
     }
   ) { innerPadding ->
     LazyColumn(
       modifier = modifier
         .fillMaxSize()
-        .padding(innerPadding)
-        .padding(horizontal = 16.dp),
-      verticalArrangement = Arrangement.spacedBy(14.dp)
+        .padding(innerPadding),
+      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
+      verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-      // 1. Balance Summary Card
+      // 1. Kimlik
       item {
-        Spacer(modifier = Modifier.height(4.dp))
-        Card(
-          shape = RoundedCornerShape(20.dp),
-          colors = CardDefaults.cardColors(
-            containerColor = if (item.remainingBalance > 0) RoseError.copy(alpha = 0.08f)
-            else EmeraldPrimary.copy(alpha = 0.08f)
-          ),
-          modifier = Modifier.fillMaxWidth()
-        ) {
-          Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween,
-              verticalAlignment = Alignment.CenterVertically
-            ) {
-              Text(
-                text = "Kalan Güncel Bakiye",
-                style = MaterialTheme.typography.labelMedium,
-                color = Slate500
-              )
-              BalanceStatusBadge(balance = item.remainingBalance, isArchived = customer.isArchived)
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+          InitialsAvatar(customer.name, size = 52.dp)
+          Spacer(modifier = Modifier.width(14.dp))
+          Column(modifier = Modifier.weight(1f)) {
+            Text(customer.name, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(
-              text = Formatters.formatCurrency(item.remainingBalance),
-              style = moneyStyle(30),
-              color = if (item.remainingBalance > 0) RoseError else EmeraldPrimary
+              if (customer.phone.isNotBlank()) Formatters.formatPhoneForDisplay(customer.phone) else "Telefon girilmemiş",
+              style = MaterialTheme.typography.bodyMedium,
+              color = palette.muted,
+              maxLines = 1
             )
-            if (item.overdueAmount > 0) {
-              Text(
-                text = "Vadesi geçen: ${Formatters.formatCurrency(item.overdueAmount)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = RoseError,
-                fontWeight = FontWeight.SemiBold
-              )
-            } else if (item.nextDueDate != null && item.remainingBalance > 0) {
-              Text(
-                text = "En yakın vade: ${Formatters.formatDate(item.nextDueDate)} (${Formatters.dueLabel(item.nextDueDate)})",
-                style = MaterialTheme.typography.bodySmall,
-                color = AmberWarning
-              )
+          }
+          if (customer.phone.isNotBlank()) {
+            IconButton(onClick = { dial() }) { Icon(Icons.Default.Call, contentDescription = "Ara", tint = palette.ink) }
+          }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
+          when {
+            customer.isArchived -> StatusPill("Arşivde", palette.muted, MaterialTheme.colorScheme.surfaceVariant)
+            item.overdueAmount > 0 -> StatusPill("Gecikmiş ödeme var", palette.danger, palette.dangerSoft)
+            item.remainingBalance > 0 -> StatusPill("Borçlu", palette.warning, palette.warningSoft)
+            item.remainingBalance < 0 -> StatusPill("Avansı var", palette.ink, palette.accentSoft)
+            else -> StatusPill("Borcu yok", palette.success, palette.accentSoft)
+          }
+          if (customer.isDemo) StatusPill("Örnek kayıt", palette.warning, palette.warningSoft)
+        }
+      }
+
+      // 2. Finansal özet
+      item {
+        AppCard {
+          Text("Kalan bakiye", style = MaterialTheme.typography.labelLarge, color = palette.muted)
+          Text(
+            Formatters.formatCurrency(item.remainingBalance),
+            style = moneyStyle(30, FontWeight.Bold),
+            color = when {
+              item.overdueAmount > 0 -> palette.danger
+              item.remainingBalance > 0 -> MaterialTheme.colorScheme.onSurface
+              else -> palette.success
+            },
+            maxLines = 1
+          )
+          if (item.overdueAmount > 0) {
+            Text("Gecikmiş: ${Formatters.formatCurrency(item.overdueAmount)}", style = MaterialTheme.typography.bodySmall, color = palette.danger, fontWeight = FontWeight.Medium)
+          } else if (item.nextDueDate != null && item.remainingBalance > 0) {
+            Text("En yakın vade: ${Formatters.formatDate(item.nextDueDate)} • ${Formatters.dueLabel(item.nextDueDate)}", style = MaterialTheme.typography.bodySmall, color = palette.warning)
+          }
+          Spacer(modifier = Modifier.height(12.dp))
+          HorizontalDivider(color = palette.cardBorder)
+          Spacer(modifier = Modifier.height(12.dp))
+          Row(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Toplam borç", fontSize = 12.sp, color = palette.muted)
+              Text(Formatters.formatCurrency(item.totalDebt), style = moneyStyle(15), maxLines = 1)
             }
-            if (customer.isDemo) {
-              Spacer(modifier = Modifier.height(6.dp))
-              com.example.ui.components.DemoBadge()
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-              Column {
-                Text("Toplam Borç", style = MaterialTheme.typography.bodySmall, color = Slate500)
-                Text(
-                  text = Formatters.formatCurrency(item.totalDebt),
-                  style = moneyStyle(15),
-                  color = MaterialTheme.colorScheme.onSurface
-                )
-              }
-
-              Column(horizontalAlignment = Alignment.End) {
-                Text("Toplam Tahsilat", style = MaterialTheme.typography.bodySmall, color = Slate500)
-                Text(
-                  text = Formatters.formatCurrency(item.totalPaid),
-                  style = moneyStyle(15),
-                  color = EmeraldPrimary
-                )
-              }
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+              Text("Toplam tahsilat", fontSize = 12.sp, color = palette.muted)
+              Text(Formatters.formatCurrency(item.totalPaid), style = moneyStyle(15), color = palette.success, maxLines = 1)
             }
           }
         }
       }
 
-      // 2. Action Buttons (Tahsilat Al, Borç Ekle, WhatsApp)
+      // 3. İşlemler
       item {
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-          // Tahsilat Al (Yeşil)
-          Button(
-            onClick = {
-              viewModel.openDialog(
-                DialogState.AddCollection(
-                  preselectedCustomerId = customer.id,
-                  defaultAmount = if (item.remainingBalance > 0) item.remainingBalance else null
-                )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+          ActionButton("Tahsilat al", Icons.Default.Payments, filled = true, modifier = Modifier.weight(1f).testTag("btn_detail_add_collection")) {
+            viewModel.openDialog(
+              DialogState.AddCollection(
+                preselectedCustomerId = customer.id,
+                defaultAmount = if (item.remainingBalance > 0) item.remainingBalance else null
               )
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-              .weight(1f)
-              .testTag("btn_detail_add_collection")
-          ) {
-            Icon(Icons.Default.MonetizationOn, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Tahsilat Al", fontSize = 13.sp, maxLines = 1, softWrap = false)
+            )
           }
-
-          // Yeni Borç (Kırmızı)
-          OutlinedButton(
-            onClick = {
-              viewModel.openDialog(DialogState.AddDebt(preselectedCustomerId = customer.id))
-            },
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-              .weight(1f)
-              .testTag("btn_detail_add_debt")
-          ) {
-            Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = RoseError, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Borç Ekle", color = RoseError, fontSize = 13.sp, maxLines = 1, softWrap = false)
+          ActionButton("Borç ekle", Icons.AutoMirrored.Filled.ReceiptLong, filled = false, modifier = Modifier.weight(1f).testTag("btn_detail_add_debt")) {
+            viewModel.openDialog(DialogState.AddDebt(preselectedCustomerId = customer.id))
           }
         }
-      }
-
-      // 3. WhatsApp Mesaj Gönder Düğmesi (MANDATORY PROMPT REQUIREMENT)
-      item {
-        Button(
-          onClick = {
-            viewModel.openDialog(DialogState.SendWhatsApp(item))
-          },
-          colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+          onClick = { viewModel.openDialog(DialogState.SendWhatsApp(item)) },
           shape = RoundedCornerShape(12.dp),
+          contentPadding = PaddingValues(vertical = 12.dp),
           modifier = Modifier
             .fillMaxWidth()
             .testTag("btn_whatsapp_message")
         ) {
-          Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+          Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = WhatsAppGreen, modifier = Modifier.size(18.dp))
           Spacer(modifier = Modifier.width(8.dp))
-          Text("WhatsApp ile Mesaj Gönder", color = Color.White, fontWeight = FontWeight.Bold)
+          Text("WhatsApp mesajı", color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
         }
       }
 
-      // 4. Müşteri İletişim Bilgileri Kartı
-      item {
-        ElevatedCard(
-          shape = RoundedCornerShape(16.dp),
-          colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-          modifier = Modifier.fillMaxWidth()
-        ) {
-          Column(modifier = Modifier.padding(16.dp)) {
-            Text("İletişim & Notlar", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Phone
-            if (customer.phone.isNotBlank()) {
-              Row(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .clickable {
-                    val dial = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + customer.phone.filter { it.isDigit() || it == '+' }))
-                    try { context.startActivity(dial) } catch (e: Exception) { viewModel.showMessage("Arama uygulaması açılamadı.") }
-                  }
-                  .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-              ) {
-                Icon(Icons.Default.Call, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                  text = Formatters.formatPhoneForDisplay(customer.phone),
-                  style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                  color = NavyPrimary
-                )
-              }
-            }
-
-            // Email
-            if (customer.email.isNotBlank()) {
-              Row(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-              ) {
-                Icon(Icons.Default.Email, contentDescription = null, tint = Slate500, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(text = customer.email, style = MaterialTheme.typography.bodyMedium)
-              }
-            }
-
-            // Address
-            if (customer.address.isNotBlank()) {
-              Row(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-              ) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = Slate500, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(text = customer.address, style = MaterialTheme.typography.bodyMedium)
-              }
-            }
-
-            // Notes
+      // 4. İletişim ve not (varsa)
+      if (customer.email.isNotBlank() || customer.address.isNotBlank() || customer.notes.isNotBlank()) {
+        item {
+          AppCard(padding = 14.dp) {
+            if (customer.email.isNotBlank()) InfoLine(Icons.Default.Email, customer.email)
+            if (customer.address.isNotBlank()) InfoLine(Icons.Default.LocationOn, customer.address)
             if (customer.notes.isNotBlank()) {
-              Spacer(modifier = Modifier.height(6.dp))
-              Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth()
-              ) {
-                Text(
-                  text = "Not: ${customer.notes}",
-                  style = MaterialTheme.typography.bodySmall,
-                  modifier = Modifier.padding(10.dp)
-                )
-              }
+              Text("Not", fontSize = 12.sp, color = palette.muted, modifier = Modifier.padding(top = 4.dp))
+              Text(customer.notes, style = MaterialTheme.typography.bodyMedium)
             }
           }
         }
       }
 
-      // 5. Tarih Sırasıyla Tüm Finansal Hareketler (Ledger Timeline)
-      item {
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.History, contentDescription = null, tint = NavyPrimary)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-              text = "İşlem Geçmişi (${transactions.size})",
-              style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-            )
-          }
-        }
-      }
+      // 5. İşlem geçmişi
+      item { SectionHeader("İşlem geçmişi (${transactions.size})") }
 
       if (transactions.isEmpty()) {
         item {
           EmptyStateView(
-            icon = Icons.Default.ReceiptLong,
-            title = "Henüz işlem kaydı yok",
-            description = "Bu müşteriye ait borç veya tahsilat kaydı bulunmamaktadır.",
-            actionButtonLabel = "Borç Ekle",
-            onActionClick = {
-              viewModel.openDialog(DialogState.AddDebt(preselectedCustomerId = customer.id))
-            }
+            icon = Icons.AutoMirrored.Filled.ReceiptLong,
+            title = "Henüz işlem yok",
+            description = "Bu müşteriye ait borç veya tahsilat kaydı bulunmuyor.",
+            actionButtonLabel = "Borç ekle",
+            onActionClick = { viewModel.openDialog(DialogState.AddDebt(preselectedCustomerId = customer.id)) }
           )
         }
-      }
-
-      items(transactions, key = { it.javaClass.simpleName + "_" + it.id }) { txn ->
-        when (txn) {
-          is TransactionItem.DebtItem -> {
-            Card(
-              shape = RoundedCornerShape(12.dp),
-              colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-              modifier = Modifier.fillMaxWidth()
-            ) {
-              Column(modifier = Modifier.padding(14.dp)) {
-                Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.SpaceBetween,
-                  verticalAlignment = Alignment.Top
-                ) {
-                  Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                      modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(RoseError.copy(alpha = 0.12f)),
-                      contentAlignment = Alignment.Center
-                    ) {
-                      Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = RoseError, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                      Text(txn.category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                      Text(Formatters.formatDate(txn.date), style = MaterialTheme.typography.bodySmall, color = Slate500)
-                    }
-                  }
-
-                  Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                      text = Formatters.formatCurrency(txn.amount),
-                      style = moneyStyle(15),
-                      color = RoseError
+      } else {
+        item {
+          AppCard(padding = 0.dp) {
+            transactions.forEachIndexed { i, t ->
+              if (i > 0) HorizontalDivider(color = palette.cardBorder, modifier = Modifier.padding(start = 64.dp))
+              TransactionRow(
+                t = t,
+                balance = balanceAfter[key(t)],
+                onEdit = { if (t is TransactionItem.DebtItem) viewModel.editDebt(t.id) else viewModel.editCollection(t.id) },
+                onDelete = {
+                  val isDebt = t is TransactionItem.DebtItem
+                  viewModel.openDialog(
+                    DialogState.ConfirmDelete(
+                      title = if (isDebt) "Borç kaydını sil" else "Tahsilatı sil",
+                      message = "${Formatters.formatCurrency(t.amount)} tutarındaki kayıt silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
+                      onConfirm = { if (isDebt) viewModel.deleteDebt(t.id) else viewModel.deleteCollection(t.id) }
                     )
-                    if (txn.status == DebtStatus.PARTIALLY_PAID || (txn.status == DebtStatus.OVERDUE && txn.remainingAmount < txn.amount)) {
-                      Text(
-                        text = "Kalan ${Formatters.formatCurrency(txn.remainingAmount)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Slate500
-                      )
-                    }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    StatusBadge(status = txn.status)
-                  }
-                }
-
-                if (txn.notesOrDesc.isNotBlank()) {
-                  Spacer(modifier = Modifier.height(6.dp))
-                  Text(
-                    text = txn.notesOrDesc,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                   )
                 }
-
-                if (txn.dueDate != null) {
-                  Spacer(modifier = Modifier.height(4.dp))
-                  Text(
-                    text = "Vade: ${Formatters.formatDate(txn.dueDate)}" +
-                      if (txn.status != DebtStatus.PAID) " • ${Formatters.dueLabel(txn.dueDate)}" else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = when (txn.status) {
-                      DebtStatus.OVERDUE -> RoseError
-                      DebtStatus.PAID -> Slate500
-                      else -> AmberWarning
-                    }
-                  )
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                  IconButton(onClick = { viewModel.editDebt(txn.id) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500, modifier = Modifier.size(16.dp))
-                  }
-                  IconButton(
-                    onClick = {
-                      viewModel.openDialog(
-                        DialogState.ConfirmDelete(
-                          title = "Borç Kaydını Sil",
-                          message = "${Formatters.formatCurrency(txn.amount)} tutarındaki borç kaydı silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
-                          onConfirm = { viewModel.deleteDebt(txn.id) }
-                        )
-                      )
-                    },
-                    modifier = Modifier.size(32.dp)
-                  ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Sil", tint = Slate500, modifier = Modifier.size(16.dp))
-                  }
-                }
-              }
-            }
-          }
-
-          is TransactionItem.CollectionItem -> {
-            Card(
-              shape = RoundedCornerShape(12.dp),
-              colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-              modifier = Modifier.fillMaxWidth()
-            ) {
-              Column(modifier = Modifier.padding(14.dp)) {
-                Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.SpaceBetween,
-                  verticalAlignment = Alignment.Top
-                ) {
-                  Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                      modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(EmeraldPrimary.copy(alpha = 0.12f)),
-                      contentAlignment = Alignment.Center
-                    ) {
-                      Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                      Text("Tahsilat (${txn.paymentMethod.label})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                      Text(Formatters.formatDate(txn.date), style = MaterialTheme.typography.bodySmall, color = Slate500)
-                    }
-                  }
-
-                  Text(
-                    text = "+" + Formatters.formatCurrency(txn.amount),
-                    style = moneyStyle(15),
-                    color = EmeraldPrimary
-                  )
-                }
-
-                if (txn.notesOrDesc.isNotBlank()) {
-                  Spacer(modifier = Modifier.height(6.dp))
-                  Text(
-                    text = txn.notesOrDesc,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                  )
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                  IconButton(onClick = { viewModel.editCollection(txn.id) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500, modifier = Modifier.size(16.dp))
-                  }
-                  IconButton(
-                    onClick = {
-                      viewModel.openDialog(
-                        DialogState.ConfirmDelete(
-                          title = "Tahsilat Kaydını Sil",
-                          message = "${Formatters.formatCurrency(txn.amount)} tutarındaki tahsilat silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
-                          onConfirm = { viewModel.deleteCollection(txn.id) }
-                        )
-                      )
-                    },
-                    modifier = Modifier.size(32.dp)
-                  ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Sil", tint = Slate500, modifier = Modifier.size(16.dp))
-                  }
-                }
-              }
+              )
             }
           }
         }
       }
+    }
+  }
+}
 
-      item {
-        Spacer(modifier = Modifier.height(40.dp))
+private fun key(t: TransactionItem) = (if (t is TransactionItem.DebtItem) "d" else "c") + t.id
+
+@Composable
+private fun ActionButton(label: String, icon: ImageVector, filled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+  val palette = LocalAppPalette.current
+  if (filled) {
+    Button(
+      onClick = onClick,
+      shape = RoundedCornerShape(12.dp),
+      contentPadding = PaddingValues(vertical = 12.dp, horizontal = 8.dp),
+      colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk),
+      modifier = modifier
+    ) {
+      Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+      Spacer(modifier = Modifier.width(6.dp))
+      Text(label, maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold)
+    }
+  } else {
+    OutlinedButton(
+      onClick = onClick,
+      shape = RoundedCornerShape(12.dp),
+      contentPadding = PaddingValues(vertical = 12.dp, horizontal = 8.dp),
+      modifier = modifier
+    ) {
+      Icon(icon, contentDescription = null, tint = palette.danger, modifier = Modifier.size(18.dp))
+      Spacer(modifier = Modifier.width(6.dp))
+      Text(label, maxLines = 1, softWrap = false, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+    }
+  }
+}
+
+@Composable
+private fun InfoLine(icon: ImageVector, text: String) {
+  Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 3.dp)) {
+    Icon(icon, contentDescription = null, tint = LocalAppPalette.current.inactive, modifier = Modifier.size(16.dp))
+    Spacer(modifier = Modifier.width(8.dp))
+    Text(text, style = MaterialTheme.typography.bodyMedium)
+  }
+}
+
+@Composable
+private fun TransactionRow(t: TransactionItem, balance: Double?, onEdit: () -> Unit, onDelete: () -> Unit) {
+  val palette = LocalAppPalette.current
+  val isDebt = t is TransactionItem.DebtItem
+  var menu by remember { mutableStateOf(false) }
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(start = 14.dp, end = 0.dp, top = 12.dp, bottom = 12.dp),
+    verticalAlignment = Alignment.Top
+  ) {
+    IconBadge(
+      icon = if (isDebt) Icons.Default.NorthEast else Icons.Default.SouthWest,
+      tint = if (isDebt) palette.danger else palette.success,
+      background = if (isDebt) palette.dangerSoft else palette.accentSoft,
+      size = 36.dp,
+      iconSize = 18.dp
+    )
+    Spacer(modifier = Modifier.width(12.dp))
+    Column(modifier = Modifier.weight(1f)) {
+      val title = when (t) {
+        is TransactionItem.DebtItem -> "Borç • ${t.category}"
+        is TransactionItem.CollectionItem -> "Tahsilat • ${t.paymentMethod.label}"
+      }
+      Text(title, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+      Text(Formatters.formatDate(t.date), fontSize = 12.sp, color = palette.muted)
+      if (t.notesOrDesc.isNotBlank()) {
+        Text(t.notesOrDesc, fontSize = 12.sp, color = palette.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+      }
+      if (t is TransactionItem.DebtItem) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+          when (t.status) {
+            DebtStatus.PAID -> StatusPill("Ödendi", palette.success, palette.accentSoft)
+            DebtStatus.PARTIALLY_PAID -> StatusPill("Kısmen ödendi", palette.warning, palette.warningSoft)
+            DebtStatus.OVERDUE -> StatusPill("Gecikmiş", palette.danger, palette.dangerSoft)
+            DebtStatus.UNPAID -> StatusPill("Ödenmedi", palette.muted, MaterialTheme.colorScheme.surfaceVariant)
+          }
+          if (t.dueDate != null && t.status != DebtStatus.PAID) {
+            Text(
+              "Vade ${Formatters.formatShortDate(t.dueDate)}",
+              fontSize = 11.sp,
+              color = if (t.status == DebtStatus.OVERDUE) palette.danger else palette.muted,
+              maxLines = 1
+            )
+          }
+        }
+      }
+    }
+    Spacer(modifier = Modifier.width(8.dp))
+    Column(horizontalAlignment = Alignment.End) {
+      Text(
+        (if (isDebt) "" else "+") + Formatters.formatCurrency(t.amount),
+        style = moneyStyle(14),
+        color = if (isDebt) MaterialTheme.colorScheme.onSurface else palette.success,
+        maxLines = 1
+      )
+      if (t is TransactionItem.DebtItem && t.remainingAmount > 0 && t.remainingAmount < t.amount) {
+        Text("Kalan ${Formatters.formatCurrencyShort(t.remainingAmount)}", fontSize = 11.sp, color = palette.warning, maxLines = 1)
+      }
+      if (balance != null) {
+        Text("Bakiye ${Formatters.formatCurrencyShort(balance)}", fontSize = 11.sp, color = palette.muted, maxLines = 1)
+      }
+    }
+    Box {
+      IconButton(onClick = { menu = true }, modifier = Modifier.size(36.dp)) {
+        Icon(Icons.Default.MoreVert, contentDescription = "İşlem seçenekleri", tint = palette.inactive, modifier = Modifier.size(18.dp))
+      }
+      DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+        DropdownMenuItem(text = { Text("Düzenle") }, leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }, onClick = { menu = false; onEdit() })
+        DropdownMenuItem(
+          text = { Text("Sil", color = palette.danger) },
+          leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = palette.danger) },
+          onClick = { menu = false; onDelete() }
+        )
       }
     }
   }

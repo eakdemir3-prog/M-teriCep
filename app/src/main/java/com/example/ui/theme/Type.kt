@@ -25,20 +25,16 @@ val Typography = Typography(
   labelSmall = Base.labelSmall
 )
 
-/**
- * Para tutarları için yazı tipi: rakamlar eşit genişlikte (tabular) olsun ki alt alta
- * tutarlar hizalı dursun. Esnaf Defteri'nde serif (defter hissi), Komuta Merkezi'nde
- * monospace (ekran hissi).
- */
+/** Para tutarları: sistem yazı tipi, eşit genişlikte (tabular) rakamlar; alt alta hizalı durur. */
 val MoneyFontFamily: FontFamily
-  @Composable @ReadOnlyComposable get() =
-    if (LocalAppPalette.current.isDark) FontFamily.Monospace else FontFamily.Serif
+  @Composable @ReadOnlyComposable get() = FontFamily.Default
 
 @Composable
 @ReadOnlyComposable
-fun moneyStyle(size: Int, weight: FontWeight = FontWeight.Bold): TextStyle = TextStyle(
+fun moneyStyle(size: Int, weight: FontWeight = FontWeight.SemiBold): TextStyle = TextStyle(
   fontFamily = MoneyFontFamily,
   fontWeight = weight,
   fontSize = size.sp,
+  letterSpacing = if (size >= 24) (-0.5).sp else 0.sp,
   fontFeatureSettings = "tnum"
 )

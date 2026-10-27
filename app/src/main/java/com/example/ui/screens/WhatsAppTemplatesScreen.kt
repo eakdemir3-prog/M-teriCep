@@ -60,9 +60,10 @@ fun WhatsAppTemplatesScreen(
   }
 
   Scaffold(
+    contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
     topBar = {
       TopAppBar(
-        title = { Text("WhatsApp Şablonları", fontWeight = FontWeight.Bold) },
+        title = { Text("Mesaj şablonları", style = MaterialTheme.typography.titleMedium) },
         navigationIcon = {
           IconButton(onClick = { viewModel.navigateBack() }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
@@ -80,41 +81,36 @@ fun WhatsAppTemplatesScreen(
             )
           }) { Text("Sıfırla") }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
       )
     }
   ) { innerPadding ->
+    val palette = com.example.ui.theme.LocalAppPalette.current
     LazyColumn(
       modifier = modifier
         .fillMaxSize()
-        .padding(innerPadding)
-        .padding(horizontal = 16.dp),
-      verticalArrangement = Arrangement.spacedBy(14.dp)
+        .padding(innerPadding),
+      contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
+      verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
       item {
-        Spacer(modifier = Modifier.height(4.dp))
-        Surface(
-          shape = RoundedCornerShape(12.dp),
-          color = Color(0xFF25D366).copy(alpha = 0.1f),
-          modifier = Modifier.fillMaxWidth()
-        ) {
-          Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Icon(Icons.Default.Send, contentDescription = null, tint = Color(0xFF25D366), modifier = Modifier.size(24.dp))
+        com.example.ui.components.AppCard(padding = 14.dp) {
+          Row(verticalAlignment = Alignment.Top) {
+            com.example.ui.components.IconBadge(
+              androidx.compose.material.icons.Icons.AutoMirrored.Filled.Chat,
+              com.example.ui.theme.WhatsAppGreen,
+              palette.accentSoft,
+              size = 36.dp,
+              iconSize = 18.dp
+            )
             Spacer(modifier = Modifier.width(12.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Akıllı alanlar", style = MaterialTheme.typography.titleSmall)
               Text(
-                text = "Otomatik Değişken Desteği",
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface
-              )
-              Text(
-                text = "Şablonlarınızdaki {musteri_adi}, {kalan_bakiye}, {vade_tarihi} alanları müşterinin güncel kayıtlarıyla otomatik doldurulur.",
+                "{musteri_adi}, {kalan_bakiye}, {vade_tarihi} gibi alanlar gönderirken müşterinin güncel bilgileriyle doldurulur. Mesaj otomatik gitmez; WhatsApp'ta siz gönderirsiniz.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Slate500
+                color = palette.muted
               )
             }
           }
@@ -122,55 +118,35 @@ fun WhatsAppTemplatesScreen(
       }
 
       items(templates, key = { it.id }) { template ->
-        Card(
-          shape = RoundedCornerShape(16.dp),
-          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-          modifier = Modifier.fillMaxWidth()
-        ) {
-          Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween,
-              verticalAlignment = Alignment.CenterVertically
-            ) {
-              Text(
-                text = template.title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                modifier = Modifier.weight(1f)
-              )
-              Spacer(modifier = Modifier.width(8.dp))
-              OutlinedButton(
-                onClick = { viewModel.openDialog(DialogState.EditTemplate(template)) },
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-              ) {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Düzenle", fontSize = 12.sp, maxLines = 1, softWrap = false)
-              }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Surface(
-              shape = RoundedCornerShape(10.dp),
-              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-              modifier = Modifier.fillMaxWidth()
-            ) {
-              Text(
-                text = template.templateText,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(12.dp)
-              )
+        com.example.ui.components.AppCard(padding = 0.dp) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(start = 16.dp, end = 4.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(
+              text = template.title,
+              style = MaterialTheme.typography.titleSmall,
+              color = MaterialTheme.colorScheme.onSurface,
+              maxLines = 2,
+              modifier = Modifier.weight(1f)
+            )
+            androidx.compose.material3.TextButton(onClick = { viewModel.openDialog(DialogState.EditTemplate(template)) }) {
+              Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = palette.ink)
+              Spacer(modifier = Modifier.width(4.dp))
+              Text("Düzenle", color = palette.ink, maxLines = 1, softWrap = false)
             }
           }
+          Text(
+            text = template.templateText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.muted,
+            maxLines = 5,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp)
+          )
         }
-      }
-
-      item {
-        Spacer(modifier = Modifier.height(40.dp))
       }
     }
   }

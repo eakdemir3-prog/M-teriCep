@@ -70,6 +70,7 @@ fun PricingScreen(
   }
 
   Scaffold(
+    contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
     topBar = {
       TopAppBar(
         title = { Text("Abonelik & Paketler", fontWeight = FontWeight.Bold) },
@@ -78,7 +79,8 @@ fun PricingScreen(
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
           }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
       )
     }
   ) { innerPadding ->

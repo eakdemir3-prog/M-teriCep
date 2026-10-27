@@ -17,27 +17,27 @@ object DefaultTemplates {
   fun getDefaults(): List<WhatsAppTemplate> = listOf(
     WhatsAppTemplate(
       key = "PAYMENT_REMINDER",
-      title = "Ödeme Hatırlatması",
+      title = "Ödeme hatırlatması",
       templateText = "Sayın {musteri_adi}, {isletme_adi} nezdindeki cari hesabınızda {kalan_bakiye} tutarında gecikmiş/vadesi gelmiş bakiyeniz bulunmaktadır. Ödemenizi en kısa sürede rica eder, iyi çalışmalar dileriz."
     ),
     WhatsAppTemplate(
       key = "UPCOMING_DUE",
-      title = "Vadesi Yaklaşan Ödeme",
+      title = "Vade bildirimi",
       templateText = "Merhaba Sayın {musteri_adi}, {vade_tarihi} vadeli {kalan_bakiye} tutarındaki ödemenizi hatırlatmak isteriz. Saygılarımızla, {isletme_adi}."
     ),
     WhatsAppTemplate(
       key = "PAYMENT_RECEIVED",
-      title = "Ödeme Alındı Bildirimi",
+      title = "Tahsilat bilgilendirmesi",
       templateText = "Sayın {musteri_adi}, {son_tutar} tutarındaki tahsilatınız hesabınıza işlenmiştir. Kalan güncel bakiyeniz: {kalan_bakiye}. Teşekkür eder, bereketli günler dileriz. - {isletme_adi}"
     ),
     WhatsAppTemplate(
       key = "THANK_YOU",
-      title = "Teşekkür Mesajı",
+      title = "Teşekkür mesajı",
       templateText = "Sayın {musteri_adi}, ödemeniz için teşekkür ederiz. Hesabınızda herhangi bir borç bakiyesi bulunmamaktadır. İş birliğiniz için minnettarız. {isletme_adi}"
     ),
     WhatsAppTemplate(
       key = "GENERAL_INFO",
-      title = "Genel Bakiye Bilgilendirmesi",
+      title = "Borç özeti",
       templateText = "Sayın {musteri_adi}, {isletme_adi} cari hesap ekstreniz: Toplam İşlem: {toplam_borc}, Yapılan Ödeme: {toplam_tahsilat}, Güncel Kalan Bakiye: {kalan_bakiye}. Bilgilerinize sunarız."
     )
   )

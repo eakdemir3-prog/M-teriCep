@@ -99,7 +99,8 @@ fun AddEditCustomerDialog(
   existingCustomer: Customer? = null,
   allCustomers: List<CustomerWithBalance>,
   onDismiss: () -> Unit,
-  onSave: (name: String, phone: String, email: String, address: String, notes: String) -> Unit
+  onSave: (name: String, phone: String, email: String, address: String, notes: String) -> Unit,
+  saving: Boolean = false
 ) {
   var name by remember { mutableStateOf(existingCustomer?.name ?: "") }
   var phone by remember { mutableStateOf(existingCustomer?.phone ?: "") }
@@ -143,7 +144,7 @@ fun AddEditCustomerDialog(
           .verticalScroll(rememberScrollState())
       ) {
         Text(
-          text = if (existingCustomer == null) "Yeni Müşteri Ekle" else "Müşteriyi Düzenle",
+          text = if (existingCustomer == null) "Müşteri ekle" else "Müşteriyi düzenle",
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
@@ -251,10 +252,11 @@ fun AddEditCustomerDialog(
               }
               onSave(name, phone, email, address, notes)
             },
+            enabled = !saving,
             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
             modifier = Modifier.testTag("btn_save_customer")
           ) {
-            Text("Kaydet")
+            Text(if (saving) "Kaydediliyor…" else "Kaydet", maxLines = 1, softWrap = false)
           }
         }
       }
@@ -383,7 +385,8 @@ fun AddDebtDialog(
   existing: Debt? = null,
   allCustomers: List<CustomerWithBalance>,
   onDismiss: () -> Unit,
-  onSave: (customerId: Long, amount: Double, date: Long, dueDate: Long?, description: String, category: String) -> Unit
+  onSave: (customerId: Long, amount: Double, date: Long, dueDate: Long?, description: String, category: String) -> Unit,
+  saving: Boolean = false
 ) {
   val isEdit = existing != null
   var selectedCustomerId by remember { mutableLongStateOf(existing?.customerId ?: preselectedCustomerId ?: 0L) }
@@ -414,7 +417,7 @@ fun AddDebtDialog(
           .verticalScroll(rememberScrollState())
       ) {
         Text(
-          text = if (isEdit) "Borç Kaydını Düzenle" else "Yeni Borç (Veresiye)",
+          text = if (isEdit) "Borcu düzenle" else "Borç ekle",
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
@@ -515,10 +518,11 @@ fun AddDebtDialog(
               }
               onSave(selectedCustomerId, amt, date, dueDate, description, selectedCategory)
             },
-            colors = ButtonDefaults.buttonColors(containerColor = RoseError),
+            enabled = !saving,
+            colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
             modifier = Modifier.testTag("btn_save_debt")
           ) {
-            Text(if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
+            Text(if (saving) "Kaydediliyor…" else if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
           }
         }
       }
@@ -534,7 +538,8 @@ fun AddCollectionDialog(
   existing: CollectionRecord? = null,
   allCustomers: List<CustomerWithBalance>,
   onDismiss: () -> Unit,
-  onSave: (customerId: Long, amount: Double, date: Long, method: PaymentMethod, notes: String) -> Unit
+  onSave: (customerId: Long, amount: Double, date: Long, method: PaymentMethod, notes: String) -> Unit,
+  saving: Boolean = false
 ) {
   val isEdit = existing != null
   var selectedCustomerId by remember { mutableLongStateOf(existing?.customerId ?: preselectedCustomerId ?: 0L) }
@@ -577,7 +582,7 @@ fun AddCollectionDialog(
           .verticalScroll(rememberScrollState())
       ) {
         Text(
-          text = if (isEdit) "Tahsilatı Düzenle" else "Tahsilat Al",
+          text = if (isEdit) "Tahsilatı düzenle" else "Tahsilat al",
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
@@ -713,10 +718,11 @@ fun AddCollectionDialog(
               }
               onSave(selectedCustomerId, amt, date, selectedMethod, notes)
             },
-            colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+            enabled = !saving,
+            colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
             modifier = Modifier.testTag("btn_save_collection")
           ) {
-            Text(if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
+            Text(if (saving) "Kaydediliyor…" else if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
           }
         }
       }

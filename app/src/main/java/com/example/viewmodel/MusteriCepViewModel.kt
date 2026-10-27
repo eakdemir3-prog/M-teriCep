@@ -265,6 +265,26 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else repository.getTransactionsForCustomer(id) }
     .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+  // ---------------- Kayıt kilidi ----------------
+
+  /** Kaydet'e art arda basılınca aynı kaydın iki kez oluşmasını önler. */
+  private val _saving = MutableStateFlow(false)
+  val saving: StateFlow<Boolean> = _saving.asStateFlow()
+
+  private fun guardedSave(block: suspend () -> Unit) {
+    if (_saving.value) return
+    _saving.value = true
+    viewModelScope.launch {
+      try {
+        block()
+      } catch (e: Exception) {
+        showMessage("Kaydedilemedi: ${e.message ?: "bilinmeyen hata"}")
+      } finally {
+        _saving.value = false
+      }
+    }
+  }
+
   // ---------------- Müşteri işlemleri ----------------
 
   fun saveCustomer(
@@ -279,13 +299,13 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       showMessage("Müşteri adı zorunludur.")
       return
     }
-    viewModelScope.launch {
+    guardedSave {
       if (existing == null) {
         val tier = profile.value.activeTier
         val count = repository.countRealCustomers()
         if (count >= tier.maxCustomerLimit) {
           openDialog(DialogState.TierLimitReached(count, tier.maxCustomerLimit))
-          return@launch
+          return@guardedSave
         }
         repository.insertCustomer(
           Customer(name = name.trim(), phone = phone.trim(), email = email.trim(), address = address.trim(), notes = notes.trim())
@@ -331,7 +351,8 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     existingId: Long = 0
   ) {
     if (customerId <= 0) { showMessage("Lütfen müşteri seçin."); return }
-    viewModelScope.launch {
+    if (Money.toCents(amount) <= 0) { showMessage("Tutar 0'dan büyük olmalıdır."); return }
+    guardedSave {
       val debt = Debt(
         id = existingId, customerId = customerId, amount = amount, date = date,
         dueDate = dueDate, description = description.trim(), category = category
@@ -376,7 +397,8 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     force: Boolean = false
   ) {
     if (customerId <= 0) { showMessage("Lütfen müşteri seçin."); return }
-    viewModelScope.launch {
+    if (Money.toCents(amount) <= 0) { showMessage("Tutar 0'dan büyük olmalıdır."); return }
+    guardedSave {
       val record = CollectionRecord(
         id = existingId, customerId = customerId, amount = amount, date = date,
         paymentMethod = paymentMethod, notes = notes.trim()
