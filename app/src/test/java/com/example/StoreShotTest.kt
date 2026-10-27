@@ -61,6 +61,8 @@ class StoreShotTest {
 
   private fun seed(app: Application) = runBlocking {
     val db = AppDatabase.getDatabase(app)
+    // Aynı süreçteki diğer testlerin örnek verileri karışmasın.
+    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { db.clearAllTables() }
     val c = db.customerDao(); val d = db.debtDao(); val k = db.collectionDao()
     val day = 86_400_000L
     val now = System.currentTimeMillis()
