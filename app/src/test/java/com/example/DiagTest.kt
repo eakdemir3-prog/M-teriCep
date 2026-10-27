@@ -2,6 +2,7 @@ package com.example
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.window.Dialog
@@ -33,6 +34,49 @@ class DiagTest {
       MyApplicationTheme {
         androidx.compose.material3.OutlinedTextField(value = "12", onValueChange = {}, textStyle = com.example.ui.theme.moneyStyle(20),
           supportingText = { Text("a") })
+      }
+    }
+  }
+
+  @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+  @Test fun d_flowChips() {
+    rule.setContent {
+      MyApplicationTheme {
+        androidx.compose.foundation.layout.FlowRow {
+          listOf("Nakit", "Havale / EFT", "Kredi / Banka Kartı", "Çek / Senet", "Diğer").forEach {
+            androidx.compose.material3.FilterChip(selected = it == "Nakit", onClick = {}, label = { Text(it) })
+          }
+        }
+      }
+    }
+  }
+
+  @Test fun e_scrollInDialog() {
+    rule.setContent {
+      MyApplicationTheme {
+        Dialog(onDismissRequest = {}) {
+          androidx.compose.material3.Card {
+            Column(modifier = androidx.compose.ui.Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+              repeat(30) { Text("satır $it") }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @Test fun f_collectionDialog() {
+    rule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.AddCollectionDialog(allCustomers = emptyList(), preselectedCustomerId = 1L, onDismiss = {}, onSave = { _, _, _, _, _ -> })
+      }
+    }
+  }
+
+  @Test fun g_debtDialog() {
+    rule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.AddDebtDialog(allCustomers = emptyList(), preselectedCustomerId = 1L, onDismiss = {}, onSave = { _, _, _, _, _, _ -> })
       }
     }
   }
