@@ -58,9 +58,16 @@ jobs:
       - name: Hataları özetle
         if: failure()
         run: |
-          for x in app/build/test-results/testDebugUnitTest/*.xml; do
-            grep -A12 "<failure" "$x" | head -30 | while IFS= read -r line; do echo "::error::$(basename $x): ${line//%/%25}"; done
-          done
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for x in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+              for tc in ET.parse(x).getroot().iter('testcase'):
+                  f = tc.find('failure')
+                  if f is not None:
+                      msg = (f.get('message') or '')[:160].replace('\n', ' ')
+                      trace = [l.strip() for l in (f.text or '').splitlines() if 'com.example' in l][:4]
+                      print(f"::error::FAIL {tc.get('classname')}.{tc.get('name')}: {msg} | {' / '.join(trace)}")
+          PY
           for f in build.log test.log; do
             [ -f "$f" ] || continue
             grep -E "^e: |error:|FAILED|What went wrong|Exception|expected|but was" "$f" | head -60 | while IFS= read -r line; do
