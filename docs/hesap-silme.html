@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MüşteriCep Hesap Silme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: tek sütun, okunaklı yardım sayfası; adımlar gerçek bir sıra olduğu için numaralı. */
+  :root {
+    --bg: #F5F7FA;
+    --card: #FFFFFF;
+    --ink: #172033;
+    --muted: #5B6779;
+    --line: #E5EAF0;
+    --green: #0F766E;
+    --green-soft: #ECFDF5;
+    --warn: #B45309;
+    --warn-soft: #FFFBEB;
+    --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1419; --card: #161D26; --ink: #E6EDF3; --muted: #9AA7B6; --line: #263241;
+      --green: #34D399; --green-soft: #0F2E2A; --warn: #FBBF24; --warn-soft: #2A2112; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1419; --card: #161D26; --ink: #E6EDF3; --muted: #9AA7B6; --line: #263241;
+    --green: #34D399; --green-soft: #0F2E2A; --warn: #FBBF24; --warn-soft: #2A2112; color-scheme: dark;
+  }
+  html,body{margin:0}
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+  .wrap {
+    max-width: 680px; margin: 0 auto;
+    padding-block: 32px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  header { display: flex; flex-direction: column; gap: 6px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--green); font-weight: 600; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  .mark { width: 28px; height: 28px; border-radius: 8px; background: var(--green-soft); display: grid; place-items: center; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0; text-wrap: balance; }
+  .lead { color: var(--muted); margin: 0; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  h2 { font-size: 18px; margin: 0; }
+  ol, ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+  li::marker { color: var(--green); font-weight: 700; }
+  p { margin: 0; }
+  b { font-weight: 600; }
+  .path { display: inline-block; background: var(--green-soft); color: var(--green); border-radius: 6px; padding: 0 6px; font-weight: 600; }
+  .note { background: var(--warn-soft); border-color: transparent; }
+  .note h2 { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; letter-spacing: .03em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  .tbl { overflow-x: auto; }
+  footer { color: var(--muted); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="3" fill="currentColor" opacity=".25"/><rect x="3" y="5" width="18" height="5" rx="2" fill="currentColor"/></svg>
+      </span>
+      MüşteriCep · EA Vision Labs
+    </div>
+    <h1>Hesabınızı ve verilerinizi silme</h1>
+    <p class="lead">MüşteriCep hesabınızı uygulamanın içinden istediğiniz an kalıcı olarak silebilirsiniz. Silme işlemi geri alınamaz.</p>
+  </header>
+
+  <section>
+    <h2>İşletme hesabı</h2>
+    <ol>
+      <li>MüşteriCep uygulamasını açın.</li>
+      <li>Alt menüden <span class="path">Ana Sayfa</span>'ya gidin, sağ üstteki profil simgesine dokunun ve <span class="path">Ayarlar</span>'ı açın.</li>
+      <li>Hesap bölümünde <b>Hesabı sil</b>'e dokunun ve onaylayın.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Müşteri hesabı (randevu alanlar)</h2>
+    <ol>
+      <li>MüşteriCep uygulamasını açın.</li>
+      <li>Alt menüden <span class="path">Profil</span> sekmesine gidin.</li>
+      <li><b>Hesabımı sil</b>'e dokunun ve onaylayın.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Silinen ve saklanan veriler</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Veri</th><th>Ne olur?</th></tr></thead>
+        <tbody>
+          <tr><td>Google ile giriş hesabı (ad, e-posta)</td><td>Hemen silinir.</td></tr>
+          <tr><td>Kullanıcı profili (telefon, favori işletmeler)</td><td>Hemen silinir.</td></tr>
+          <tr><td>İşletme vitrini: ad, adres, harita konumu, logo, çalışma saatleri, hizmetler</td><td>Hemen silinir; işletme müşteri listesinden kalkar.</td></tr>
+          <tr><td>Geçmiş randevu kayıtları (tarih, hizmet, ad, telefon)</td><td>Karşı tarafın takviminde kayıt olarak 12 aya kadar saklanabilir, sonra silinir.</td></tr>
+          <tr><td>Telefondaki defter (müşteriler, borçlar, tahsilatlar)</td><td>Yalnızca sizin telefonunuzda tutulur, sunucuya gönderilmez. Uygulamayı kaldırdığınızda silinir.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="note">
+    <h2>Uygulamaya erişemiyorsanız</h2>
+    <p>Telefonunuzu kaybettiyseniz veya uygulamayı kaldırdıysanız, Google Play'deki MüşteriCep sayfasında yer alan geliştirici e-posta adresine, hesabınızda kullandığınız Google e-postasıyla yazın. Talebiniz 30 gün içinde yerine getirilir.</p>
+  </section>
+
+  <footer>MüşteriCep · Geliştirici: EA Vision Labs</footer>
+</div>
+</body>
+</html>
