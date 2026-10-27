@@ -2,7 +2,7 @@
 agp = "9.1.1"
 coreKtx = "1.18.0"
 coreSplash = "1.0.1"
-billing = "7.1.1"
+billing = "8.0.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
@@ -47,7 +47,7 @@ googleid = "1.1.1"
 
 
 [libraries]
-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
+billing-ktx = { group = "com.android.billingclient", name = "billing", version.ref = "billing" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplash" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

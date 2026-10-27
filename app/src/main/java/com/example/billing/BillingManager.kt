@@ -15,9 +15,6 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-import com.android.billingclient.api.acknowledgePurchase
-import com.android.billingclient.api.queryProductDetails
-import com.android.billingclient.api.queryPurchasesAsync
 import com.example.data.SettingsStore
 import com.example.model.Billing
 import com.example.model.SubscriptionTier
@@ -31,6 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /** Bir paketin Play'den gelen fiyatları (yerel para birimiyle). */
 data class TierPrices(val monthly: String?, val yearly: String?)
@@ -65,6 +64,7 @@ object BillingManager : PurchasesUpdatedListener {
     client = BillingClient.newBuilder(context.applicationContext)
       .setListener(this)
       .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+      .enableAutoServiceReconnection()
       .build()
     connect()
   }
@@ -90,19 +90,29 @@ object BillingManager : PurchasesUpdatedListener {
     val products = SubscriptionTier.entries.mapNotNull { it.productId }.map {
       QueryProductDetailsParams.Product.newBuilder().setProductId(it).setProductType(BillingClient.ProductType.SUBS).build()
     }
-    val pd = runCatching { c.queryProductDetails(QueryProductDetailsParams.newBuilder().setProductList(products).build()) }.getOrNull()
-    if (pd?.billingResult?.responseCode == BillingClient.BillingResponseCode.OK) {
-      details = pd.productDetailsList.orEmpty().associateBy { it.productId }
+    val pd = runCatching {
+      suspendCancellableCoroutine<Pair<BillingResult, List<ProductDetails>>> { cont ->
+        c.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(products).build()) { r, res ->
+          if (cont.isActive) cont.resume(r to res.productDetailsList)
+        }
+      }
+    }.getOrNull()
+    if (pd?.first?.responseCode == BillingClient.BillingResponseCode.OK) {
+      details = pd.second.associateBy { it.productId }
       _prices.value = SubscriptionTier.entries.filter { it.productId != null }.associateWith { t ->
         val d = details[t.productId]
         TierPrices(priceOf(d, Billing.BASE_MONTHLY), priceOf(d, Billing.BASE_YEARLY))
       }
     }
     val pr = runCatching {
-      c.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build())
+      suspendCancellableCoroutine<Pair<BillingResult, List<Purchase>>> { cont ->
+        c.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()) { r, list ->
+          if (cont.isActive) cont.resume(r to list)
+        }
+      }
     }.getOrNull() ?: return
-    if (pr.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-      handlePurchases(pr.purchasesList, fromQuery = true)
+    if (pr.first.responseCode == BillingClient.BillingResponseCode.OK) {
+      handlePurchases(pr.second, fromQuery = true)
     }
   }
 
@@ -159,7 +169,13 @@ object BillingManager : PurchasesUpdatedListener {
       if (p.purchaseState == Purchase.PurchaseState.PENDING) { pending = true; continue }
       if (p.purchaseState != Purchase.PurchaseState.PURCHASED) continue
       if (!p.isAcknowledged) {
-        runCatching { c.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(p.purchaseToken).build()) }
+        runCatching {
+          suspendCancellableCoroutine<BillingResult> { cont ->
+            c.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(p.purchaseToken).build()) { r ->
+              if (cont.isActive) cont.resume(r)
+            }
+          }
+        }
       }
       val tier = p.products.mapNotNull { SubscriptionTier.fromProductId(it) }.maxByOrNull { it.rank } ?: continue
       if (tier.rank > best.rank) { best = tier; bestPurchase = p }
