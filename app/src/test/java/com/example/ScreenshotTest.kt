@@ -133,6 +133,7 @@ abstract class ScreenshotBase {
                 Screen.Collections -> CollectionsScreen(viewModel = vm)
                 Screen.ReportsAndExport -> ReportsAndExportScreen(viewModel = vm)
                 Screen.WhatsAppTemplates -> WhatsAppTemplatesScreen(viewModel = vm)
+                Screen.Pricing -> com.example.ui.screens.PricingScreen(viewModel = vm)
                 is Screen.CustomerDetail -> CustomerDetailScreen(viewModel = vm)
                 else -> DashboardScreen(viewModel = vm)
               }
@@ -147,7 +148,8 @@ abstract class ScreenshotBase {
       Screen.Customers to "2_musteriler",
       Screen.Collections to "4_kasa",
       Screen.ReportsAndExport to "5_raporlar",
-      Screen.WhatsAppTemplates to "6_sablonlar"
+      Screen.WhatsAppTemplates to "6_sablonlar",
+      Screen.Pricing to "7_paketler"
     )
     for ((screen, name) in shots) {
       current = screen
