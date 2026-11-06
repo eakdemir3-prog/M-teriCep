@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MüşteriCep Hizmet Şartları</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: tek sütun, okunaklı yardım sayfası; adımlar gerçek bir sıra olduğu için numaralı. */
+  :root {
+    --bg: #F5F7FA;
+    --card: #FFFFFF;
+    --ink: #172033;
+    --muted: #5B6779;
+    --line: #E5EAF0;
+    --green: #0F766E;
+    --green-soft: #ECFDF5;
+    --warn: #B45309;
+    --warn-soft: #FFFBEB;
+    --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1419; --card: #161D26; --ink: #E6EDF3; --muted: #9AA7B6; --line: #263241;
+      --green: #34D399; --green-soft: #0F2E2A; --warn: #FBBF24; --warn-soft: #2A2112; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1419; --card: #161D26; --ink: #E6EDF3; --muted: #9AA7B6; --line: #263241;
+    --green: #34D399; --green-soft: #0F2E2A; --warn: #FBBF24; --warn-soft: #2A2112; color-scheme: dark;
+  }
+  html,body{margin:0}
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+  .wrap {
+    max-width: 680px; margin: 0 auto;
+    padding-block: 32px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  header { display: flex; flex-direction: column; gap: 6px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--green); font-weight: 600; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  .mark { width: 28px; height: 28px; border-radius: 8px; background: var(--green-soft); display: grid; place-items: center; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0; text-wrap: balance; }
+  .lead { color: var(--muted); margin: 0; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  h2 { font-size: 18px; margin: 0; }
+  ol, ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+  li::marker { color: var(--green); font-weight: 700; }
+  p { margin: 0; }
+  b { font-weight: 600; }
+  .path { display: inline-block; background: var(--green-soft); color: var(--green); border-radius: 6px; padding: 0 6px; font-weight: 600; }
+  .note { background: var(--warn-soft); border-color: transparent; }
+  .note h2 { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; letter-spacing: .03em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  .tbl { overflow-x: auto; }
+  footer { color: var(--muted); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="3" fill="currentColor" opacity=".25"/><rect x="3" y="5" width="18" height="5" rx="2" fill="currentColor"/></svg></span>MüşteriCep · EA Vision Labs</div>
+    <h1>Hizmet Şartları</h1>
+    <p class="lead">Son güncelleme: 6 Kasım 2026. MüşteriCep uygulamasını kullanarak bu şartları kabul etmiş olursunuz.</p>
+  </header>
+  <section><h2>1. Hizmet</h2>
+    <p>MüşteriCep; işletmelerin müşteri, borç, tahsilat ve randevu kayıtlarını tutmasına, müşterilerin de işletmelerden online randevu almasına yarayan bir mobil uygulamadır. Uygulama EA Vision Labs tarafından geliştirilir ve Google Play üzerinden sunulur.</p></section>
+  <section><h2>2. Hesap</h2>
+    <ul>
+      <li>Randevu özellikleri için Google hesabıyla giriş gerekir. Hesabınızın güvenliğinden siz sorumlusunuz.</li>
+      <li>Aynı hesap hem işletme hem müşteri olarak kullanılabilir.</li>
+      <li>Hesabınızı istediğiniz zaman uygulama içinden silebilirsiniz. Ayrıntılar <a href="hesap-silme.html">Hesap silme</a> sayfasındadır.</li>
+    </ul></section>
+  <section><h2>3. Paketler ve ödeme</h2>
+    <ul>
+      <li>Uygulamanın Ücretsiz paketi vardır. Başlangıç ve Pro paketleri aylık veya yıllık aboneliktir; fiyatlar uygulama içinde ve Google Play'de gösterilir.</li>
+      <li>Ödemeler Google Play hesabınız üzerinden alınır. Abonelik, siz iptal edene kadar her dönem sonunda otomatik yenilenir.</li>
+      <li>İptal için: Google Play Store › Profil › Ödemeler ve abonelikler › Abonelikler › MüşteriCep. İptal ettiğinizde paketiniz o dönemin sonuna kadar açık kalır.</li>
+      <li>İade talepleri Google Play'in iade politikasına göre Google tarafından değerlendirilir.</li>
+      <li>Paket sınırları (müşteri, aylık randevu, hizmet sayısı) ve özellikler uygulamadaki Paketler ekranında yazdığı gibidir. Değişiklik olursa mevcut abonelik dönemi etkilenmez.</li>
+    </ul></section>
+  <section><h2>4. Kullanıcının sorumlulukları</h2>
+    <ul>
+      <li>Uygulamaya girdiğiniz müşteri bilgilerinin doğruluğundan ve bu bilgileri işlemeye hakkınız olmasından (KVKK dahil) siz sorumlusunuz.</li>
+      <li>WhatsApp mesajları sizin onayınızla, sizin hesabınızdan gönderilir; içeriğinden siz sorumlusunuz.</li>
+      <li>Uygulama yasa dışı amaçlarla, sahte randevu oluşturmak veya başkalarını rahatsız etmek için kullanılamaz. Bu durumda hesap kapatılabilir.</li>
+    </ul></section>
+  <section><h2>5. Veriler</h2>
+    <p>Borç ve tahsilat defteri yalnızca telefonunuzda tutulur; yedeklemek sizin sorumluluğunuzdadır. Randevu, işletme vitrini ve profil bilgileri Google Firebase sunucularında saklanır. Kayıtlar muhasebe veya resmi belge yerine geçmez.</p></section>
+  <section><h2>6. Sorumluluğun sınırı</h2>
+    <p>Uygulama "olduğu gibi" sunulur. Kesintisiz veya hatasız çalışacağı garanti edilmez. Veri kaybı, kaçırılan randevu veya tahsil edilemeyen alacaklardan doğan dolaylı zararlardan EA Vision Labs sorumlu tutulamaz; sorumluluk her durumda son 12 ayda ödediğiniz abonelik bedeliyle sınırlıdır.</p></section>
+  <section><h2>7. Değişiklikler ve iletişim</h2>
+    <p>Bu şartlar güncellenebilir; önemli değişiklikler uygulama içinde duyurulur. Sorularınız için Google Play'deki MüşteriCep sayfasında yer alan geliştirici e-posta adresine yazabilirsiniz. Bu şartlara Türkiye Cumhuriyeti hukuku uygulanır.</p></section>
+  <footer>MüşteriCep · Geliştirici: EA Vision Labs</footer>
+</div>
+</body>
+</html>
