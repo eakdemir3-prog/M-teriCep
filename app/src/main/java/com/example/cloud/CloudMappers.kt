@@ -64,6 +64,7 @@ internal object CloudMappers {
     "lng" to b.longitude,
     "tierRank" to b.tierRank,
     "bookingFull" to b.bookingFull,
+    "bookingFullMonth" to if (b.bookingFull) currentMonthKey() else "",
     "updatedAt" to System.currentTimeMillis()
   )
 
@@ -88,8 +89,14 @@ internal object CloudMappers {
     latitude = doc.getDouble("lat"),
     longitude = doc.getDouble("lng"),
     tierRank = doc.getLong("tierRank")?.toInt() ?: 0,
-    bookingFull = doc.getBoolean("bookingFull") ?: false
+    // Sınır yalnızca dolduğu ay için geçerli: yeni ayda işletme uygulamayı açmasa da randevu açılır.
+    bookingFull = (doc.getBoolean("bookingFull") ?: false) && doc.getString("bookingFullMonth") == currentMonthKey()
   )
+
+  fun currentMonthKey(now: Long = System.currentTimeMillis()): String {
+    val c = java.util.Calendar.getInstance().apply { timeInMillis = now }
+    return "%04d-%02d".format(c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH) + 1)
+  }
 
   fun serviceToMap(s: ServiceItem): Map<String, Any?> = mapOf(
     "name" to s.name.trim(),

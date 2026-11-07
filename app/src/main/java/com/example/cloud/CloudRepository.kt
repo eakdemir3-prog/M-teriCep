@@ -59,16 +59,19 @@ class CloudRepository {
       val c = (cal.clone() as java.util.Calendar).apply { add(java.util.Calendar.DAY_OF_MONTH, i) }
       dayKeyOf(c.timeInMillis)
     }
+    // İptal edilen ve reddedilen randevular sınıra sayılmaz.
     var total = 0L
     for (chunk in keys.chunked(30)) {
-      total += appointments().whereEqualTo("businessId", businessId).whereIn("dayKey", chunk)
-        .count().get(com.google.firebase.firestore.AggregateSource.SERVER).await().count
+      val docs = appointments().whereEqualTo("businessId", businessId).whereIn("dayKey", chunk).get().await()
+      total += docs.documents.count { it.getString("status") !in setOf("CANCELLED", "REJECTED") }
     }
     return total
   }
 
   suspend fun setBusinessUsage(uid: String, tierRank: Int, full: Boolean) {
-    businesses().document(uid).update(mapOf("tierRank" to tierRank, "bookingFull" to full)).await()
+    businesses().document(uid).update(
+      mapOf("tierRank" to tierRank, "bookingFull" to full, "bookingFullMonth" to if (full) CloudMappers.currentMonthKey() else "")
+    ).await()
   }
 
   suspend fun saveUser(user: UserProfile) {

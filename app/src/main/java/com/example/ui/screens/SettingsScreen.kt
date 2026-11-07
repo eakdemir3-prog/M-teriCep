@@ -523,7 +523,9 @@ fun SettingsScreen(
             "• Borç ve tahsilat kayıtları yalnızca bu telefonda saklanır.\n" +
             "• Online randevu kullanılırsa işletme vitrini, hizmetler ve randevu bilgileri (müşteri adı, telefonu, randevu saati) " +
             "Google Firebase sunucularında saklanır ve yalnızca ilgili işletme ile müşteri tarafından görülür.\n" +
-            "• Uygulama yapay zekâ servisi kullanmaz, verileri reklam için paylaşmaz.\n" +
+            "• İşletme logosu ve harita konumu (isteğe bağlı) işletme vitrininde saklanır; konum yalnızca siz istediğinizde bir kez alınır.\n" +
+            "• Uygulama yapay zekâ, reklam veya analiz servisi kullanmaz; verileri reklam için paylaşmaz.\n" +
+            "• Abonelik ödemeleri Google Play tarafından alınır; ödeme bilgileriniz bize ulaşmaz.\n" +
             "• Telefonunuzun Google yedeklemesi açıksa uygulama verileri Android tarafından Google hesabınıza şifreli olarak yedeklenebilir.\n" +
             "• WhatsApp mesajları sizin onayınızla, sizin WhatsApp hesabınızdan gönderilir.\n" +
             "• Verilerinizi dilediğiniz an Excel (CSV) veya yedek dosyası olarak dışa aktarabilir, tamamen silebilirsiniz.\n" +
