@@ -16,13 +16,13 @@ android {
     applicationId = "com.eavisionlabs.mustericep"
     minSdk = 24
     targetSdk = 36
-    versionCode = 19
+    versionCode = 20
     versionName = "1.1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     // RevenueCat herkese açık Android SDK anahtarı (goog_...). Boşsa doğrudan Google Play Billing kullanılır.
-    val rcKey = System.getenv("REVENUECAT_API_KEY") ?: (project.findProperty("revenuecatKey") as String?) ?: ""
+    val rcKey = System.getenv("REVENUECAT_API_KEY") ?: (project.findProperty("revenuecatKey") as String?) ?: "goog_feFUeUfmmegtJVAsGAfeJaCZFPW"
     buildConfigField("String", "REVENUECAT_KEY", "\"$rcKey\"")
   }
 
