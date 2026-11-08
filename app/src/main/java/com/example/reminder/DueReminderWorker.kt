@@ -1,5 +1,7 @@
 package com.example.reminder
 
+import com.example.util.tr
+
 import com.example.model.allows
 import android.Manifest
 import android.app.NotificationChannel
@@ -64,13 +66,13 @@ class DueReminderWorker(context: Context, params: WorkerParameters) : CoroutineW
     val upcomingCustomers = upcoming.map { it.debt.customerId }.distinct().size
 
     val lines = buildList {
-      if (overdue.isNotEmpty()) add("$overdueCustomers müşteride vadesi geçmiş ${Formatters.formatCurrency(overdueSum)}")
+      if (overdue.isNotEmpty()) add(tr("{0} müşteride vadesi geçmiş {1}", overdueCustomers, Formatters.formatCurrency(overdueSum)))
       if (upcoming.isNotEmpty()) {
-        val whenText = if (profile.reminderDaysBefore == 0) "bugün" else "${profile.reminderDaysBefore} gün içinde"
-        add("$upcomingCustomers müşteride $whenText vadesi gelen ${Formatters.formatCurrency(upcomingSum)}")
+        val whenText = if (profile.reminderDaysBefore == 0) tr("bugün") else tr("{0} gün içinde", profile.reminderDaysBefore)
+        add(tr("{0} müşteride {1} vadesi gelen {2}", upcomingCustomers, whenText, Formatters.formatCurrency(upcomingSum)))
       }
     }
-    show(ctx, title = "Tahsilat hatırlatması", lines = lines)
+    show(ctx, title = tr("Tahsilat hatırlatması"), lines = lines)
     return Result.success()
   }
 
@@ -111,8 +113,8 @@ class DueReminderWorker(context: Context, params: WorkerParameters) : CoroutineW
         val nm = context.getSystemService(NotificationManager::class.java)
         if (nm.getNotificationChannel(CHANNEL_ID) == null) {
           nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Vade hatırlatmaları", NotificationManager.IMPORTANCE_DEFAULT).apply {
-              description = "Vadesi gelen ve geciken alacaklar için günlük özet"
+            NotificationChannel(CHANNEL_ID, tr("Vade hatırlatmaları"), NotificationManager.IMPORTANCE_DEFAULT).apply {
+              description = tr("Vadesi gelen ve geciken alacaklar için günlük özet")
             }
           )
         }

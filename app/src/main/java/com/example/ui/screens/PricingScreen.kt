@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.tr
+
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -93,10 +95,10 @@ fun PricingScreen(
     containerColor = MaterialTheme.colorScheme.background,
     topBar = {
       TopAppBar(
-        title = { Text("Paketler", fontWeight = FontWeight.Bold) },
+        title = { Text(tr("Paketler"), fontWeight = FontWeight.Bold) },
         navigationIcon = {
           IconButton(onClick = { viewModel.navigateBack() }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Geri"))
           }
         },
         windowInsets = WindowInsets(0, 0, 0, 0),
@@ -116,15 +118,15 @@ fun PricingScreen(
         AppCard {
           Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-              Text("Mevcut paketiniz", style = MaterialTheme.typography.labelMedium, color = palette.muted)
+              Text(tr("Mevcut paketiniz"), style = MaterialTheme.typography.labelMedium, color = palette.muted)
               Text(current.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             }
-            StatusPill("Aktif", palette.success, palette.accentSoft)
+            StatusPill(tr("Aktif"), palette.success, palette.accentSoft)
           }
           Spacer(modifier = Modifier.height(10.dp))
           val limit = current.maxCustomerLimit
           Text(
-            "Müşteri: $realCount / ${if (limit == UNLIMITED) "sınırsız" else limit}",
+            tr("Müşteri: {0} / {1}", realCount, if (limit == UNLIMITED) "sınırsız" else limit),
             style = MaterialTheme.typography.bodyMedium
           )
           if (limit != UNLIMITED) {
@@ -147,13 +149,13 @@ fun PricingScreen(
             shape = SegmentedButtonDefaults.itemShape(0, 2),
             colors = SegmentedButtonDefaults.colors(activeContainerColor = palette.accentSoft, activeContentColor = palette.ink),
             icon = {}
-          ) { Text("Aylık") }
+          ) { Text(tr("Aylık")) }
           SegmentedButton(
             selected = yearly, onClick = { yearly = true },
             shape = SegmentedButtonDefaults.itemShape(1, 2),
             colors = SegmentedButtonDefaults.colors(activeContainerColor = palette.accentSoft, activeContentColor = palette.ink),
             icon = {}
-          ) { Text("Yıllık • 2 ay bedava") }
+          ) { Text(tr("Yıllık • 2 ay bedava")) }
         }
       }
 
@@ -178,13 +180,13 @@ fun PricingScreen(
           Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
               Text(tier.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-              if (isCurrent) StatusPill("Mevcut paket", palette.success, palette.accentSoft)
+              if (isCurrent) StatusPill(tr("Mevcut paket"), palette.success, palette.accentSoft)
               else StatusPill(tier.badgeText, palette.warning, palette.warningSoft)
             }
             Row(verticalAlignment = Alignment.Bottom) {
               Text(priceText, style = moneyStyle(26), color = palette.ink)
               if (tier.productId != null) {
-                Text(if (yearly) " / yıl" else " / ay", style = MaterialTheme.typography.bodyMedium, color = palette.muted, modifier = Modifier.padding(bottom = 3.dp))
+                Text(if (yearly) tr(" / yıl") else tr(" / ay"), style = MaterialTheme.typography.bodyMedium, color = palette.muted, modifier = Modifier.padding(bottom = 3.dp))
               }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -210,7 +212,7 @@ fun PricingScreen(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth().height(48.dp)
               ) {
-                Text(if (upgrade) "${tier.title} paketine geç" else "${tier.title} paketine düş", fontWeight = FontWeight.SemiBold)
+                Text(if (upgrade) tr("{0} paketine geç", tier.title) else tr("{0} paketine düş", tier.title), fontWeight = FontWeight.SemiBold)
               }
             }
           }
@@ -223,20 +225,20 @@ fun PricingScreen(
             onClick = { scope.launch { BillingManager.restore() } },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.weight(1f)
-          ) { Text("Satın alımları yükle", maxLines = 1, fontSize = 13.sp) }
+          ) { Text(tr("Satın alımları yükle"), maxLines = 1, fontSize = 13.sp) }
           OutlinedButton(
             onClick = { runCatching { context.startActivity(BillingManager.manageIntent(current.takeIf { it.productId != null })) } },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.weight(1f)
-          ) { Text("Aboneliği yönet", maxLines = 1, fontSize = 13.sp) }
+          ) { Text(tr("Aboneliği yönet"), maxLines = 1, fontSize = 13.sp) }
         }
       }
 
       item {
         Text(
-          "Ödeme Google Play hesabınızdan alınır. Abonelik, siz iptal edene kadar her dönem sonunda otomatik yenilenir. " +
-            "Play Store > Ödemeler ve abonelikler bölümünden istediğiniz zaman iptal edebilirsiniz; iptal ettiğinizde paketiniz dönem sonuna kadar açık kalır. " +
-            "Paket değiştirdiğinizde kalan süreniz yeni pakete orantılı olarak aktarılır.",
+          tr("Ödeme Google Play hesabınızdan alınır. Abonelik, siz iptal edene kadar her dönem sonunda otomatik yenilenir. ") +
+            tr("Play Store > Ödemeler ve abonelikler bölümünden istediğiniz zaman iptal edebilirsiniz; iptal ettiğinizde paketiniz dönem sonuna kadar açık kalır. ") +
+            tr("Paket değiştirdiğinizde kalan süreniz yeni pakete orantılı olarak aktarılır."),
           style = MaterialTheme.typography.bodySmall,
           color = palette.muted
         )

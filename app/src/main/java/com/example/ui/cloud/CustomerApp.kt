@@ -1,5 +1,7 @@
 package com.example.ui.cloud
 
+import com.example.util.tr
+
 import androidx.compose.material.icons.filled.Star
 
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -116,19 +118,19 @@ fun CustomerApp(cloud: CloudViewModel, themeMode: AppThemeMode, onThemeChange: (
             selected = screen is CustomerScreen.Discover,
             onClick = { cloud.openCustomerTab(CustomerScreen.Discover) },
             icon = { Icon(Icons.Default.Search, contentDescription = null) },
-            label = { Text("Randevu al") }
+            label = { Text(tr("Randevu al")) }
           )
           NavigationBarItem(
             selected = screen is CustomerScreen.MyAppointments,
             onClick = { cloud.openCustomerTab(CustomerScreen.MyAppointments) },
             icon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-            label = { Text("Randevularım") }
+            label = { Text(tr("Randevularım")) }
           )
           NavigationBarItem(
             selected = screen is CustomerScreen.Profile,
             onClick = { cloud.openCustomerTab(CustomerScreen.Profile) },
             icon = { Icon(Icons.Default.Person, contentDescription = null) },
-            label = { Text("Profil") }
+            label = { Text(tr("Profil")) }
           )
         }
       }
@@ -148,8 +150,8 @@ fun CustomerApp(cloud: CloudViewModel, themeMode: AppThemeMode, onThemeChange: (
         ) {
           Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
           Spacer(modifier = Modifier.width(8.dp))
-          Text("Müşteri modundasınız", color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
-          Text("İşletmeme dön →", color = Color(0xFF5EEAD4), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+          Text(tr("Müşteri modundasınız"), color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
+          Text(tr("İşletmeme dön →"), color = Color(0xFF5EEAD4), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
       }
     Box(modifier = Modifier.weight(1f)) {
@@ -189,59 +191,59 @@ private fun DiscoverScreen(cloud: CloudViewModel) {
   ) {
     item {
       Spacer(modifier = Modifier.height(8.dp))
-      Text("Merhaba${profile?.displayName?.takeIf { it.isNotBlank() }?.let { ", " + it.substringBefore(' ') } ?: ""}", style = MaterialTheme.typography.headlineSmall)
-      Text("Gittiğiniz işletmeyi bulun ve randevu alın", style = MaterialTheme.typography.bodySmall, color = Slate500)
+      Text(tr("Merhaba{0}", profile?.displayName?.takeIf { it.isNotBlank() }?.let { ", " + it.substringBefore(' ') } ?: ""), style = MaterialTheme.typography.headlineSmall)
+      Text(tr("Gittiğiniz işletmeyi bulun ve randevu alın"), style = MaterialTheme.typography.bodySmall, color = Slate500)
     }
 
     // Kodla bul
     item {
       CardBox {
-        Text("İşletme kodu ile bul", fontWeight = FontWeight.Bold)
-        Text("İşletmenizin verdiği 6 haneli kodu girin.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+        Text(tr("İşletme kodu ile bul"), fontWeight = FontWeight.Bold)
+        Text(tr("İşletmenizin verdiği 6 haneli kodu girin."), style = MaterialTheme.typography.bodySmall, color = Slate500)
         Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
           OutlinedTextField(
             value = code,
             onValueChange = { code = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(8) },
-            placeholder = { Text("Örn: K7M2PA") },
+            placeholder = { Text(tr("Örn: K7M2PA")) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
             textStyle = moneyStyle(18),
             modifier = Modifier.weight(1f)
           )
           Spacer(modifier = Modifier.width(8.dp))
-          Button(onClick = { cloud.findByCode(code) }, enabled = code.length >= 4 && !busy) { Text("Bul") }
+          Button(onClick = { cloud.findByCode(code) }, enabled = code.length >= 4 && !busy) { Text(tr("Bul")) }
         }
       }
     }
 
     if (favorites.isNotEmpty()) {
-      item { SectionTitle("İşletmelerim") }
+      item { SectionTitle(tr("İşletmelerim")) }
       items(favorites, key = { "f_" + it.id }) { b -> BusinessRow(b, onClick = { cloud.openBusiness(b.id) }) }
     }
 
     item {
-      SectionTitle("İşletme ara")
+      SectionTitle(tr("İşletme ara"))
       Spacer(modifier = Modifier.height(6.dp))
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Şehir") }, singleLine = true, modifier = Modifier.weight(1f))
-        OutlinedButton(onClick = { cloud.loadListed(city.ifBlank { null }) }) { Text("Getir") }
+        OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text(tr("Şehir")) }, singleLine = true, modifier = Modifier.weight(1f))
+        OutlinedButton(onClick = { cloud.loadListed(city.ifBlank { null }) }) { Text(tr("Getir")) }
       }
       Spacer(modifier = Modifier.height(6.dp))
       OutlinedTextField(
-        value = query, onValueChange = { query = it }, placeholder = { Text("İsim veya ilçe") },
+        value = query, onValueChange = { query = it }, placeholder = { Text(tr("İsim veya ilçe")) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth()
       )
       Spacer(modifier = Modifier.height(6.dp))
       androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        item { FilterChip(selected = category == null, onClick = { category = null }, label = { Text("Tümü", fontSize = 12.sp) }) }
+        item { FilterChip(selected = category == null, onClick = { category = null }, label = { Text(tr("Tümü"), fontSize = 12.sp) }) }
         items(listed.map { it.category }.filter { it.isNotBlank() }.distinct()) { c ->
           FilterChip(selected = category == c, onClick = { category = c }, label = { Text(c, fontSize = 12.sp) })
         }
       }
     }
     if (filtered.isEmpty()) {
-      item { Text("Listelenen işletme bulunamadı. İşletmenizden kodu isteyebilirsiniz.", style = MaterialTheme.typography.bodySmall, color = Slate500) }
+      item { Text(tr("Listelenen işletme bulunamadı. İşletmenizden kodu isteyebilirsiniz."), style = MaterialTheme.typography.bodySmall, color = Slate500) }
     }
     items(filtered, key = { "l_" + it.id }) { b -> BusinessRow(b, onClick = { cloud.openBusiness(b.id) }) }
     item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -315,14 +317,14 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
   }
 
   Column(modifier = Modifier.fillMaxSize()) {
-    TopBar(title = business?.name ?: "İşletme", onBack = { cloud.customerBack() }) {
+    TopBar(title = business?.name ?: tr("İşletme"), onBack = { cloud.customerBack() }) {
       IconButton(onClick = { cloud.toggleFavorite(businessId) }) {
-        Icon(if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = "Favori", tint = RoseError)
+        Icon(if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = tr("Favori"), tint = RoseError)
       }
     }
     val b = business
     if (b == null || b.id != businessId) {
-      Text("Yükleniyor…", modifier = Modifier.padding(16.dp), color = Slate500)
+      Text(tr("Yükleniyor…"), modifier = Modifier.padding(16.dp), color = Slate500)
     } else LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
       item {
         CardBox {
@@ -336,7 +338,7 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { showReviews = true }) {
                   RatingBadge(b.ratingAvg, b.ratingCount, 15.dp)
-                  Text("  Yorumlar", fontSize = 13.sp, color = LocalAppPalette.current.ink, fontWeight = FontWeight.SemiBold)
+                  Text(tr("  Yorumlar"), fontSize = 13.sp, color = LocalAppPalette.current.ink, fontWeight = FontWeight.SemiBold)
                 }
               }
             }
@@ -367,7 +369,7 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
                 ) {
                   Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
                   Spacer(modifier = Modifier.width(6.dp))
-                  Text("Yol tarifi", maxLines = 1)
+                  Text(tr("Yol tarifi"), maxLines = 1)
                 }
               }
               if (b.phone.isNotBlank()) {
@@ -377,7 +379,7 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
                 ) {
                   Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
                   Spacer(modifier = Modifier.width(6.dp))
-                  Text("Ara", maxLines = 1)
+                  Text(tr("Ara"), maxLines = 1)
                 }
               }
             }
@@ -387,9 +389,9 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
         }
       }
 
-      item { SectionTitle("1. Hizmet seçin") }
+      item { SectionTitle(tr("1. Hizmet seçin")) }
       if (services.isEmpty()) {
-        item { Text("Bu işletme henüz hizmet eklememiş.", color = Slate500) }
+        item { Text(tr("Bu işletme henüz hizmet eklememiş."), color = Slate500) }
       }
       items(services, key = { "s_" + it.id }) { s ->
         val sel = service?.id == s.id
@@ -411,13 +413,13 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
 
       if (service != null && eligible.isNotEmpty()) {
         item {
-          SectionTitle("Personel")
+          SectionTitle(tr("Personel"))
           Spacer(modifier = Modifier.height(6.dp))
           androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
               androidx.compose.material3.FilterChip(
                 selected = staffSel == null, onClick = { staffSel = null },
-                label = { Text("Fark etmez") }
+                label = { Text(tr("Fark etmez")) }
               )
             }
             items(eligible, key = { it.id }) { st ->
@@ -432,20 +434,20 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
 
       if (service != null) {
         item {
-          SectionTitle("2. Gün seçin")
+          SectionTitle(tr("2. Gün seçin"))
           Spacer(modifier = Modifier.height(6.dp))
           DayStrip(selectedDay = day, onSelect = { day = it }, days = b.bookingWindowDays.coerceIn(1, 90), business = b)
         }
         item {
-          SectionTitle("3. Saat seçin")
+          SectionTitle(tr("3. Saat seçin"))
           Spacer(modifier = Modifier.height(6.dp))
           SlotGrid(
             slots = slots, selected = time, onSelect = { time = it },
-            emptyText = if (!b.dayFor(day).isOpen) "İşletme bu gün kapalı." else "Bu gün için boş saat kalmadı. Başka bir gün seçin."
+            emptyText = if (!b.dayFor(day).isOpen) tr("İşletme bu gün kapalı.") else tr("Bu gün için boş saat kalmadı. Başka bir gün seçin.")
           )
         }
         item {
-          OutlinedTextField(value = note, onValueChange = { note = it.take(200) }, label = { Text("İşletmeye not (isteğe bağlı)") }, modifier = Modifier.fillMaxWidth())
+          OutlinedTextField(value = note, onValueChange = { note = it.take(200) }, label = { Text(tr("İşletmeye not (isteğe bağlı)")) }, modifier = Modifier.fillMaxWidth())
         }
         item {
           val t = time
@@ -456,12 +458,12 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
             modifier = Modifier.fillMaxWidth().height(52.dp)
           ) {
             Text(
-              if (t == null) "Saat seçin" else "${Formatters.formatShortDate(t)} ${timeOf(t)} • Randevu al",
+              if (t == null) tr("Saat seçin") else tr("{0} {1} • Randevu al", Formatters.formatShortDate(t), timeOf(t)),
               fontWeight = FontWeight.Bold
             )
           }
           Text(
-            if (b.autoApprove) "Randevunuz hemen kesinleşir." else "İsteğiniz işletmeye gider; onaylanınca bildirim alırsınız.",
+            if (b.autoApprove) tr("Randevunuz hemen kesinleşir.") else tr("İsteğiniz işletmeye gider; onaylanınca bildirim alırsınız."),
             style = MaterialTheme.typography.bodySmall, color = Slate500, modifier = Modifier.padding(top = 6.dp)
           )
           Spacer(modifier = Modifier.height(30.dp))
@@ -473,7 +475,7 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
 
 private fun todayHoursText(b: BusinessProfile): String {
   val d = b.dayFor(System.currentTimeMillis())
-  return if (!d.isOpen) "Bugün kapalı" else "Bugün ${WorkingDay.formatMinute(d.openMinute)} – ${WorkingDay.formatMinute(d.closeMinute)}"
+  return if (!d.isOpen) tr("Bugün kapalı") else tr("Bugün {0} – {1}", WorkingDay.formatMinute(d.openMinute), WorkingDay.formatMinute(d.closeMinute))
 }
 
 @Composable
@@ -491,21 +493,21 @@ private fun MyAppointmentsScreen(cloud: CloudViewModel) {
   LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
     item {
       Spacer(modifier = Modifier.height(8.dp))
-      Text("Randevularım", style = MaterialTheme.typography.headlineSmall)
+      Text(tr("Randevularım"), style = MaterialTheme.typography.headlineSmall)
     }
     if (upcoming.isEmpty()) {
       item {
         CardBox {
-          Text("Yaklaşan randevunuz yok.", fontWeight = FontWeight.SemiBold)
-          TextButton(onClick = { cloud.openCustomerTab(CustomerScreen.Discover) }) { Text("Randevu al") }
+          Text(tr("Yaklaşan randevunuz yok."), fontWeight = FontWeight.SemiBold)
+          TextButton(onClick = { cloud.openCustomerTab(CustomerScreen.Discover) }) { Text(tr("Randevu al")) }
         }
       }
     } else {
-      item { SectionTitle("Yaklaşan") }
+      item { SectionTitle(tr("Yaklaşan")) }
       items(upcoming, key = { "u_" + it.id }) { a -> CustomerAppointmentCard(a, onCancel = { toCancel = a }, onRebook = { cloud.openBusiness(a.businessId) }) }
     }
     if (past.isNotEmpty()) {
-      item { SectionTitle("Geçmiş") }
+      item { SectionTitle(tr("Geçmiş")) }
       items(past.take(30), key = { "p_" + it.id }) { a ->
         val canReview = (a.status == AppointmentStatus.COMPLETED || (a.status == AppointmentStatus.CONFIRMED && a.end < now)) && a.customerUid.isNotBlank()
         CustomerAppointmentCard(
@@ -538,10 +540,10 @@ private fun MyAppointmentsScreen(cloud: CloudViewModel) {
   toCancel?.let { a ->
     AlertDialog(
       onDismissRequest = { toCancel = null },
-      title = { Text("Randevu iptal edilsin mi?") },
-      text = { Text("${a.businessName} • ${a.serviceName}\n${Formatters.formatFriendlyDate(a.start)} ${timeOf(a.start)}") },
-      confirmButton = { Button(onClick = { cloud.cancelMyAppointment(a); toCancel = null }) { Text("İptal et") } },
-      dismissButton = { TextButton(onClick = { toCancel = null }) { Text("Vazgeç") } }
+      title = { Text(tr("Randevu iptal edilsin mi?")) },
+      text = { Text(tr("{0} • {1}\n{2} {3}", a.businessName, a.serviceName, Formatters.formatFriendlyDate(a.start), timeOf(a.start))) },
+      confirmButton = { Button(onClick = { cloud.cancelMyAppointment(a); toCancel = null }) { Text(tr("İptal et")) } },
+      dismissButton = { TextButton(onClick = { toCancel = null }) { Text(tr("Vazgeç")) } }
     )
   }
 }
@@ -566,14 +568,14 @@ private fun CustomerAppointmentCard(
         Column(modifier = Modifier.weight(1f)) {
           Text(a.businessName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
           Text(
-            "${a.serviceName} • ${durationText(a.durationMinutes)}" + if (a.staffName.isNotBlank()) " • ${a.staffName}" else "",
+            tr("{0} • {1}", a.serviceName, durationText(a.durationMinutes)) + if (a.staffName.isNotBlank()) tr(" • {0}", a.staffName) else "",
             style = MaterialTheme.typography.bodySmall, color = Slate500
           )
         }
         AppointmentStatusChip(a.status)
       }
       Spacer(modifier = Modifier.height(6.dp))
-      Text("${Formatters.formatFriendlyDate(a.start)} • ${timeOf(a.start)}", style = moneyStyle(15), color = NavyPrimary)
+      Text(tr("{0} • {1}", Formatters.formatFriendlyDate(a.start), timeOf(a.start)), style = moneyStyle(15), color = NavyPrimary)
       Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
         if (onCancel != null && (a.businessLat != null || a.businessAddress.isNotBlank())) {
           val context = LocalContext.current
@@ -584,20 +586,20 @@ private fun CustomerAppointmentCard(
           }) {
             Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Yol tarifi")
+            Text(tr("Yol tarifi"))
           }
         }
-        if (onCancel != null) TextButton(onClick = onCancel) { Text("İptal et", color = RoseError) }
+        if (onCancel != null) TextButton(onClick = onCancel) { Text(tr("İptal et"), color = RoseError) }
         when (reviewState) {
           false -> TextButton(onClick = onReview) {
             Icon(Icons.Default.Star, contentDescription = null, tint = StarGold, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Değerlendir")
+            Text(tr("Değerlendir"))
           }
-          true -> Text("Değerlendirildi ✓", fontSize = 12.sp, color = palette.success, modifier = Modifier.align(Alignment.CenterVertically).padding(horizontal = 8.dp))
+          true -> Text(tr("Değerlendirildi ✓"), fontSize = 12.sp, color = palette.success, modifier = Modifier.align(Alignment.CenterVertically).padding(horizontal = 8.dp))
           null -> Unit
         }
-        TextButton(onClick = onRebook) { Text(if (onCancel != null) "İşletme" else "Tekrar al") }
+        TextButton(onClick = onRebook) { Text(if (onCancel != null) tr("İşletme") else tr("Tekrar al")) }
       }
     }
   }
@@ -614,22 +616,22 @@ private fun CustomerProfileScreen(cloud: CloudViewModel, themeMode: AppThemeMode
   LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
     item {
       Spacer(modifier = Modifier.height(8.dp))
-      Text("Profil", style = MaterialTheme.typography.headlineSmall)
+      Text(tr("Profil"), style = MaterialTheme.typography.headlineSmall)
       Text(user?.email ?: "", style = MaterialTheme.typography.bodySmall, color = Slate500)
     }
     item {
       CardBox {
-        Text("Randevu bilgileriniz", fontWeight = FontWeight.Bold)
-        Text("İşletme sizi bu bilgilerle görür ve gerekirse arar.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+        Text(tr("Randevu bilgileriniz"), fontWeight = FontWeight.Bold)
+        Text(tr("İşletme sizi bu bilgilerle görür ve gerekirse arar."), style = MaterialTheme.typography.bodySmall, color = Slate500)
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Ad soyad") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Ad soyad")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(6.dp))
         OutlinedTextField(
-          value = phone, onValueChange = { phone = it }, label = { Text("Telefon *") }, placeholder = { Text("0532 123 45 67") },
+          value = phone, onValueChange = { phone = it }, label = { Text(tr("Telefon *")) }, placeholder = { Text("0532 123 45 67") },
           singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { cloud.saveCustomerProfile(name, phone) }) { Text("Kaydet") }
+        Button(onClick = { cloud.saveCustomerProfile(name, phone) }) { Text(tr("Kaydet")) }
       }
     }
     item {
@@ -647,10 +649,10 @@ private fun CustomerProfileScreen(cloud: CloudViewModel, themeMode: AppThemeMode
           Icon(Icons.Default.Storefront, contentDescription = null, tint = palette.ink, modifier = Modifier.size(28.dp))
           Spacer(modifier = Modifier.width(12.dp))
           Column(modifier = Modifier.weight(1f)) {
-            Text(if (hasBusiness) "İşletmeme dön" else "İşletmem var", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(if (hasBusiness) tr("İşletmeme dön") else tr("İşletmem var"), fontWeight = FontWeight.Bold, fontSize = 15.sp)
             Text(
-              if (hasBusiness) "İşletme moduna geç: takvim, müşteriler, tahsilat"
-              else "İşletme moduna geçin; ücretsiz vitrin açın, randevu ve tahsilat yönetin. Aldığınız randevular kaybolmaz.",
+              if (hasBusiness) tr("İşletme moduna geç: takvim, müşteriler, tahsilat")
+              else tr("İşletme moduna geçin; ücretsiz vitrin açın, randevu ve tahsilat yönetin. Aldığınız randevular kaybolmaz."),
               style = MaterialTheme.typography.bodySmall, color = Slate500
             )
           }
@@ -660,7 +662,7 @@ private fun CustomerProfileScreen(cloud: CloudViewModel, themeMode: AppThemeMode
     }
     item {
       CardBox {
-        Text("Görünüm", fontWeight = FontWeight.Bold)
+        Text(tr("Görünüm"), fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
           AppThemeMode.entries.forEach { m ->
@@ -671,22 +673,22 @@ private fun CustomerProfileScreen(cloud: CloudViewModel, themeMode: AppThemeMode
     }
     item {
       CardBox {
-        OutlinedButton(onClick = { cloud.signOut() }, modifier = Modifier.fillMaxWidth()) { Text("Çıkış yap") }
-        TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Hesabımı sil", color = RoseError) }
+        OutlinedButton(onClick = { cloud.signOut() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Çıkış yap")) }
+        TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Hesabımı sil"), color = RoseError) }
       }
     }
     item {
-      Text("MüşteriCep • EA Vision Labs", style = MaterialTheme.typography.labelSmall, color = Slate500, modifier = Modifier.fillMaxWidth().padding(8.dp))
+      Text(tr("MüşteriCep • EA Vision Labs"), style = MaterialTheme.typography.labelSmall, color = Slate500, modifier = Modifier.fillMaxWidth().padding(8.dp))
     }
   }
 
   if (confirmDelete) {
     AlertDialog(
       onDismissRequest = { confirmDelete = false },
-      title = { Text("Hesap silinsin mi?") },
-      text = { Text("Giriş bilgileriniz ve profiliniz silinir. Geçmiş randevu kayıtları işletmelerin defterinde kalabilir.") },
-      confirmButton = { Button(onClick = { confirmDelete = false; cloud.deleteAccount() }) { Text("Hesabı sil") } },
-      dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Vazgeç") } }
+      title = { Text(tr("Hesap silinsin mi?")) },
+      text = { Text(tr("Giriş bilgileriniz ve profiliniz silinir. Geçmiş randevu kayıtları işletmelerin defterinde kalabilir.")) },
+      confirmButton = { Button(onClick = { confirmDelete = false; cloud.deleteAccount() }) { Text(tr("Hesabı sil")) } },
+      dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("Vazgeç")) } }
     )
   }
 }
@@ -708,7 +710,7 @@ private fun CardBox(content: @Composable () -> Unit) {
 private fun TopBar(title: String, onBack: () -> Unit, actions: @Composable () -> Unit = {}) {
   TopAppBar(
     title = { Text(title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri") } },
+    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Geri")) } },
     actions = { actions() },
     windowInsets = WindowInsets(0, 0, 0, 0),
     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)

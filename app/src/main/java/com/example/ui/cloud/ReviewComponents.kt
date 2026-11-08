@@ -1,5 +1,7 @@
 package com.example.ui.cloud
 
+import com.example.util.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,11 +54,11 @@ fun ratingText(avg: Double): String = String.format(Locale("tr", "TR"), "%.1f", 
 @Composable
 fun RatingBadge(avg: Double, count: Int, size: Dp = 14.dp) {
   if (count <= 0) return
-  Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics { contentDescription = "Puan ${ratingText(avg)}, $count yorum" }) {
+  Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics { contentDescription = tr("Puan {0}, {1} yorum", ratingText(avg), count) }) {
     Icon(Icons.Filled.Star, contentDescription = null, tint = StarGold, modifier = Modifier.size(size))
     Spacer(modifier = Modifier.width(3.dp))
     Text(ratingText(avg), fontWeight = FontWeight.Bold, fontSize = (size.value - 1).sp)
-    Text(" ($count)", color = LocalAppPalette.current.muted, fontSize = (size.value - 2).sp)
+    Text(tr(" ({0})", count), color = LocalAppPalette.current.muted, fontSize = (size.value - 2).sp)
   }
 }
 
@@ -102,7 +104,7 @@ fun ReviewsDialog(title: String, avg: Double, count: Int, reviews: List<Review>,
       }
     },
     text = {
-      if (reviews.isEmpty()) Text("Henüz yorum yok.")
+      if (reviews.isEmpty()) Text(tr("Henüz yorum yok."))
       else LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
         items(reviews, key = { it.id }) { r ->
           ReviewItem(r)
@@ -110,7 +112,7 @@ fun ReviewsDialog(title: String, avg: Double, count: Int, reviews: List<Review>,
         }
       }
     },
-    confirmButton = { TextButton(onClick = onDismiss) { Text("Kapat") } }
+    confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Kapat")) } }
   )
 }
 
@@ -119,10 +121,10 @@ fun ReviewsDialog(title: String, avg: Double, count: Int, reviews: List<Review>,
 fun WriteReviewDialog(businessName: String, serviceName: String, onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
   var rating by remember { mutableIntStateOf(0) }
   var comment by remember { mutableStateOf("") }
-  val labels = listOf("", "Çok kötü", "Kötü", "İdare eder", "İyi", "Harika")
+  val labels = listOf("", tr("Çok kötü"), tr("Kötü"), tr("İdare eder"), tr("İyi"), tr("Harika"))
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text("$businessName nasıldı?", fontWeight = FontWeight.Bold) },
+    title = { Text(tr("{0} nasıldı?", businessName), fontWeight = FontWeight.Bold) },
     text = {
       Column {
         Text(serviceName, style = MaterialTheme.typography.bodySmall, color = LocalAppPalette.current.muted)
@@ -131,7 +133,7 @@ fun WriteReviewDialog(businessName: String, serviceName: String, onDismiss: () -
           (1..5).forEach { i ->
             Icon(
               if (i <= rating) Icons.Filled.Star else Icons.Outlined.StarOutline,
-              contentDescription = "$i yıldız",
+              contentDescription = tr("{0} yıldız", i),
               tint = if (i <= rating) StarGold else LocalAppPalette.current.inactive,
               modifier = Modifier.size(40.dp).clickable { rating = i }
             )
@@ -142,17 +144,17 @@ fun WriteReviewDialog(businessName: String, serviceName: String, onDismiss: () -
         OutlinedTextField(
           value = comment,
           onValueChange = { if (it.length <= 300) comment = it },
-          label = { Text("Yorumunuz (isteğe bağlı)") },
+          label = { Text(tr("Yorumunuz (isteğe bağlı)")) },
           supportingText = { Text("${comment.length}/300") },
           minLines = 3,
           modifier = Modifier.fillMaxWidth()
         )
-        Text("Yorumunuz adınızın baş harfiyle (ör. Ayşe K.) herkese açık görünür.", fontSize = 11.sp, color = LocalAppPalette.current.muted)
+        Text(tr("Yorumunuz adınızın baş harfiyle (ör. Ayşe K.) herkese açık görünür."), fontSize = 11.sp, color = LocalAppPalette.current.muted)
       }
     },
     confirmButton = {
-      Button(onClick = { onSubmit(rating, comment) }, enabled = rating > 0) { Text("Gönder") }
+      Button(onClick = { onSubmit(rating, comment) }, enabled = rating > 0) { Text(tr("Gönder")) }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) } }
   )
 }

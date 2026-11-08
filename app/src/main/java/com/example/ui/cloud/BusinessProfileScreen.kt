@@ -1,5 +1,7 @@
 package com.example.ui.cloud
 
+import com.example.util.tr
+
 import androidx.compose.foundation.rememberScrollState
 
 import androidx.compose.foundation.verticalScroll
@@ -143,7 +145,7 @@ fun BusinessProfileScreen(
       logoBusy = true
       scope.launch {
         val encoded = BusinessLogo.encode(context, uri)
-        if (encoded != null) logo = encoded else cloud.notify("Görsel okunamadı, başka bir görsel deneyin.")
+        if (encoded != null) logo = encoded else cloud.notify(tr("Görsel okunamadı, başka bir görsel deneyin."))
         logoBusy = false
       }
     }
@@ -156,9 +158,9 @@ fun BusinessProfileScreen(
       val p = BusinessLocation.current(context)
       if (p != null) {
         lat = p.first; lng = p.second
-        locMessage = "Konum alındı. Kaydet'e basmayı unutmayın."
+        locMessage = tr("Konum alındı. Kaydet'e basmayı unutmayın.")
       } else {
-        locMessage = "Konum alınamadı. Telefonun konum (GPS) ayarı açık mı? Açık alanda tekrar deneyin."
+        locMessage = tr("Konum alınamadı. Telefonun konum (GPS) ayarı açık mı? Açık alanda tekrar deneyin.")
       }
       locBusy = false
     }
@@ -166,7 +168,7 @@ fun BusinessProfileScreen(
 
   val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
     if (result.values.any { it }) fetchLocation()
-    else locMessage = "Konum izni verilmedi. Ayarlar > Uygulamalar > MüşteriCep > İzinler'den açabilirsiniz."
+    else locMessage = tr("Konum izni verilmedi. Ayarlar > Uygulamalar > MüşteriCep > İzinler'den açabilirsiniz.")
   }
 
   fun requestLocation() {
@@ -192,9 +194,9 @@ fun BusinessProfileScreen(
     containerColor = MaterialTheme.colorScheme.background,
     topBar = {
       TopAppBar(
-        title = { Text("Randevu ayarları", fontWeight = FontWeight.Bold) },
-        navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri") } },
-        actions = { TextButton(onClick = { save() }) { Text("Kaydet", fontWeight = FontWeight.Bold) } },
+        title = { Text(tr("Randevu ayarları"), fontWeight = FontWeight.Bold) },
+        navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Geri")) } },
+        actions = { TextButton(onClick = { save() }) { Text(tr("Kaydet"), fontWeight = FontWeight.Bold) } },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
       )
@@ -209,7 +211,7 @@ fun BusinessProfileScreen(
     ) {
       // 1. Vitrin bilgileri
       item {
-        FormCard("İşletme bilgileri") {
+        FormCard(tr("İşletme bilgileri")) {
           Row(verticalAlignment = Alignment.CenterVertically) {
             Box(contentAlignment = Alignment.Center) {
               BusinessLogoImage(logo = logo, size = 72.dp, corner = 18.dp)
@@ -217,8 +219,8 @@ fun BusinessProfileScreen(
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-              Text("Logo", fontWeight = FontWeight.SemiBold)
-              Text("Müşteriler sizi listede ve randevu ekranında logonuzla görür.", fontSize = 12.sp, color = Slate500)
+              Text(tr("Logo"), fontWeight = FontWeight.SemiBold)
+              Text(tr("Müşteriler sizi listede ve randevu ekranında logonuzla görür."), fontSize = 12.sp, color = Slate500)
               Row {
                 TextButton(
                   onClick = { pickLogo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
@@ -227,44 +229,44 @@ fun BusinessProfileScreen(
                 ) {
                   Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                   Spacer(modifier = Modifier.width(4.dp))
-                  Text(if (logo.isBlank()) "Logo seç" else "Değiştir")
+                  Text(if (logo.isBlank()) tr("Logo seç") else tr("Değiştir"))
                 }
                 if (logo.isNotBlank()) {
                   Spacer(modifier = Modifier.width(12.dp))
-                  TextButton(onClick = { logo = "" }) { Text("Kaldır", color = RoseError) }
+                  TextButton(onClick = { logo = "" }) { Text(tr("Kaldır"), color = RoseError) }
                 }
               }
             }
           }
           Spacer(modifier = Modifier.height(10.dp))
-          OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("İşletme adı *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+          OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("İşletme adı *")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
           Spacer(modifier = Modifier.height(8.dp))
-          Text("Kategori", style = MaterialTheme.typography.labelMedium, color = Slate500)
+          Text(tr("Kategori"), style = MaterialTheme.typography.labelMedium, color = Slate500)
           LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(BusinessCategories.all) { c -> FilterChip(selected = category == c, onClick = { category = c }, label = { Text(c, fontSize = 12.sp) }) }
           }
           Spacer(modifier = Modifier.height(8.dp))
           Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Şehir") }, singleLine = true, modifier = Modifier.weight(1f))
-            OutlinedTextField(value = district, onValueChange = { district = it }, label = { Text("İlçe") }, singleLine = true, modifier = Modifier.weight(1f))
+            OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text(tr("Şehir")) }, singleLine = true, modifier = Modifier.weight(1f))
+            OutlinedTextField(value = district, onValueChange = { district = it }, label = { Text(tr("İlçe")) }, singleLine = true, modifier = Modifier.weight(1f))
           }
           Spacer(modifier = Modifier.height(8.dp))
-          OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Adres") }, maxLines = 2, modifier = Modifier.fillMaxWidth())
+          OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text(tr("Adres")) }, maxLines = 2, modifier = Modifier.fillMaxWidth())
           Spacer(modifier = Modifier.height(8.dp))
           OutlinedTextField(
-            value = phone, onValueChange = { phone = it }, label = { Text("İşletme telefonu") }, singleLine = true,
+            value = phone, onValueChange = { phone = it }, label = { Text(tr("İşletme telefonu")) }, singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth()
           )
           Spacer(modifier = Modifier.height(8.dp))
-          OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Kısa tanıtım") }, maxLines = 3, modifier = Modifier.fillMaxWidth())
+          OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text(tr("Kısa tanıtım")) }, maxLines = 3, modifier = Modifier.fillMaxWidth())
         }
       }
 
       // 1b. Harita konumu
       item {
-        FormCard("Konum") {
+        FormCard(tr("Konum")) {
           Text(
-            "İşletmenizdeyken \"Şu anki konumu kullan\"a basın. Randevu alan müşteriler tek dokunuşla yol tarifi alır.",
+            tr("İşletmenizdeyken \"Şu anki konumu kullan\"a basın. Randevu alan müşteriler tek dokunuşla yol tarifi alır."),
             fontSize = 12.sp, color = Slate500
           )
           Spacer(modifier = Modifier.height(10.dp))
@@ -277,13 +279,13 @@ fun BusinessProfileScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-              if (la != null && lo != null) "Konum kayıtlı (${BusinessLocation.format(la, lo)})" else "Henüz konum eklenmedi",
+              if (la != null && lo != null) tr("Konum kayıtlı ({0})", BusinessLocation.format(la, lo)) else tr("Henüz konum eklenmedi"),
               fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f)
             )
           }
           locMessage?.let {
             Spacer(modifier = Modifier.height(6.dp))
-            Text(it, fontSize = 12.sp, color = if (la != null && it.startsWith("Konum alındı")) palette.success else palette.warning)
+            Text(it, fontSize = 12.sp, color = if (la != null && it.startsWith(tr("Konum alındı"))) palette.success else palette.warning)
           }
           Spacer(modifier = Modifier.height(10.dp))
           Button(
@@ -293,28 +295,28 @@ fun BusinessProfileScreen(
             if (locBusy) {
               CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = palette.onInk)
               Spacer(modifier = Modifier.width(8.dp))
-              Text("Konum alınıyor…")
+              Text(tr("Konum alınıyor…"))
             } else {
               Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
               Spacer(modifier = Modifier.width(8.dp))
-              Text(if (la == null) "Şu anki konumu kullan" else "Konumu güncelle")
+              Text(if (la == null) tr("Şu anki konumu kullan") else tr("Konumu güncelle"))
             }
           }
           if (la != null && lo != null) {
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
               OutlinedButton(
-                onClick = { runCatching { context.startActivity(BusinessLocation.showIntent(la, lo, name.ifBlank { "İşletme" })) } },
+                onClick = { runCatching { context.startActivity(BusinessLocation.showIntent(la, lo, name.ifBlank { tr("İşletme") })) } },
                 modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
               ) {
                 Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Haritada gör", maxLines = 1)
+                Text(tr("Haritada gör"), maxLines = 1)
               }
               OutlinedButton(
                 onClick = { lat = null; lng = null; locMessage = null },
                 modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
-              ) { Text("Kaldır", color = RoseError, maxLines = 1) }
+              ) { Text(tr("Kaldır"), color = RoseError, maxLines = 1) }
             }
           }
         }
@@ -322,22 +324,22 @@ fun BusinessProfileScreen(
 
       // 2. Randevu kuralları
       item {
-        FormCard("Randevu kuralları") {
-          SwitchRow("Herkese açık listede görün", "Kapalıysa müşteriler sizi sadece kodla bulur.", listed) { listed = it }
+        FormCard(tr("Randevu kuralları")) {
+          SwitchRow(tr("Herkese açık listede görün"), tr("Kapalıysa müşteriler sizi sadece kodla bulur."), listed) { listed = it }
           HorizontalDivider(color = palette.cardBorder, modifier = Modifier.padding(vertical = 6.dp))
-          SwitchRow("Randevuları otomatik onayla", "Kapalıysa her isteği siz onaylarsınız.", autoApprove) { autoApprove = it }
+          SwitchRow(tr("Randevuları otomatik onayla"), tr("Kapalıysa her isteği siz onaylarsınız."), autoApprove) { autoApprove = it }
           HorizontalDivider(color = palette.cardBorder, modifier = Modifier.padding(vertical = 6.dp))
-          Text("En az ne kadar önceden randevu alınabilir?", style = MaterialTheme.typography.labelMedium)
+          Text(tr("En az ne kadar önceden randevu alınabilir?"), style = MaterialTheme.typography.labelMedium)
           LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(listOf(0 to "Hemen", 30 to "30 dk", 60 to "1 saat", 120 to "2 saat", 1440 to "1 gün")) { (m, l) ->
+            items(listOf(0 to tr("Hemen"), 30 to tr("30 dk"), 60 to tr("1 saat"), 120 to tr("2 saat"), 1440 to tr("1 gün"))) { (m, l) ->
               FilterChip(selected = minNotice == m, onClick = { minNotice = m }, label = { Text(l, fontSize = 12.sp) })
             }
           }
           Spacer(modifier = Modifier.height(6.dp))
-          Text("En fazla kaç gün sonrasına?", style = MaterialTheme.typography.labelMedium)
+          Text(tr("En fazla kaç gün sonrasına?"), style = MaterialTheme.typography.labelMedium)
           LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(listOf(7, 14, 30, 60, 90)) { d ->
-              FilterChip(selected = window == d, onClick = { window = d }, label = { Text("$d gün", fontSize = 12.sp) })
+              FilterChip(selected = window == d, onClick = { window = d }, label = { Text(tr("{0} gün", d), fontSize = 12.sp) })
             }
           }
         }
@@ -345,7 +347,7 @@ fun BusinessProfileScreen(
 
       // 3. Çalışma saatleri
       item {
-        FormCard("Çalışma saatleri") {
+        FormCard(tr("Çalışma saatleri")) {
           hours.forEachIndexed { index, d ->
             WorkingDayRow(d) { updated -> hours[index] = updated }
             if (index < hours.size - 1) HorizontalDivider(color = palette.cardBorder)
@@ -355,12 +357,12 @@ fun BusinessProfileScreen(
 
       // 4. Hizmetler
       item {
-        FormCard("Hizmetler") {
+        FormCard(tr("Hizmetler")) {
           if (existing == null) {
-            Text("Hizmet eklemek için önce üstten Kaydet'e basın.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+            Text(tr("Hizmet eklemek için önce üstten Kaydet'e basın."), style = MaterialTheme.typography.bodySmall, color = Slate500)
           } else {
             if (services.isEmpty()) {
-              Text("Henüz hizmet yok. Örn: Saç kesimi • 30 dk • 300 ₺", style = MaterialTheme.typography.bodySmall, color = Slate500)
+              Text(tr("Henüz hizmet yok. Örn: Saç kesimi • 30 dk • 300 ₺"), style = MaterialTheme.typography.bodySmall, color = Slate500)
             }
             services.forEach { s ->
               Row(
@@ -371,17 +373,17 @@ fun BusinessProfileScreen(
                 verticalAlignment = Alignment.CenterVertically
               ) {
                 Column(modifier = Modifier.weight(1f)) {
-                  Text(s.name + if (!s.isActive) " (kapalı)" else "", fontWeight = FontWeight.SemiBold)
-                  Text("${durationText(s.durationMinutes)} • ${Formatters.formatCurrency(s.price)}", style = MaterialTheme.typography.bodySmall, color = Slate500)
+                  Text(s.name + if (!s.isActive) tr(" (kapalı)") else "", fontWeight = FontWeight.SemiBold)
+                  Text(tr("{0} • {1}", durationText(s.durationMinutes), Formatters.formatCurrency(s.price)), style = MaterialTheme.typography.bodySmall, color = Slate500)
                 }
-                Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500)
+                Icon(Icons.Default.Edit, contentDescription = tr("Düzenle"), tint = Slate500)
               }
             }
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedButton(onClick = { editService = ServiceItem(name = "", durationMinutes = 30, price = 0.0) }) {
               Icon(Icons.Default.Add, contentDescription = null)
               Spacer(modifier = Modifier.width(6.dp))
-              Text("Hizmet ekle")
+              Text(tr("Hizmet ekle"))
             }
           }
         }
@@ -389,20 +391,20 @@ fun BusinessProfileScreen(
 
       // 5. Personel (İşletme paketi)
       item {
-        FormCard("Personel") {
+        FormCard(tr("Personel")) {
           val allowed = tierNow.allows(com.example.model.Feature.STAFF)
           if (!allowed) {
             Text(
-              "Birden fazla çalışanınız varsa her birine ayrı takvim açın; müşteriler personel seçerek randevu alsın. Bu özellik İşletme paketinde.",
+              tr("Birden fazla çalışanınız varsa her birine ayrı takvim açın; müşteriler personel seçerek randevu alsın. Bu özellik İşletme paketinde."),
               style = MaterialTheme.typography.bodySmall, color = Slate500
             )
             Spacer(modifier = Modifier.height(6.dp))
-            OutlinedButton(onClick = onOpenPlans) { Text("İşletme paketini gör") }
+            OutlinedButton(onClick = onOpenPlans) { Text(tr("İşletme paketini gör")) }
           } else if (existing == null) {
-            Text("Personel eklemek için önce üstten Kaydet'e basın.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+            Text(tr("Personel eklemek için önce üstten Kaydet'e basın."), style = MaterialTheme.typography.bodySmall, color = Slate500)
           } else {
             if (staff.isEmpty()) {
-              Text("Henüz personel yok. Personel eklemezseniz tek takvim kullanılır.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+              Text(tr("Henüz personel yok. Personel eklemezseniz tek takvim kullanılır."), style = MaterialTheme.typography.bodySmall, color = Slate500)
             }
             staff.forEach { st ->
               Row(
@@ -412,22 +414,22 @@ fun BusinessProfileScreen(
                 com.example.ui.components.InitialsAvatar(st.name, size = 34.dp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                  Text(st.name + if (!st.isActive) " (izinli)" else "", fontWeight = FontWeight.SemiBold)
+                  Text(st.name + if (!st.isActive) tr(" (izinli)") else "", fontWeight = FontWeight.SemiBold)
                   Text(
-                    if (st.serviceIds.isEmpty()) "Tüm hizmetler"
+                    if (st.serviceIds.isEmpty()) tr("Tüm hizmetler")
                     else services.filter { it.id in st.serviceIds }.joinToString(", ") { it.name },
                     style = MaterialTheme.typography.bodySmall, color = Slate500, maxLines = 1
                   )
                 }
-                Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500)
+                Icon(Icons.Default.Edit, contentDescription = tr("Düzenle"), tint = Slate500)
               }
             }
             Spacer(modifier = Modifier.height(6.dp))
-            Text("${staff.size} / ${tierNow.maxStaff} personel", style = MaterialTheme.typography.bodySmall, color = Slate500)
+            Text(tr("{0} / {1} personel", staff.size, tierNow.maxStaff), style = MaterialTheme.typography.bodySmall, color = Slate500)
             OutlinedButton(onClick = { editStaff = com.example.cloud.Staff(name = "") }, enabled = staff.size < tierNow.maxStaff) {
               Icon(Icons.Default.Add, contentDescription = null)
               Spacer(modifier = Modifier.width(6.dp))
-              Text("Personel ekle")
+              Text(tr("Personel ekle"))
             }
           }
         }
@@ -435,7 +437,7 @@ fun BusinessProfileScreen(
 
       item {
         Button(onClick = { save() }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp)) {
-          Text("Kaydet", fontWeight = FontWeight.Bold)
+          Text(tr("Kaydet"), fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(40.dp))
       }
@@ -503,20 +505,20 @@ private fun WorkingDayRow(d: WorkingDay, onChange: (WorkingDay) -> Unit) {
         Text("–")
         TextButton(onClick = { pick(d.closeMinute) { m -> onChange(d.copy(closeMinute = m)) } }) { Text(WorkingDay.formatMinute(d.closeMinute)) }
       } else {
-        Text("Kapalı", color = Slate500, modifier = Modifier.padding(end = 8.dp))
+        Text(tr("Kapalı"), color = Slate500, modifier = Modifier.padding(end = 8.dp))
       }
       Switch(checked = d.isOpen, onCheckedChange = { onChange(d.copy(isOpen = it)) })
     }
     if (d.isOpen) {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Öğle arası:", fontSize = 12.sp, color = Slate500)
+        Text(tr("Öğle arası:"), fontSize = 12.sp, color = Slate500)
         if (d.breakStart != null && d.breakEnd != null) {
           TextButton(onClick = { pick(d.breakStart) { m -> onChange(d.copy(breakStart = m)) } }) { Text(WorkingDay.formatMinute(d.breakStart), fontSize = 12.sp) }
           Text("–", fontSize = 12.sp)
           TextButton(onClick = { pick(d.breakEnd) { m -> onChange(d.copy(breakEnd = m)) } }) { Text(WorkingDay.formatMinute(d.breakEnd), fontSize = 12.sp) }
-          TextButton(onClick = { onChange(d.copy(breakStart = null, breakEnd = null)) }) { Text("Kaldır", fontSize = 12.sp, color = RoseError) }
+          TextButton(onClick = { onChange(d.copy(breakStart = null, breakEnd = null)) }) { Text(tr("Kaldır"), fontSize = 12.sp, color = RoseError) }
         } else {
-          TextButton(onClick = { onChange(d.copy(breakStart = 12 * 60 + 30, breakEnd = 13 * 60 + 30)) }) { Text("Ekle", fontSize = 12.sp) }
+          TextButton(onClick = { onChange(d.copy(breakStart = 12 * 60 + 30, breakEnd = 13 * 60 + 30)) }) { Text(tr("Ekle"), fontSize = 12.sp) }
         }
       }
     }
@@ -531,12 +533,12 @@ private fun ServiceDialog(initial: ServiceItem, onDismiss: () -> Unit, onSave: (
   var active by remember { mutableStateOf(initial.isActive) }
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text(if (initial.id.isBlank()) "Yeni hizmet" else "Hizmeti düzenle", fontWeight = FontWeight.Bold) },
+    title = { Text(if (initial.id.isBlank()) tr("Yeni hizmet") else tr("Hizmeti düzenle"), fontWeight = FontWeight.Bold) },
     text = {
       Column {
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Hizmet adı") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Hizmet adı")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
-        Text("Süre", style = MaterialTheme.typography.labelMedium)
+        Text(tr("Süre"), style = MaterialTheme.typography.labelMedium)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
           items(listOf(15, 30, 45, 60, 90, 120, 180)) { m ->
             FilterChip(selected = duration == m, onClick = { duration = m }, label = { Text(durationText(m), fontSize = 12.sp) })
@@ -544,17 +546,17 @@ private fun ServiceDialog(initial: ServiceItem, onDismiss: () -> Unit, onSave: (
         }
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
-          value = price, onValueChange = { price = it }, label = { Text("Fiyat (₺)") }, singleLine = true,
+          value = price, onValueChange = { price = it }, label = { Text(tr("Fiyat (₺)")) }, singleLine = true,
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth()
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
-          Text("Randevuya açık", modifier = Modifier.weight(1f))
+          Text(tr("Randevuya açık"), modifier = Modifier.weight(1f))
           Switch(checked = active, onCheckedChange = { active = it })
         }
         if (onDelete != null) {
           TextButton(onClick = onDelete) {
             Icon(Icons.Default.Delete, contentDescription = null, tint = RoseError)
-            Text("Hizmeti sil", color = RoseError)
+            Text(tr("Hizmeti sil"), color = RoseError)
           }
         }
       }
@@ -562,9 +564,9 @@ private fun ServiceDialog(initial: ServiceItem, onDismiss: () -> Unit, onSave: (
     confirmButton = {
       Button(onClick = {
         onSave(initial.copy(name = name, durationMinutes = duration, price = Money.parse(price) ?: 0.0, isActive = active))
-      }) { Text("Kaydet") }
+      }) { Text(tr("Kaydet")) }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) } }
   )
 }
 
@@ -582,21 +584,21 @@ private fun StaffDialog(
   var picked by remember { mutableStateOf(initial.serviceIds.toSet()) }
   androidx.compose.material3.AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text(if (initial.id.isBlank()) "Personel ekle" else "Personeli düzenle", fontWeight = FontWeight.Bold) },
+    title = { Text(if (initial.id.isBlank()) tr("Personel ekle") else tr("Personeli düzenle"), fontWeight = FontWeight.Bold) },
     text = {
       Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        OutlinedTextField(value = name, onValueChange = { name = it.take(40) }, label = { Text("Ad (müşteriler görür)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = name, onValueChange = { name = it.take(40) }, label = { Text(tr("Ad (müşteriler görür)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-          Text("Randevu alıyor", modifier = Modifier.weight(1f))
+          Text(tr("Randevu alıyor"), modifier = Modifier.weight(1f))
           androidx.compose.material3.Switch(checked = active, onCheckedChange = { active = it })
         }
-        Text("Kapalıysa (izin, tatil) müşteriler bu personeli göremez.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+        Text(tr("Kapalıysa (izin, tatil) müşteriler bu personeli göremez."), style = MaterialTheme.typography.bodySmall, color = Slate500)
         Spacer(modifier = Modifier.height(10.dp))
-        Text("Verdiği hizmetler", fontWeight = FontWeight.SemiBold)
+        Text(tr("Verdiği hizmetler"), fontWeight = FontWeight.SemiBold)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { all = !all }) {
           androidx.compose.material3.Checkbox(checked = all, onCheckedChange = { all = it })
-          Text("Tüm hizmetler")
+          Text(tr("Tüm hizmetler"))
         }
         if (!all) services.forEach { sv ->
           Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { picked = if (sv.id in picked) picked - sv.id else picked + sv.id }) {
@@ -606,7 +608,7 @@ private fun StaffDialog(
         }
         if (onDelete != null) {
           Spacer(modifier = Modifier.height(8.dp))
-          TextButton(onClick = onDelete) { Text("Personeli sil", color = RoseError) }
+          TextButton(onClick = onDelete) { Text(tr("Personeli sil"), color = RoseError) }
         }
       }
     },
@@ -614,8 +616,8 @@ private fun StaffDialog(
       Button(
         onClick = { onSave(initial.copy(name = name.trim(), isActive = active, serviceIds = if (all) emptyList() else picked.toList())) },
         enabled = name.isNotBlank() && (all || picked.isNotEmpty())
-      ) { Text("Kaydet") }
+      ) { Text(tr("Kaydet")) }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) } }
   )
 }

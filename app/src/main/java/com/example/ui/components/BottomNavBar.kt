@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.util.tr
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -86,10 +88,10 @@ fun MusteriCepBottomBar(
   val palette = LocalAppPalette.current
   val tabs = remember {
     listOf(
-      NavTab("Ana Sayfa", Icons.Filled.Dashboard, Icons.Outlined.Dashboard, Screen.Dashboard, "nav_dashboard"),
-      NavTab("Randevu", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth, Screen.Appointments, "nav_appointments"),
-      NavTab("Müşteriler", Icons.Filled.People, Icons.Outlined.People, Screen.Customers, "nav_customers"),
-      NavTab("Kasa", Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet, Screen.Collections, "nav_collections")
+      NavTab(tr("Ana Sayfa"), Icons.Filled.Dashboard, Icons.Outlined.Dashboard, Screen.Dashboard, "nav_dashboard"),
+      NavTab(tr("Randevu"), Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth, Screen.Appointments, "nav_appointments"),
+      NavTab(tr("Müşteriler"), Icons.Filled.People, Icons.Outlined.People, Screen.Customers, "nav_customers"),
+      NavTab(tr("Kasa"), Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet, Screen.Collections, "nav_collections")
     )
   }
   val gradient = Brush.horizontalGradient(listOf(palette.ink, palette.accent))
@@ -144,7 +146,7 @@ fun MusteriCepBottomBar(
         .background(Brush.linearGradient(listOf(palette.ink, palette.accent)))
         .clickable(role = Role.Button, onClick = onQuickActionClick)
         .testTag("fab_quick_action")
-        .semantics { contentDescription = "Hızlı işlem" },
+        .semantics { contentDescription = tr("Hızlı işlem") },
       contentAlignment = Alignment.Center
     ) {
       Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
@@ -181,7 +183,7 @@ private fun RowScope.NavPill(
       .testTag(tab.tag)
       .semantics {
         this.selected = selected
-        contentDescription = tab.label + if (badge > 0) ", $badge bekleyen" else ""
+        contentDescription = tab.label + if (badge > 0) tr(", {0} bekleyen", badge) else ""
       },
     contentAlignment = Alignment.Center
   ) {

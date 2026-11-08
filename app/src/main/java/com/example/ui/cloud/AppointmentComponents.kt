@@ -1,5 +1,7 @@
 package com.example.ui.cloud
 
+import com.example.util.tr
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -78,14 +80,14 @@ fun DayStrip(
         ) {
           val content = if (selected) palette.onInk else if (open) MaterialTheme.colorScheme.onSurface else Slate500.copy(alpha = 0.5f)
           Text(
-            if (day == today) "Bugün" else WorkingDay.SHORT_DAY_NAMES[dow - 1],
+            if (day == today) tr("Bugün") else WorkingDay.SHORT_DAY_NAMES[dow - 1],
             fontSize = 11.sp,
             color = content
           )
           Text(cal.get(Calendar.DAY_OF_MONTH).toString(), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = content)
           val count = badgeCounts[day] ?: 0
           Text(
-            if (count > 0) "$count" else if (!open) "kapalı" else " ",
+            if (count > 0) "$count" else if (!open) tr("kapalı") else " ",
             fontSize = 10.sp,
             color = if (selected) palette.onInk else if (count > 0) AmberWarning else Slate500
           )
@@ -159,9 +161,9 @@ fun timeOf(t: Long): String {
 }
 
 fun durationText(minutes: Int): String = when {
-  minutes < 60 -> "$minutes dk"
-  minutes % 60 == 0 -> "${minutes / 60} saat"
-  else -> "${minutes / 60} sa ${minutes % 60} dk"
+  minutes < 60 -> tr("{0} dk", minutes)
+  minutes % 60 == 0 -> tr("{0} saat", minutes / 60)
+  else -> tr("{0} sa {1} dk", minutes / 60, minutes % 60)
 }
 
 @Composable

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.tr
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,23 +66,23 @@ fun WhatsAppTemplatesScreen(
     contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
     topBar = {
       TopAppBar(
-        title = { Text("Mesaj şablonları", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(tr("Mesaj şablonları"), style = MaterialTheme.typography.titleMedium) },
         navigationIcon = {
           IconButton(onClick = { viewModel.navigateBack() }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Geri"))
           }
         },
         actions = {
           TextButton(onClick = {
             viewModel.openDialog(
               com.example.viewmodel.DialogState.ConfirmAction(
-                title = "Varsayılana döndür",
-                message = "Tüm şablonlar ilk hâline dönecek; yaptığınız değişiklikler silinecek.",
-                confirmLabel = "Döndür",
+                title = tr("Varsayılana döndür"),
+                message = tr("Tüm şablonlar ilk hâline dönecek; yaptığınız değişiklikler silinecek."),
+                confirmLabel = tr("Döndür"),
                 onConfirm = { viewModel.resetTemplates() }
               )
             )
-          }) { Text("Sıfırla") }
+          }) { Text(tr("Sıfırla")) }
         },
         windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -107,9 +109,9 @@ fun WhatsAppTemplatesScreen(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-              Text("Akıllı alanlar", style = MaterialTheme.typography.titleSmall)
+              Text(tr("Akıllı alanlar"), style = MaterialTheme.typography.titleSmall)
               Text(
-                "{musteri_adi}, {kalan_bakiye}, {vade_tarihi} gibi alanlar gönderirken müşterinin güncel bilgileriyle doldurulur. Mesaj otomatik gitmez; WhatsApp'ta siz gönderirsiniz.",
+                tr("{musteri_adi}, {kalan_bakiye}, {vade_tarihi} gibi alanlar gönderirken müşterinin güncel bilgileriyle doldurulur. Mesaj otomatik gitmez; WhatsApp'ta siz gönderirsiniz."),
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.muted
               )
@@ -136,7 +138,7 @@ fun WhatsAppTemplatesScreen(
             androidx.compose.material3.TextButton(onClick = { if (viewModel.requireFeature(com.example.model.Feature.EDIT_TEMPLATES)) viewModel.openDialog(DialogState.EditTemplate(template)) }) {
               Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = palette.ink)
               Spacer(modifier = Modifier.width(4.dp))
-              Text("Düzenle", color = palette.ink, maxLines = 1, softWrap = false)
+              Text(tr("Düzenle"), color = palette.ink, maxLines = 1, softWrap = false)
             }
           }
           Text(

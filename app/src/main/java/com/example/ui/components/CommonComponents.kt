@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.util.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -143,10 +145,10 @@ fun StatusBadge(status: DebtStatus) {
 @Composable
 fun BalanceStatusBadge(balance: Double, isArchived: Boolean = false) {
   val (text, bgColor, textColor) = when {
-    isArchived -> Triple("Arşivlendi", Slate500.copy(alpha = 0.15f), Slate500)
-    balance > 0 -> Triple("Borçlu", RoseError.copy(alpha = 0.12f), RoseError)
-    balance < 0 -> Triple("Avansı var", NavyPrimary.copy(alpha = 0.12f), NavyPrimary)
-    else -> Triple("Borcu yok", EmeraldPrimary.copy(alpha = 0.12f), EmeraldPrimary)
+    isArchived -> Triple(tr("Arşivlendi"), Slate500.copy(alpha = 0.15f), Slate500)
+    balance > 0 -> Triple(tr("Borçlu"), RoseError.copy(alpha = 0.12f), RoseError)
+    balance < 0 -> Triple(tr("Avansı var"), NavyPrimary.copy(alpha = 0.12f), NavyPrimary)
+    else -> Triple(tr("Borcu yok"), EmeraldPrimary.copy(alpha = 0.12f), EmeraldPrimary)
   }
 
   Surface(
@@ -236,7 +238,7 @@ fun PhoneDuplicateWarningCard(message: String) {
     ) {
       Icon(
         imageVector = Icons.Default.Warning,
-        contentDescription = "Uyarı",
+        contentDescription = tr("Uyarı"),
         tint = AmberWarning,
         modifier = Modifier.size(24.dp)
       )
@@ -266,12 +268,12 @@ fun ConfirmDeleteDialog(
         onClick = onConfirm,
         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
       ) {
-        Text("Evet, Sil", fontWeight = FontWeight.Bold)
+        Text(tr("Evet, Sil"), fontWeight = FontWeight.Bold)
       }
     },
     dismissButton = {
       TextButton(onClick = onDismiss) {
-        Text("Vazgeç")
+        Text(tr("Vazgeç"))
       }
     }
   )
@@ -302,7 +304,7 @@ fun ConfirmActionDialog(
       }
     },
     dismissButton = {
-      TextButton(onClick = onDismiss) { Text("Vazgeç") }
+      TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) }
     }
   )
 }
@@ -312,7 +314,7 @@ fun ConfirmActionDialog(
 fun DemoBadge() {
   Surface(shape = RoundedCornerShape(6.dp), color = AmberWarning.copy(alpha = 0.15f)) {
     Text(
-      text = "ÖRNEK",
+      text = tr("ÖRNEK"),
       color = AmberWarning,
       fontSize = 10.sp,
       fontWeight = FontWeight.Bold,

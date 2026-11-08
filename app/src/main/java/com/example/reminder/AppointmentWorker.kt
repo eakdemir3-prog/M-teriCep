@@ -1,5 +1,7 @@
 package com.example.reminder
 
+import com.example.util.tr
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -54,9 +56,9 @@ class AppointmentWorker(context: Context, params: WorkerParameters) : CoroutineW
           val fresh = repo.businessPendingOnce(user.uid).filter { it.createdAt > lastCheck }
           if (fresh.isNotEmpty()) {
             val lines = fresh.sortedBy { it.start }.map {
-              "${it.customerName} • ${it.serviceName} • ${Formatters.formatDateTime(it.start)}"
+              tr("{0} • {1} • {2}", it.customerName, it.serviceName, Formatters.formatDateTime(it.start))
             }
-            notify(ctx, 5201, "${fresh.size} yeni randevu isteği", lines)
+            notify(ctx, 5201, tr("{0} yeni randevu isteği", fresh.size), lines)
           }
         }
         UserRole.CUSTOMER -> {
@@ -67,11 +69,11 @@ class AppointmentWorker(context: Context, params: WorkerParameters) : CoroutineW
           }
           changed.forEach {
             val title = when (it.status) {
-              AppointmentStatus.CONFIRMED -> "Randevunuz onaylandı"
-              AppointmentStatus.REJECTED -> "Randevu isteğiniz reddedildi"
-              else -> "Randevunuz iptal edildi"
+              AppointmentStatus.CONFIRMED -> tr("Randevunuz onaylandı")
+              AppointmentStatus.REJECTED -> tr("Randevu isteğiniz reddedildi")
+              else -> tr("Randevunuz iptal edildi")
             }
-            notify(ctx, 5300 + (it.id.hashCode() and 0xFF), title, listOf("${it.businessName} • ${it.serviceName} • ${Formatters.formatDateTime(it.start)}"))
+            notify(ctx, 5300 + (it.id.hashCode() and 0xFF), title, listOf(tr("{0} • {1} • {2}", it.businessName, it.serviceName, Formatters.formatDateTime(it.start))))
             if (it.status == AppointmentStatus.CONFIRMED) scheduleReminder(ctx, it.start, it.businessName, it.serviceName)
           }
         }
@@ -116,7 +118,7 @@ class AppointmentWorker(context: Context, params: WorkerParameters) : CoroutineW
       if (Build.VERSION.SDK_INT >= 26) {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (nm.getNotificationChannel(CHANNEL_ID) == null) {
-          nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "Randevular", NotificationManager.IMPORTANCE_HIGH))
+          nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, tr("Randevular"), NotificationManager.IMPORTANCE_HIGH))
         }
       }
       val pending = PendingIntent.getActivity(
@@ -145,8 +147,8 @@ class AppointmentReminderWorker(context: Context, params: WorkerParameters) : Co
     if (start < System.currentTimeMillis()) return Result.success()
     AppointmentWorker.notify(
       applicationContext, 5400 + (start / 60_000L % 100).toInt(),
-      "Randevu hatırlatması",
-      listOf("${inputData.getString("business") ?: ""} • ${inputData.getString("service") ?: ""} • ${Formatters.formatDateTime(start)}")
+      tr("Randevu hatırlatması"),
+      listOf(tr("{0} • {1} • {2}", inputData.getString("business") ?: "", inputData.getString("service") ?: "", Formatters.formatDateTime(start)))
     )
     return Result.success()
   }

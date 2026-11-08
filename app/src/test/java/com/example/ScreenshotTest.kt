@@ -225,23 +225,31 @@ abstract class ScreenshotBase {
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w360dp-h760dp-xhdpi")
+@Config(sdk = [34], qualifiers = "tr-w360dp-h760dp-xhdpi")
 class ScreenshotSmallTest : ScreenshotBase() {
   override val tag = "k360"
 }
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w411dp-h891dp-xhdpi")
+@Config(sdk = [34], qualifiers = "tr-w411dp-h891dp-xhdpi")
 class ScreenshotNormalTest : ScreenshotBase() {
   override val tag = "n411"
 }
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "tr")
 class ScreenshotDialogTest : ScreenshotBase() {
   override val tag = "d"
   override val dialogs = true
   override fun screens() {}
+}
+
+/** İngilizce arayüz kontrolü (cihaz dili İngilizce). */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "en-w411dp-h891dp-xhdpi")
+class ScreenshotEnglishTest : ScreenshotBase() {
+  override val tag = "en"
 }

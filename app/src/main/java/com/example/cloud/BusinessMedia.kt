@@ -1,5 +1,7 @@
 package com.example.cloud
 
+import com.example.util.tr
+
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -88,7 +90,7 @@ fun BusinessLogoImage(logo: String, size: Dp = 44.dp, corner: Dp = 12.dp) {
   val shape = RoundedCornerShape(corner)
   if (bmp != null) {
     Image(
-      bitmap = bmp, contentDescription = "İşletme logosu", contentScale = ContentScale.Crop,
+      bitmap = bmp, contentDescription = tr("İşletme logosu"), contentScale = ContentScale.Crop,
       modifier = Modifier.size(size).clip(shape)
     )
   } else {

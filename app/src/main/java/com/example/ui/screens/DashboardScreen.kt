@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.tr
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -117,14 +119,14 @@ fun DashboardScreen(
       val c = byId[s.debt.customerId] ?: return@forEach
       list += RecentTx(
         "d${s.debt.id}", c.customer.id, c.customer.name, false,
-        s.debt.category.ifBlank { "Borç" }, s.debt.date, maxOf(s.debt.date, s.debt.createdAt), s.debt.amount, c.remainingBalance
+        s.debt.category.ifBlank { tr("Borç") }, s.debt.date, maxOf(s.debt.date, s.debt.createdAt), s.debt.amount, c.remainingBalance
       )
     }
     collections.forEach { col ->
       val c = byId[col.customerId] ?: return@forEach
       list += RecentTx(
         "c${col.id}", c.customer.id, c.customer.name, true,
-        "Tahsilat • ${col.paymentMethod.label}", col.date, maxOf(col.date, col.createdAt), col.amount, c.remainingBalance
+        tr("Tahsilat • {0}", col.paymentMethod.label), col.date, maxOf(col.date, col.createdAt), col.amount, c.remainingBalance
       )
     }
     list.sortedByDescending { it.sortKey }.take(6)
@@ -162,7 +164,7 @@ fun DashboardScreen(
             overflow = TextOverflow.Ellipsis
           )
           Text(
-            if (profile.ownerName.isNotBlank()) "Merhaba ${profile.ownerName.substringBefore(' ')} • ${Formatters.formatFriendlyDate(now)}"
+            if (profile.ownerName.isNotBlank()) tr("Merhaba {0} • {1}", profile.ownerName.substringBefore(' '), Formatters.formatFriendlyDate(now))
             else Formatters.formatFriendlyDate(now),
             style = MaterialTheme.typography.bodySmall,
             color = palette.muted,
@@ -173,10 +175,10 @@ fun DashboardScreen(
         IconButton(onClick = {
           if (appointmentsToday != null) viewModel.navigate(Screen.Appointments) else viewModel.navigate(Screen.Settings)
         }) {
-          Icon(Icons.Default.NotificationsNone, contentDescription = "Bildirimler", tint = MaterialTheme.colorScheme.onBackground)
+          Icon(Icons.Default.NotificationsNone, contentDescription = tr("Bildirimler"), tint = MaterialTheme.colorScheme.onBackground)
         }
         IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
-          Icon(Icons.Default.Person, contentDescription = "Profil ve ayarlar", tint = MaterialTheme.colorScheme.onBackground)
+          Icon(Icons.Default.Person, contentDescription = tr("Profil ve ayarlar"), tint = MaterialTheme.colorScheme.onBackground)
         }
       }
     }
@@ -186,8 +188,8 @@ fun DashboardScreen(
         NoticeRow(
           icon = Icons.Default.Storefront,
           tint = palette.ink,
-          text = "İşletme adınızı girin; müşteriye giden mesajlarda görünür.",
-          action = "Gir",
+          text = tr("İşletme adınızı girin; müşteriye giden mesajlarda görünür."),
+          action = tr("Gir"),
           onAction = { viewModel.navigate(Screen.Settings) }
         )
       }
@@ -197,8 +199,8 @@ fun DashboardScreen(
         NoticeRow(
           icon = Icons.Default.Science,
           tint = palette.warning,
-          text = "Örnek veriler gösteriliyor.",
-          action = "Örnekleri sil",
+          text = tr("Örnek veriler gösteriliyor."),
+          action = tr("Örnekleri sil"),
           onAction = { viewModel.clearDemoData() }
         )
       }
@@ -210,7 +212,7 @@ fun DashboardScreen(
         viewModel.customerFilter.value = CustomerFilter.WITH_DEBT
         viewModel.navigate(Screen.Customers)
       }) {
-        Text("Toplam alacak", style = MaterialTheme.typography.labelLarge, color = palette.muted)
+        Text(tr("Toplam alacak"), style = MaterialTheme.typography.labelLarge, color = palette.muted)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
           Formatters.formatCurrency(summary.totalReceivable),
@@ -218,14 +220,14 @@ fun DashboardScreen(
           color = MaterialTheme.colorScheme.onSurface,
           maxLines = 1
         )
-        Text("${summary.debtorCount} borçlu müşteri", style = MaterialTheme.typography.bodySmall, color = palette.muted)
+        Text(tr("{0} borçlu müşteri", summary.debtorCount), style = MaterialTheme.typography.bodySmall, color = palette.muted)
         Spacer(modifier = Modifier.height(14.dp))
         HorizontalDivider(color = palette.cardBorder)
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
-          MiniStat("Bu ay tahsil", Formatters.formatCurrencyShort(summary.thisMonthCollected), palette.success, Modifier.weight(1f))
-          MiniStat("Gecikmiş", Formatters.formatCurrencyShort(summary.overdueAmount), if (summary.overdueAmount > 0) palette.danger else palette.muted, Modifier.weight(1f))
-          MiniStat("Yaklaşan (7 gün)", Formatters.formatCurrencyShort(summary.upcomingAmount), if (summary.upcomingAmount > 0) palette.warning else palette.muted, Modifier.weight(1f))
+          MiniStat(tr("Bu ay tahsil"), Formatters.formatCurrencyShort(summary.thisMonthCollected), palette.success, Modifier.weight(1f))
+          MiniStat(tr("Gecikmiş"), Formatters.formatCurrencyShort(summary.overdueAmount), if (summary.overdueAmount > 0) palette.danger else palette.muted, Modifier.weight(1f))
+          MiniStat(tr("Yaklaşan (7 gün)"), Formatters.formatCurrencyShort(summary.upcomingAmount), if (summary.upcomingAmount > 0) palette.warning else palette.muted, Modifier.weight(1f))
         }
       }
     }
@@ -233,10 +235,10 @@ fun DashboardScreen(
     // 3. Hızlı işlemler
     item {
       Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        QuickActionTile(Icons.Default.PersonAdd, "Müşteri\nekle", Modifier.weight(1f)) { viewModel.openDialog(DialogState.AddEditCustomer()) }
-        QuickActionTile(Icons.AutoMirrored.Filled.ReceiptLong, "Borç\nekle", Modifier.weight(1f)) { viewModel.openDialog(DialogState.AddDebt()) }
-        QuickActionTile(Icons.Default.Payments, "Tahsilat\nal", Modifier.weight(1f)) { viewModel.openDialog(DialogState.AddCollection()) }
-        QuickActionTile(Icons.Default.BarChart, "Raporlar", Modifier.weight(1f)) { viewModel.navigate(Screen.ReportsAndExport) }
+        QuickActionTile(Icons.Default.PersonAdd, tr("Müşteri\nekle"), Modifier.weight(1f)) { viewModel.openDialog(DialogState.AddEditCustomer()) }
+        QuickActionTile(Icons.AutoMirrored.Filled.ReceiptLong, tr("Borç\nekle"), Modifier.weight(1f)) { viewModel.openDialog(DialogState.AddDebt()) }
+        QuickActionTile(Icons.Default.Payments, tr("Tahsilat\nal"), Modifier.weight(1f)) { viewModel.openDialog(DialogState.AddCollection()) }
+        QuickActionTile(Icons.Default.BarChart, tr("Raporlar"), Modifier.weight(1f)) { viewModel.navigate(Screen.ReportsAndExport) }
       }
     }
 
@@ -250,12 +252,12 @@ fun DashboardScreen(
             IconBadge(Icons.Default.Event, palette.ink, palette.accentSoft)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-              Text("Bugün ${active.size} randevu", fontWeight = FontWeight.SemiBold, maxLines = 1)
+              Text(tr("Bugün {0} randevu", active.size), fontWeight = FontWeight.SemiBold, maxLines = 1)
               Text(
                 when {
-                  next != null -> "Sıradaki ${timeOf(next.start)} • ${next.customerName}"
-                  active.isNotEmpty() -> "Bugünkü randevular tamamlandı"
-                  else -> "Takvime göz atın"
+                  next != null -> tr("Sıradaki {0} • {1}", timeOf(next.start), next.customerName)
+                  active.isNotEmpty() -> tr("Bugünkü randevular tamamlandı")
+                  else -> tr("Takvime göz atın")
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.muted,
@@ -265,7 +267,7 @@ fun DashboardScreen(
             }
             if (pendingCount > 0) {
               Spacer(modifier = Modifier.width(8.dp))
-              StatusPill("$pendingCount onay bekliyor", palette.warning, palette.warningSoft)
+              StatusPill(tr("{0} onay bekliyor", pendingCount), palette.warning, palette.warningSoft)
             }
           }
         }
@@ -277,7 +279,7 @@ fun DashboardScreen(
       AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Column(modifier = Modifier.weight(1f)) {
-            Text("Tahsilatlar", style = MaterialTheme.typography.titleSmall)
+            Text(tr("Tahsilatlar"), style = MaterialTheme.typography.titleSmall)
             Text(
               Formatters.formatCurrency(chart.total),
               style = moneyStyle(20, FontWeight.Bold),
@@ -286,7 +288,7 @@ fun DashboardScreen(
             )
           }
           SingleChoiceSegmentedButtonRow {
-            listOf("Hafta", "Ay").forEachIndexed { i, label ->
+            listOf(tr("Hafta"), tr("Ay")).forEachIndexed { i, label ->
               SegmentedButton(
                 selected = chartMode == i,
                 onClick = { chartMode = i },
@@ -303,11 +305,11 @@ fun DashboardScreen(
           }
         }
         Spacer(modifier = Modifier.height(4.dp))
-        ChangeLine(current = chart.total, previous = chart.previousTotal, periodName = if (chartMode == 0) "geçen hafta" else "geçen ay")
+        ChangeLine(current = chart.total, previous = chart.previousTotal, periodName = if (chartMode == 0) tr("geçen hafta") else tr("geçen ay"))
         Spacer(modifier = Modifier.height(14.dp))
         if (chart.total <= 0.0 && chart.previousTotal <= 0.0) {
           Text(
-            "Bu dönemde tahsilat yok. Tahsilat aldıkça grafik burada oluşur.",
+            tr("Bu dönemde tahsilat yok. Tahsilat aldıkça grafik burada oluşur."),
             style = MaterialTheme.typography.bodySmall,
             color = palette.muted,
             modifier = Modifier.padding(vertical = 18.dp)
@@ -322,9 +324,9 @@ fun DashboardScreen(
       item {
         EmptyStateView(
           icon = Icons.Default.Person,
-          title = "İlk müşterinizi ekleyin",
-          description = "Yukarıdaki \"Müşteri ekle\" ile başlayın. Denemek isterseniz örnek verileri yükleyebilirsiniz.",
-          actionButtonLabel = "Örnek verilerle dene",
+          title = tr("İlk müşterinizi ekleyin"),
+          description = tr("Yukarıdaki \"Müşteri ekle\" ile başlayın. Denemek isterseniz örnek verileri yükleyebilirsiniz."),
+          actionButtonLabel = tr("Örnek verilerle dene"),
           onActionClick = { viewModel.loadDemoData() }
         )
       }
@@ -334,9 +336,9 @@ fun DashboardScreen(
     if (overdue.isNotEmpty()) {
       item {
         SectionHeader(
-          "Gecikmiş ödemeler",
+          tr("Gecikmiş ödemeler"),
           color = palette.danger,
-          action = "Tümü (${overdue.size})",
+          action = tr("Tümü ({0})", overdue.size),
           onAction = {
             viewModel.customerFilter.value = CustomerFilter.OVERDUE
             viewModel.navigate(Screen.Customers)
@@ -355,14 +357,14 @@ fun DashboardScreen(
               verticalAlignment = Alignment.CenterVertically
             ) {
               Column(modifier = Modifier.weight(1f)) {
-                Text(cwb?.customer?.name ?: "Bilinmeyen müşteri", fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(cwb?.customer?.name ?: tr("Bilinmeyen müşteri"), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(Formatters.dueLabel(s.debt.dueDate), style = MaterialTheme.typography.bodySmall, color = palette.danger, maxLines = 1)
               }
               Spacer(modifier = Modifier.width(8.dp))
               Text(Formatters.formatCurrency(s.remainingAmount), style = moneyStyle(14), color = palette.danger, maxLines = 1)
               if (cwb != null && cwb.customer.phone.isNotBlank()) {
                 TextButton(onClick = { viewModel.openDialog(DialogState.SendWhatsApp(cwb)) }) {
-                  Text("Hatırlat", color = palette.ink, maxLines = 1, softWrap = false)
+                  Text(tr("Hatırlat"), color = palette.ink, maxLines = 1, softWrap = false)
                 }
               }
             }
@@ -374,7 +376,7 @@ fun DashboardScreen(
     // 6. Son işlemler
     if (recent.isNotEmpty()) {
       item {
-        SectionHeader("Son işlemler", action = "Kasa", onAction = { viewModel.navigate(Screen.Collections) })
+        SectionHeader(tr("Son işlemler"), action = tr("Kasa"), onAction = { viewModel.navigate(Screen.Collections) })
       }
       item {
         AppCard(padding = 0.dp) {
@@ -405,14 +407,14 @@ private fun ChangeLine(current: Double, previous: Double, periodName: String) {
   val text: String
   val color: Color
   when {
-    previous <= 0.0 && current <= 0.0 -> { text = "Henüz veri yok"; color = palette.muted }
-    previous <= 0.0 -> { text = "$periodName tahsilat yoktu"; color = palette.muted }
+    previous <= 0.0 && current <= 0.0 -> { text = tr("Henüz veri yok"); color = palette.muted }
+    previous <= 0.0 -> { text = tr("{0} tahsilat yoktu", periodName); color = palette.muted }
     else -> {
       val pct = ((current - previous) / previous * 100).toInt()
       text = when {
-        pct > 0 -> "%$pct artış ($periodName ${Formatters.formatCurrencyShort(previous)})"
-        pct < 0 -> "%${-pct} azalış ($periodName ${Formatters.formatCurrencyShort(previous)})"
-        else -> "$periodName ile aynı"
+        pct > 0 -> tr("%{0} artış ({1} {2})", pct, periodName, Formatters.formatCurrencyShort(previous))
+        pct < 0 -> tr("%{0} azalış ({1} {2})", -pct, periodName, Formatters.formatCurrencyShort(previous))
+        else -> tr("{0} ile aynı", periodName)
       }
       color = if (pct >= 0) palette.success else palette.danger
     }
@@ -450,7 +452,7 @@ private fun RecentRow(tx: RecentTx, onClick: () -> Unit) {
     ) {
       Text(tx.name, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
       Text(
-        "${tx.label} • ${Formatters.formatShortDate(tx.date)}",
+        tr("{0} • {1}", tx.label, Formatters.formatShortDate(tx.date)),
         style = MaterialTheme.typography.bodySmall,
         color = palette.muted,
         maxLines = 1,
@@ -466,7 +468,7 @@ private fun RecentRow(tx: RecentTx, onClick: () -> Unit) {
         maxLines = 1
       )
       Text(
-        "Bakiye ${Formatters.formatCurrencyShort(tx.balance)}",
+        tr("Bakiye {0}", Formatters.formatCurrencyShort(tx.balance)),
         fontSize = 11.sp,
         color = palette.muted,
         maxLines = 1
@@ -510,7 +512,7 @@ private fun buildChart(items: List<Pair<Long, Double>>, mode: Int, now: Long): C
     val todayIdx = ((Formatters.startOfDay(now) - weekStart) / day).toInt().coerceIn(0, 6)
     ChartData(
       values = values,
-      labels = listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"),
+      labels = listOf(tr("Pzt"), tr("Sal"), tr("Çar"), tr("Per"), tr("Cum"), tr("Cmt"), tr("Paz")),
       currentIndex = todayIdx,
       total = Money.sum(values),
       previousTotal = Money.sum(items.filter { it.first in prevStart until weekStart }.map { it.second })

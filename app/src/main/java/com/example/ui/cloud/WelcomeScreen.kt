@@ -1,5 +1,7 @@
 package com.example.ui.cloud
 
+import com.example.util.tr
+
 import android.app.Activity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -78,38 +80,38 @@ fun WelcomeScreen(cloud: CloudViewModel) {
         modifier = Modifier.size(88.dp)
       )
       Spacer(modifier = Modifier.height(14.dp))
-      Text("MüşteriCep", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
+      Text(tr("MüşteriCep"), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
       Text(
-        "Randevu, müşteri ve tahsilat tek cepte",
+        tr("Randevu, müşteri ve tahsilat tek cepte"),
         style = MaterialTheme.typography.bodyMedium,
         color = Slate500,
         textAlign = TextAlign.Center
       )
       Spacer(modifier = Modifier.height(28.dp))
 
-      Text("Nasıl başlamak istersiniz?", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+      Text(tr("Nasıl başlamak istersiniz?"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
       Spacer(modifier = Modifier.height(10.dp))
 
       RoleCard(
         selected = role == UserRole.BUSINESS,
         icon = { Icon(Icons.Default.Storefront, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(30.dp)) },
-        title = "İşletmeyim",
-        text = "Randevu, müşteri ve tahsilatlarımı yöneteceğim.",
+        title = tr("İşletmeyim"),
+        text = tr("Randevu, müşteri ve tahsilatlarımı yöneteceğim."),
         onClick = { role = UserRole.BUSINESS }
       )
       Spacer(modifier = Modifier.height(10.dp))
       RoleCard(
         selected = role == UserRole.CUSTOMER,
         icon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(30.dp)) },
-        title = "Randevu almak istiyorum",
-        text = "İşletme bulur, kolayca randevu alırım.",
+        title = tr("Randevu almak istiyorum"),
+        text = tr("İşletme bulur, kolayca randevu alırım."),
         onClick = { role = UserRole.CUSTOMER }
       )
 
       Spacer(modifier = Modifier.height(10.dp))
       androidx.compose.material3.Surface(shape = RoundedCornerShape(12.dp), color = palette.accentSoft, modifier = Modifier.fillMaxWidth()) {
         Text(
-          "Aynı Google hesabıyla ikisini de kullanabilirsiniz. Sonradan Ayarlar veya Profil'den tek dokunuşla geçiş yaparsınız.",
+          tr("Aynı Google hesabıyla ikisini de kullanabilirsiniz. Sonradan Ayarlar veya Profil'den tek dokunuşla geçiş yaparsınız."),
           style = MaterialTheme.typography.bodySmall,
           color = palette.ink,
           modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
@@ -131,8 +133,8 @@ fun WelcomeScreen(cloud: CloudViewModel) {
           } else {
             Text(
               when (role) {
-                null -> "Önce yukarıdan seçin"
-                else -> "Google ile devam et"
+                null -> tr("Önce yukarıdan seçin")
+                else -> tr("Google ile devam et")
               },
               fontWeight = FontWeight.Bold,
               fontSize = 16.sp
@@ -141,7 +143,7 @@ fun WelcomeScreen(cloud: CloudViewModel) {
         }
       } else {
         Text(
-          "Randevu ve hesap özellikleri bu sürümde henüz aktif değil.",
+          tr("Randevu ve hesap özellikleri bu sürümde henüz aktif değil."),
           style = MaterialTheme.typography.bodySmall,
           color = Slate500,
           textAlign = TextAlign.Center
@@ -151,19 +153,19 @@ fun WelcomeScreen(cloud: CloudViewModel) {
       if (role != UserRole.CUSTOMER) {
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = { cloud.continueLocalOnly() }) {
-          Text("Giriş yapmadan sadece defteri kullan")
+          Text(tr("Giriş yapmadan sadece defteri kullan"))
         }
       }
 
       Spacer(modifier = Modifier.height(16.dp))
       Text(
-        "Devam ederek KVKK aydınlatma metnini ve gizlilik politikasını kabul etmiş olursunuz.",
+        tr("Devam ederek KVKK aydınlatma metnini ve gizlilik politikasını kabul etmiş olursunuz."),
         style = MaterialTheme.typography.labelSmall,
         color = Slate500,
         textAlign = TextAlign.Center
       )
       Spacer(modifier = Modifier.height(4.dp))
-      Text("EA Vision Labs", style = MaterialTheme.typography.labelSmall, color = Slate500)
+      Text(tr("EA Vision Labs"), style = MaterialTheme.typography.labelSmall, color = Slate500)
     }
   }
 }

@@ -44,7 +44,7 @@ import org.robolectric.shadows.ShadowLooper
 /** Play Store görselleri için gerçekçi (örnek olarak işaretlenmemiş) verilerle ekranlar. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [34], qualifiers = "tr-w411dp-h891dp-xxhdpi")
 class StoreShotTest {
   @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.tr
+
 import com.example.model.allows
 import androidx.compose.material.icons.filled.Lock
 
@@ -76,13 +78,13 @@ import java.util.Calendar
 
 /** Rapor dönemi. */
 private enum class ReportRange(val label: String) {
-  TODAY("Bugün"),
-  WEEK("Bu hafta"),
-  MONTH("Bu ay"),
-  LAST_MONTH("Geçen ay"),
-  QUARTER("Son 3 ay"),
-  YEAR("Bu yıl"),
-  ALL("Tümü")
+  TODAY(tr("Bugün")),
+  WEEK(tr("Bu hafta")),
+  MONTH(tr("Bu ay")),
+  LAST_MONTH(tr("Geçen ay")),
+  QUARTER(tr("Son 3 ay")),
+  YEAR(tr("Bu yıl")),
+  ALL(tr("Tümü"))
 }
 
 private fun rangeBounds(r: ReportRange, now: Long): Pair<Long, Long> {
@@ -129,7 +131,7 @@ fun ReportsAndExportScreen(
       try {
         viewModel.parseAndPreviewCsv(FileShare.readFromUri(context, uri, maxBytes = 5 * 1024 * 1024))
       } catch (e: Exception) {
-        viewModel.showMessage("Dosya okunamadı: ${e.message}")
+        viewModel.showMessage(tr("Dosya okunamadı: {0}", e.message))
       }
     }
   }
@@ -167,10 +169,10 @@ fun ReportsAndExportScreen(
     val (s, e) = rangeBounds(range, now)
     val rows = mutableListOf<HistoryRow>()
     ledger.collections.filter { it.date in s until e }.forEach {
-      rows += HistoryRow("c${it.id}", names[it.customerId] ?: "Bilinmeyen", true, it.paymentMethod.label, it.date, it.amount)
+      rows += HistoryRow("c${it.id}", names[it.customerId] ?: tr("Bilinmeyen"), true, it.paymentMethod.label, it.date, it.amount)
     }
     ledger.debtStatuses.filter { it.debt.date in s until e }.forEach {
-      rows += HistoryRow("d${it.debt.id}", names[it.debt.customerId] ?: "Bilinmeyen", false, it.debt.category, it.debt.date, it.debt.amount)
+      rows += HistoryRow("d${it.debt.id}", names[it.debt.customerId] ?: tr("Bilinmeyen"), false, it.debt.category, it.debt.date, it.debt.amount)
     }
     rows.sortedByDescending { it.date }
   }
@@ -180,9 +182,9 @@ fun ReportsAndExportScreen(
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
     topBar = {
       TopAppBar(
-        title = { Text("Raporlar", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(tr("Raporlar"), style = MaterialTheme.typography.titleMedium) },
         navigationIcon = {
-          IconButton(onClick = { viewModel.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri") }
+          IconButton(onClick = { viewModel.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Geri")) }
         },
         windowInsets = WindowInsets(0, 0, 0, 0),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -199,19 +201,19 @@ fun ReportsAndExportScreen(
       // Dönem özeti (sabit)
       item {
         AppCard {
-          Text("Genel durum", style = MaterialTheme.typography.titleSmall)
+          Text(tr("Genel durum"), style = MaterialTheme.typography.titleSmall)
           Spacer(modifier = Modifier.height(10.dp))
           Row(modifier = Modifier.fillMaxWidth()) {
-            Stat("Toplam alacak", Formatters.formatCurrencyShort(summary.totalReceivable), MaterialTheme.colorScheme.onSurface, Modifier.weight(1f))
-            Stat("Gecikmiş", Formatters.formatCurrencyShort(summary.overdueAmount), if (summary.overdueAmount > 0) palette.danger else palette.muted, Modifier.weight(1f))
+            Stat(tr("Toplam alacak"), Formatters.formatCurrencyShort(summary.totalReceivable), MaterialTheme.colorScheme.onSurface, Modifier.weight(1f))
+            Stat(tr("Gecikmiş"), Formatters.formatCurrencyShort(summary.overdueAmount), if (summary.overdueAmount > 0) palette.danger else palette.muted, Modifier.weight(1f))
           }
           Spacer(modifier = Modifier.height(10.dp))
           HorizontalDivider(color = palette.cardBorder)
           Spacer(modifier = Modifier.height(10.dp))
           Row(modifier = Modifier.fillMaxWidth()) {
-            Stat("Bugün", Formatters.formatCurrencyShort(summary.todayCollected), palette.success, Modifier.weight(1f))
-            Stat("Bu hafta", Formatters.formatCurrencyShort(summary.thisWeekCollected), palette.success, Modifier.weight(1f))
-            Stat("Bu ay", Formatters.formatCurrencyShort(summary.thisMonthCollected), palette.success, Modifier.weight(1f))
+            Stat(tr("Bugün"), Formatters.formatCurrencyShort(summary.todayCollected), palette.success, Modifier.weight(1f))
+            Stat(tr("Bu hafta"), Formatters.formatCurrencyShort(summary.thisWeekCollected), palette.success, Modifier.weight(1f))
+            Stat(tr("Bu ay"), Formatters.formatCurrencyShort(summary.thisMonthCollected), palette.success, Modifier.weight(1f))
           }
         }
       }
@@ -231,7 +233,7 @@ fun ReportsAndExportScreen(
                   !profileTier.allows(com.example.model.Feature.ALL_REPORTS)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                   if (locked) {
-                    Icon(Icons.Default.Lock, contentDescription = "Paket gerekli", modifier = Modifier.size(14.dp), tint = palette.muted)
+                    Icon(Icons.Default.Lock, contentDescription = tr("Paket gerekli"), modifier = Modifier.size(14.dp), tint = palette.muted)
                     Spacer(modifier = Modifier.width(4.dp))
                   }
                   Text(r.label, maxLines = 1, softWrap = false)
@@ -258,19 +260,19 @@ fun ReportsAndExportScreen(
           Spacer(modifier = Modifier.height(8.dp))
           Row(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
-              Text("Tahsil edilen", fontSize = 12.sp, color = palette.muted)
+              Text(tr("Tahsil edilen"), fontSize = 12.sp, color = palette.muted)
               Text(Formatters.formatCurrency(collectedTotal), style = moneyStyle(20, FontWeight.Bold), color = palette.success, maxLines = 1)
-              Text("${collIn.size} tahsilat", fontSize = 12.sp, color = palette.muted)
+              Text(tr("{0} tahsilat", collIn.size), fontSize = 12.sp, color = palette.muted)
             }
             Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-              Text("Yeni borç", fontSize = 12.sp, color = palette.muted)
+              Text(tr("Yeni borç"), fontSize = 12.sp, color = palette.muted)
               Text(Formatters.formatCurrency(debtTotal), style = moneyStyle(20, FontWeight.Bold), maxLines = 1)
-              Text("${debtIn.size} kayıt", fontSize = 12.sp, color = palette.muted)
+              Text(tr("{0} kayıt", debtIn.size), fontSize = 12.sp, color = palette.muted)
             }
           }
           Spacer(modifier = Modifier.height(16.dp))
           if (chart.values.all { it <= 0.0 }) {
-            Text("Bu dönemde tahsilat yok.", style = MaterialTheme.typography.bodySmall, color = palette.muted, modifier = Modifier.padding(vertical = 12.dp))
+            Text(tr("Bu dönemde tahsilat yok."), style = MaterialTheme.typography.bodySmall, color = palette.muted, modifier = Modifier.padding(vertical = 12.dp))
           } else {
             BarChart(values = chart.values, labels = chart.labels, highlightIndex = chart.highlight, height = 110.dp)
           }
@@ -278,23 +280,23 @@ fun ReportsAndExportScreen(
       }
 
       // Müşteri bazlı rapor
-      item { SectionHeader("Müşteri bazlı") }
+      item { SectionHeader(tr("Müşteri bazlı")) }
       if (customerReports.isEmpty()) {
-        item { Text("Bu dönemde hareketi olan müşteri yok.", style = MaterialTheme.typography.bodySmall, color = palette.muted) }
+        item { Text(tr("Bu dönemde hareketi olan müşteri yok."), style = MaterialTheme.typography.bodySmall, color = palette.muted) }
       } else {
         item {
           AppCard(padding = 0.dp) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-              Text("Müşteri", fontSize = 11.sp, color = palette.muted, modifier = Modifier.weight(1.4f))
-              Text("Tahsil", fontSize = 11.sp, color = palette.muted, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
-              Text("Bakiye", fontSize = 11.sp, color = palette.muted, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+              Text(tr("Müşteri"), fontSize = 11.sp, color = palette.muted, modifier = Modifier.weight(1.4f))
+              Text(tr("Tahsil"), fontSize = 11.sp, color = palette.muted, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+              Text(tr("Bakiye"), fontSize = 11.sp, color = palette.muted, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             customerReports.take(10).forEach { r ->
               HorizontalDivider(color = palette.cardBorder)
               Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1.4f)) {
                   Text(r.name, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                  if (r.overdue > 0) Text("Gecikmiş ${Formatters.formatCurrencyShort(r.overdue)}", fontSize = 11.sp, color = palette.danger, maxLines = 1)
+                  if (r.overdue > 0) Text(tr("Gecikmiş {0}", Formatters.formatCurrencyShort(r.overdue)), fontSize = 11.sp, color = palette.danger, maxLines = 1)
                 }
                 Text(Formatters.formatCurrencyShort(r.collected), style = moneyStyle(13), color = if (r.collected > 0) palette.success else palette.muted, maxLines = 1,
                   modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
@@ -307,9 +309,9 @@ fun ReportsAndExportScreen(
       }
 
       // İşlem geçmişi
-      item { SectionHeader("İşlem geçmişi (${history.size})") }
+      item { SectionHeader(tr("İşlem geçmişi ({0})", history.size)) }
       if (history.isEmpty()) {
-        item { Text("Bu dönemde işlem yok.", style = MaterialTheme.typography.bodySmall, color = palette.muted) }
+        item { Text(tr("Bu dönemde işlem yok."), style = MaterialTheme.typography.bodySmall, color = palette.muted) }
       } else {
         item {
           AppCard(padding = 0.dp) {
@@ -326,7 +328,7 @@ fun ReportsAndExportScreen(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                   Text(h.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                  Text("${if (h.isCollection) "Tahsilat" else "Borç"} • ${h.label} • ${Formatters.formatDate(h.date)}", fontSize = 12.sp, color = palette.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                  Text(tr("{0} • {1} • {2}", if (h.isCollection) "Tahsilat" else "Borç", h.label, Formatters.formatDate(h.date)), fontSize = 12.sp, color = palette.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -340,7 +342,7 @@ fun ReportsAndExportScreen(
             if (history.size > 10) {
               HorizontalDivider(color = palette.cardBorder)
               TextButton(onClick = { showAllHistory = !showAllHistory }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (showAllHistory) "Daha az göster" else "Tümünü göster (${history.size})", color = palette.ink)
+                Text(if (showAllHistory) tr("Daha az göster") else tr("Tümünü göster ({0})", history.size), color = palette.ink)
               }
             }
           }
@@ -348,11 +350,11 @@ fun ReportsAndExportScreen(
       }
 
       // Excel'e aktar
-      item { SectionHeader("Excel (CSV)") }
+      item { SectionHeader(tr("Excel (CSV)")) }
       item {
         AppCard {
           Text(
-            "Dosya Excel'de doğrudan açılır; Türkçe karakterler ve tutarlar doğru görünür. Örnek veriler dosyaya eklenmez.",
+            tr("Dosya Excel'de doğrudan açılır; Türkçe karakterler ve tutarlar doğru görünür. Örnek veriler dosyaya eklenmez."),
             style = MaterialTheme.typography.bodySmall,
             color = palette.muted
           )
@@ -360,8 +362,8 @@ fun ReportsAndExportScreen(
           Button(
             onClick = {
               if (!viewModel.requireFeature(com.example.model.Feature.CSV_EXPORT)) Unit
-              else if (realCount == 0) viewModel.showMessage("Dışa aktarılacak müşteri yok.")
-              else FileShare.shareText(context, "MusteriCep_Musteriler_$today.csv", "text/csv", viewModel.exportCustomersCsv(), "Müşteri listesini gönder")
+              else if (realCount == 0) viewModel.showMessage(tr("Dışa aktarılacak müşteri yok."))
+              else FileShare.shareText(context, tr("MusteriCep_Musteriler_{0}.csv", today), "text/csv", viewModel.exportCustomersCsv(), tr("Müşteri listesini gönder"))
             },
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk),
@@ -371,21 +373,21 @@ fun ReportsAndExportScreen(
           ) {
             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Müşteri bakiyeleri ($realCount)", maxLines = 1)
+            Text(tr("Müşteri bakiyeleri ({0})", realCount), maxLines = 1)
           }
           Spacer(modifier = Modifier.height(8.dp))
           OutlinedButton(
             onClick = {
               if (!viewModel.requireFeature(com.example.model.Feature.CSV_EXPORT)) Unit
-              else if (realCount == 0) viewModel.showMessage("Dışa aktarılacak kayıt yok.")
-              else FileShare.shareText(context, "MusteriCep_Hareketler_$today.csv", "text/csv", viewModel.exportTransactionsCsv(), "Hareket dökümünü gönder")
+              else if (realCount == 0) viewModel.showMessage(tr("Dışa aktarılacak kayıt yok."))
+              else FileShare.shareText(context, tr("MusteriCep_Hareketler_{0}.csv", today), "text/csv", viewModel.exportTransactionsCsv(), tr("Hareket dökümünü gönder"))
             },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
           ) {
             Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Tüm hareketler", maxLines = 1)
+            Text(tr("Tüm hareketler"), maxLines = 1)
           }
         }
       }
@@ -396,11 +398,11 @@ fun ReportsAndExportScreen(
           Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.FileUpload, contentDescription = null, tint = palette.ink)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Excel'den müşteri ekle", style = MaterialTheme.typography.titleSmall)
+            Text(tr("Excel'den müşteri ekle"), style = MaterialTheme.typography.titleSmall)
           }
           Spacer(modifier = Modifier.height(6.dp))
           Text(
-            "Sütun sırası: Ad Soyad; Telefon; E-posta; Adres; Not. Önce önizleme gösterilir; hatalı ve zaten kayıtlı satırlar atlanır.",
+            tr("Sütun sırası: Ad Soyad; Telefon; E-posta; Adres; Not. Önce önizleme gösterilir; hatalı ve zaten kayıtlı satırlar atlanır."),
             style = MaterialTheme.typography.bodySmall,
             color = palette.muted
           )
@@ -411,20 +413,20 @@ fun ReportsAndExportScreen(
             modifier = Modifier
               .fillMaxWidth()
               .testTag("btn_pick_csv")
-          ) { Text("CSV dosyası seç") }
+          ) { Text(tr("CSV dosyası seç")) }
           Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = {
-              FileShare.shareText(context, "MusteriCep_Ornek_Sablon.csv", "text/csv", CsvHelper.sampleTemplate(), "Örnek şablonu gönder")
-            }) { Text("Örnek şablon", color = palette.ink) }
+              FileShare.shareText(context, tr("MusteriCep_Ornek_Sablon.csv"), "text/csv", CsvHelper.sampleTemplate(), tr("Örnek şablonu gönder"))
+            }) { Text(tr("Örnek şablon"), color = palette.ink) }
             TextButton(onClick = { showPaste = !showPaste }) {
-              Text(if (showPaste) "Kapat" else "Metin yapıştır", color = palette.ink)
+              Text(if (showPaste) tr("Kapat") else tr("Metin yapıştır"), color = palette.ink)
             }
           }
           if (showPaste) {
             OutlinedTextField(
               value = importCsvText,
               onValueChange = { importCsvText = it },
-              placeholder = { Text("Ali Koç;05321112233;ali@mail.com;Kadıköy;Cuma öder") },
+              placeholder = { Text(tr("Ali Koç;05321112233;ali@mail.com;Kadıköy;Cuma öder")) },
               minLines = 4,
               maxLines = 8,
               modifier = Modifier
@@ -436,13 +438,13 @@ fun ReportsAndExportScreen(
               onClick = {
                 if (!viewModel.requireFeature(com.example.model.Feature.CSV_IMPORT)) Unit
                 else if (importCsvText.isNotBlank()) viewModel.parseAndPreviewCsv(importCsvText)
-                else viewModel.showMessage("Önce CSV metnini yapıştırın.")
+                else viewModel.showMessage(tr("Önce CSV metnini yapıştırın."))
               },
               colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk),
               modifier = Modifier
                 .fillMaxWidth()
                 .testTag("btn_preview_csv")
-            ) { Text("Önizle") }
+            ) { Text(tr("Önizle")) }
           }
         }
       }
@@ -459,9 +461,9 @@ private fun Stat(label: String, value: String, color: Color, modifier: Modifier)
 }
 
 private fun rangeTitle(r: ReportRange, start: Long, end: Long): String = when (r) {
-  ReportRange.ALL -> "Tüm zamanlar"
-  ReportRange.TODAY -> "Bugün • ${Formatters.formatDate(start)}"
-  else -> "${r.label} • ${Formatters.formatShortDate(start)} – ${Formatters.formatShortDate(end - 1)}"
+  ReportRange.ALL -> tr("Tüm zamanlar")
+  ReportRange.TODAY -> tr("Bugün • {0}", Formatters.formatDate(start))
+  else -> tr("{0} • {1} – {2}", r.label, Formatters.formatShortDate(start), Formatters.formatShortDate(end - 1))
 }
 
 private data class RangeChart(val values: List<Double>, val labels: List<String>, val highlight: Int)
@@ -471,7 +473,8 @@ private fun buildRangeChart(items: List<Pair<Long, Double>>, startIn: Long, endI
   val start = if (startIn == Long.MIN_VALUE) Formatters.startOfMonth(firstDate ?: now) else startIn
   val end = if (endIn == Long.MAX_VALUE) now + 1 else minOf(endIn, now + 86_400_000L)
   val days = ((end - start) / 86_400_000L).toInt().coerceAtLeast(1)
-  val months = listOf("Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara")
+  val months = if (com.example.util.I18n.isEnglish) listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+  else listOf("Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara")
   return if (days <= 1) {
     // Bugün: 4 saatlik dilimler
     val labels = listOf("00", "04", "08", "12", "16", "20")

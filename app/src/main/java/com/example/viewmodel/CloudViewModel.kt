@@ -1,5 +1,7 @@
 package com.example.viewmodel
 
+import com.example.util.tr
+
 import com.example.model.allows
 
 import android.app.Activity
@@ -131,7 +133,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   fun switchMode(activity: Activity?, to: UserRole) {
     val u = firebaseUser.value
     if (u == null) {
-      if (activity != null) signIn(activity, to) else say("Önce Google ile giriş yapın.")
+      if (activity != null) signIn(activity, to) else say(tr("Önce Google ile giriş yapın."))
       return
     }
     val p = userProfile.value ?: UserProfile(uid = u.uid, role = null, displayName = u.displayName ?: "", email = u.email ?: "")
@@ -141,9 +143,9 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         kotlinx.coroutines.withTimeoutOrNull(15_000) { cloud.saveUser(p.copy(role = to)) }
         if (to == UserRole.BUSINESS) settings.setLocalOnly(false)
         if (to == UserRole.CUSTOMER) _customerStack.value = listOf(CustomerScreen.Discover)
-        say(if (to == UserRole.CUSTOMER) "Müşteri modundasınız. İşletmenize üstteki şeritten dönebilirsiniz." else "İşletme moduna geçildi.")
+        say(if (to == UserRole.CUSTOMER) tr("Müşteri modundasınız. İşletmenize üstteki şeritten dönebilirsiniz.") else tr("İşletme moduna geçildi."))
       } catch (e: Exception) {
-        say("Mod değiştirilemedi: ${e.message}")
+        say(tr("Mod değiştirilemedi: {0}", e.message))
       } finally {
         _busy.value = false
       }
@@ -156,7 +158,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
 
   fun signIn(activity: Activity, role: UserRole) {
     if (!isConfigured) {
-      say("Bulut bağlantısı henüz kurulmadı. Şimdilik giriş yapmadan defteri kullanabilirsiniz.")
+      say(tr("Bulut bağlantısı henüz kurulmadı. Şimdilik giriş yapmadan defteri kullanabilirsiniz."))
       return
     }
     viewModelScope.launch {
@@ -170,7 +172,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         settings.setPendingRole(null)
         if (role == UserRole.BUSINESS) settings.setLocalOnly(false)
       } catch (e: Exception) {
-        say(e.message ?: "Giriş yapılamadı.")
+        say(e.message ?: tr("Giriş yapılamadı."))
       } finally {
         _busy.value = false
       }
@@ -187,7 +189,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
       }
       settings.setPendingRole(null)
     } catch (e: Exception) {
-      say("Hesap kaydedilemedi: ${e.message}")
+      say(tr("Hesap kaydedilemedi: {0}", e.message))
     }
   }
 
@@ -199,7 +201,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
       auth.signOut()
       settings.setLocalOnly(false)
       _customerStack.value = listOf(CustomerScreen.Discover)
-      say("Çıkış yapıldı.")
+      say(tr("Çıkış yapıldı."))
     }
   }
 
@@ -213,11 +215,11 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         kotlinx.coroutines.withTimeoutOrNull(20_000) { runCatching { cloud.deleteUserData(user.uid) } }
         auth.deleteAccount()
         settings.setLocalOnly(false)
-        say("Hesabınız silindi.")
+        say(tr("Hesabınız silindi."))
       } catch (e: FirebaseAuthRecentLoginRequiredException) {
-        say("Güvenlik için çıkış yapıp tekrar giriş yaptıktan sonra hesabı silin.")
+        say(tr("Güvenlik için çıkış yapıp tekrar giriş yaptıktan sonra hesabı silin."))
       } catch (e: Exception) {
-        say("Hesap silinemedi: ${e.message}")
+        say(tr("Hesap silinemedi: {0}", e.message))
       } finally {
         _busy.value = false
       }
@@ -226,14 +228,14 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
 
   fun saveCustomerProfile(name: String, phone: String) {
     val p = userProfile.value ?: return
-    if (name.isBlank()) { say("Adınızı girin."); return }
-    if (phone.filter { it.isDigit() }.length < 10) { say("Telefon numarası eksik (en az 10 hane)."); return }
+    if (name.isBlank()) { say(tr("Adınızı girin.")); return }
+    if (phone.filter { it.isDigit() }.length < 10) { say(tr("Telefon numarası eksik (en az 10 hane).")); return }
     viewModelScope.launch {
       try {
         cloud.saveUser(p.copy(displayName = name.trim(), phone = phone.trim()))
-        say("Bilgileriniz kaydedildi.")
+        say(tr("Bilgileriniz kaydedildi."))
       } catch (e: Exception) {
-        say("Kaydedilemedi: ${e.message}")
+        say(tr("Kaydedilemedi: {0}", e.message))
       }
     }
   }
@@ -255,25 +257,25 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
 
   fun saveStaff(s: com.example.cloud.Staff) {
     val u = firebaseUser.value ?: return
-    if (s.name.isBlank()) { say("Personel adını girin."); return }
+    if (s.name.isBlank()) { say(tr("Personel adını girin.")); return }
     val t = tier.value
     if (!t.allows(com.example.model.Feature.STAFF)) {
-      say("Personel ve ayrı takvimler İşletme paketinde. Ayarlar > Paketler'den geçebilirsiniz.")
+      say(tr("Personel ve ayrı takvimler İşletme paketinde. Ayarlar > Paketler'den geçebilirsiniz."))
       return
     }
     if (s.id.isBlank() && myStaff.value.size >= t.maxStaff) {
-      say("${t.title} paketinde en fazla ${t.maxStaff} personel eklenebilir.")
+      say(tr("{0} paketinde en fazla {1} personel eklenebilir.", t.title, t.maxStaff))
       return
     }
     viewModelScope.launch {
-      try { cloud.saveStaff(u.uid, s); say("Personel kaydedildi.") } catch (e: Exception) { say("Kaydedilemedi: ${e.message}") }
+      try { cloud.saveStaff(u.uid, s); say(tr("Personel kaydedildi.")) } catch (e: Exception) { say(tr("Kaydedilemedi: {0}", e.message)) }
     }
   }
 
   fun deleteStaff(s: com.example.cloud.Staff) {
     val u = firebaseUser.value ?: return
     viewModelScope.launch {
-      try { cloud.deleteStaff(u.uid, s.id); say("Personel silindi.") } catch (e: Exception) { say("Silinemedi: ${e.message}") }
+      try { cloud.deleteStaff(u.uid, s.id); say(tr("Personel silindi.")) } catch (e: Exception) { say(tr("Silinemedi: {0}", e.message)) }
     }
   }
 
@@ -343,14 +345,14 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
 
   fun saveBusiness(b: BusinessProfile) {
     val u = firebaseUser.value ?: return
-    if (b.name.isBlank()) { say("İşletme adı zorunludur."); return }
+    if (b.name.isBlank()) { say(tr("İşletme adı zorunludur.")); return }
     viewModelScope.launch {
       _busy.value = true
       try {
         cloud.saveBusiness(b.copy(id = u.uid, ownerUid = u.uid))
-        say("İşletme bilgileri kaydedildi.")
+        say(tr("İşletme bilgileri kaydedildi."))
       } catch (e: Exception) {
-        say("Kaydedilemedi: ${e.message}")
+        say(tr("Kaydedilemedi: {0}", e.message))
       } finally {
         _busy.value = false
       }
@@ -359,22 +361,22 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
 
   fun saveService(s: ServiceItem) {
     val u = firebaseUser.value ?: return
-    if (s.name.isBlank()) { say("Hizmet adı girin."); return }
-    if (s.durationMinutes < 5) { say("Süre en az 5 dakika olmalı."); return }
+    if (s.name.isBlank()) { say(tr("Hizmet adı girin.")); return }
+    if (s.durationMinutes < 5) { say(tr("Süre en az 5 dakika olmalı.")); return }
     val t = tier.value
     if (com.example.model.Billing.ENABLED && s.id.isBlank() && myServices.value.size >= t.maxServices) {
-      say("${t.title} paketinde en fazla ${t.maxServices} hizmet eklenebilir. Ayarlar > Paketler'den paketinizi yükseltebilirsiniz.")
+      say(tr("{0} paketinde en fazla {1} hizmet eklenebilir. Ayarlar > Paketler'den paketinizi yükseltebilirsiniz.", t.title, t.maxServices))
       return
     }
     viewModelScope.launch {
-      try { cloud.saveService(u.uid, s); say("Hizmet kaydedildi.") } catch (e: Exception) { say("Kaydedilemedi: ${e.message}") }
+      try { cloud.saveService(u.uid, s); say(tr("Hizmet kaydedildi.")) } catch (e: Exception) { say(tr("Kaydedilemedi: {0}", e.message)) }
     }
   }
 
   fun deleteService(id: String) {
     val u = firebaseUser.value ?: return
     viewModelScope.launch {
-      try { cloud.deleteService(u.uid, id); say("Hizmet silindi.") } catch (e: Exception) { say("Silinemedi: ${e.message}") }
+      try { cloud.deleteService(u.uid, id); say(tr("Hizmet silindi.")) } catch (e: Exception) { say(tr("Silinemedi: {0}", e.message)) }
     }
   }
 
@@ -383,9 +385,9 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     viewModelScope.launch {
       try {
         cloud.setStatus(appt, status, u.uid)
-        say("Randevu: ${status.label}")
+        say(tr("Randevu: {0}", status.label))
       } catch (e: Exception) {
-        say("İşlem yapılamadı: ${e.message}")
+        say(tr("İşlem yapılamadı: {0}", e.message))
       }
     }
   }
@@ -401,10 +403,10 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   ) {
     val chosen = if (staffChoice.isEmpty()) null else slotStaff[start] ?: staffChoice.first()
     val u = firebaseUser.value ?: return
-    val b = myBusiness.value ?: run { say("Önce işletme bilgilerini kaydedin."); return }
-    if (customerName.isBlank()) { say("Müşteri adını girin."); return }
+    val b = myBusiness.value ?: run { say(tr("Önce işletme bilgilerini kaydedin.")); return }
+    if (customerName.isBlank()) { say(tr("Müşteri adını girin.")); return }
     if (b.bookingFull) {
-      say("${tier.value.title} paketinin aylık ${tier.value.monthlyAppointments} randevu sınırı doldu. Ayarlar > Paketler'den paketinizi yükseltebilirsiniz.")
+      say(tr("{0} paketinin aylık {1} randevu sınırı doldu. Ayarlar > Paketler'den paketinizi yükseltebilirsiniz.", tier.value.title, tier.value.monthlyAppointments))
       return
     }
     viewModelScope.launch {
@@ -419,9 +421,9 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
             staffId = chosen?.id ?: "", staffName = chosen?.name ?: ""
           )
         )
-        say("Randevu eklendi: ${Formatters.formatDateTime(start)}")
+        say(tr("Randevu eklendi: {0}", Formatters.formatDateTime(start)))
       } catch (e: Exception) {
-        say(if (e.isSlotTaken()) "Bu saat dolu, başka bir saat seçin." else "Eklenemedi: ${e.message}")
+        say(if (e.isSlotTaken()) tr("Bu saat dolu, başka bir saat seçin.") else tr("Eklenemedi: {0}", e.message))
       } finally {
         _busy.value = false
       }
@@ -437,26 +439,26 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
       try {
         val existing = if (appt.customerPhone.isNotBlank()) ledger.findCustomerByPhone(appt.customerPhone) else null
         val customerId = existing?.id ?: ledger.insertCustomer(
-          Customer(name = appt.customerName.ifBlank { "Randevu müşterisi" }, phone = appt.customerPhone, notes = "Randevudan eklendi")
+          Customer(name = appt.customerName.ifBlank { tr("Randevu müşterisi") }, phone = appt.customerPhone, notes = tr("Randevudan eklendi"))
         )
         if (appt.price > 0) {
           ledger.insertDebt(
             Debt(customerId = customerId, amount = appt.price, date = appt.start, dueDate = if (paid) null else appt.start,
-              description = "Randevu: ${appt.serviceName}", category = "Hizmet & İşçilik")
+              description = tr("Randevu: {0}", appt.serviceName), category = tr("Hizmet & İşçilik"))
           )
           if (paid) {
             ledger.insertCollection(
               CollectionRecord(customerId = customerId, amount = appt.price, date = System.currentTimeMillis(),
-                paymentMethod = method, notes = "Randevu ödemesi: ${appt.serviceName}"),
+                paymentMethod = method, notes = tr("Randevu ödemesi: {0}", appt.serviceName)),
               force = true
             )
           }
         }
         if (appt.status != AppointmentStatus.COMPLETED) runCatching { cloud.setStatus(appt, AppointmentStatus.COMPLETED, appt.businessId) }
         runCatching { cloud.markLedgerPosted(appt.id) }
-        say(if (paid) "Randevu tamamlandı, tahsilat deftere işlendi." else "Randevu tamamlandı, borç olarak deftere yazıldı.")
+        say(if (paid) tr("Randevu tamamlandı, tahsilat deftere işlendi.") else tr("Randevu tamamlandı, borç olarak deftere yazıldı."))
       } catch (e: Exception) {
-        say("Deftere işlenemedi: ${e.message}")
+        say(tr("Deftere işlenemedi: {0}", e.message))
       }
     }
   }
@@ -495,7 +497,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         _listed.value = cloud.listBusinesses(city)
           .filter { it.id != me }
           .sortedWith(compareByDescending<BusinessProfile> { it.tierRank >= 2 }.thenBy { it.name.lowercase() })
-      } catch (e: Exception) { say("İşletmeler yüklenemedi: ${e.message}") }
+      } catch (e: Exception) { say(tr("İşletmeler yüklenemedi: {0}", e.message)) }
     }
   }
 
@@ -509,13 +511,13 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
       _busy.value = true
       try {
         val b = cloud.findByCode(code)
-        if (b == null) say("Bu koda ait işletme bulunamadı.")
+        if (b == null) say(tr("Bu koda ait işletme bulunamadı."))
         else {
           firebaseUser.value?.let { u -> runCatching { cloud.setFavorite(u.uid, b.id, true) } }
           openBusiness(b.id)
         }
       } catch (e: Exception) {
-        say("Aranamadı: ${e.message}")
+        say(tr("Aranamadı: {0}", e.message))
       } finally {
         _busy.value = false
       }
@@ -527,7 +529,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     val isFav = userProfile.value?.favoriteBusinessIds?.contains(businessId) == true
     viewModelScope.launch {
       runCatching { cloud.setFavorite(u.uid, businessId, !isFav) }
-        .onSuccess { say(if (isFav) "Favorilerden çıkarıldı." else "Favorilere eklendi.") }
+        .onSuccess { say(if (isFav) tr("Favorilerden çıkarıldı.") else tr("Favorilere eklendi.")) }
     }
   }
 
@@ -557,11 +559,11 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   /** Müşteri: geçmiş randevu için puan ve yorum. */
   fun submitReview(a: Appointment, rating: Int, comment: String) {
     val u = firebaseUser.value ?: return
-    if (rating !in 1..5) { say("Lütfen 1 ile 5 arasında yıldız seçin."); return }
-    if (comment.length > 300) { say("Yorum en fazla 300 karakter olabilir."); return }
+    if (rating !in 1..5) { say(tr("Lütfen 1 ile 5 arasında yıldız seçin.")); return }
+    if (comment.length > 300) { say(tr("Yorum en fazla 300 karakter olabilir.")); return }
     val name = (userProfile.value?.displayName ?: u.displayName ?: "").trim().split(Regex("\\s+")).let { parts ->
       when {
-        parts.isEmpty() || parts[0].isBlank() -> "Müşteri"
+        parts.isEmpty() || parts[0].isBlank() -> tr("Müşteri")
         parts.size == 1 -> parts[0]
         else -> parts[0] + " " + parts.last().take(1) + "."
       }
@@ -574,9 +576,9 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
             rating = rating, comment = comment.trim(), serviceName = a.serviceName
           )
         )
-        say("Teşekkürler! Değerlendirmeniz kaydedildi.")
+        say(tr("Teşekkürler! Değerlendirmeniz kaydedildi."))
       } catch (e: Exception) {
-        say("Değerlendirme kaydedilemedi: ${e.message}")
+        say(tr("Değerlendirme kaydedilemedi: {0}", e.message))
       }
     }
   }
@@ -637,7 +639,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         }
       } catch (e: Exception) {
         _slots.value = emptyList()
-        say("Saatler yüklenemedi: ${e.message}")
+        say(tr("Saatler yüklenemedi: {0}", e.message))
       }
     }
   }
@@ -654,16 +656,16 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     val u = firebaseUser.value ?: return
     val p = userProfile.value ?: return
     if (p.phone.filter { it.isDigit() }.length < 10) {
-      say("Randevu için önce Profil'den telefon numaranızı girin.")
+      say(tr("Randevu için önce Profil'den telefon numaranızı girin."))
       openCustomerTab(CustomerScreen.Profile)
       return
     }
     if (business.id == u.uid) {
-      say("Kendi işletmenizden randevu alamazsınız. Takviminize randevu eklemek için işletme moduna dönün.")
+      say(tr("Kendi işletmenizden randevu alamazsınız. Takviminize randevu eklemek için işletme moduna dönün."))
       return
     }
     if (business.bookingFull) {
-      say("Bu işletme bu ay online randevu kapasitesine ulaştı. Telefonla arayarak randevu alabilirsiniz.")
+      say(tr("Bu işletme bu ay online randevu kapasitesine ulaştı. Telefonla arayarak randevu alabilirsiniz."))
       return
     }
     viewModelScope.launch {
@@ -673,7 +675,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         cloud.book(
           Appointment(
             businessId = business.id, businessName = business.name, customerUid = u.uid,
-            customerName = p.displayName.ifBlank { u.displayName ?: "Müşteri" }, customerPhone = p.phone,
+            customerName = p.displayName.ifBlank { u.displayName ?: tr("Müşteri") }, customerPhone = p.phone,
             serviceId = service.id, serviceName = service.name, durationMinutes = service.durationMinutes,
             price = service.price, start = start, status = status, note = note.trim(),
             businessAddress = com.example.cloud.BusinessLocation.addressText(business),
@@ -683,10 +685,10 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         )
         runCatching { cloud.setFavorite(u.uid, business.id, true) }
         AppointmentWorker.scheduleReminder(app, start, business.name, service.name)
-        say(if (status == AppointmentStatus.CONFIRMED) "Randevunuz alındı: ${Formatters.formatDateTime(start)}" else "Randevu isteğiniz işletmeye iletildi. Onaylanınca bildirim alacaksınız.")
+        say(if (status == AppointmentStatus.CONFIRMED) tr("Randevunuz alındı: {0}", Formatters.formatDateTime(start)) else tr("Randevu isteğiniz işletmeye iletildi. Onaylanınca bildirim alacaksınız."))
         onDone()
       } catch (e: Exception) {
-        say(if (e.isSlotTaken()) "Bu saat az önce doldu, lütfen başka bir saat seçin." else "Randevu alınamadı: ${e.message}")
+        say(if (e.isSlotTaken()) tr("Bu saat az önce doldu, lütfen başka bir saat seçin.") else tr("Randevu alınamadı: {0}", e.message))
         loadSlots(business, Formatters.startOfDay(start), service.durationMinutes, staff = staffChoice)
       } finally {
         _busy.value = false
@@ -700,9 +702,9 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
       try {
         cloud.setStatus(appt, AppointmentStatus.CANCELLED, u.uid)
         androidx.work.WorkManager.getInstance(app).cancelUniqueWork("hatirlatma_${appt.start}")
-        say("Randevu iptal edildi.")
+        say(tr("Randevu iptal edildi."))
       } catch (e: Exception) {
-        say("İptal edilemedi: ${e.message}")
+        say(tr("İptal edilemedi: {0}", e.message))
       }
     }
   }

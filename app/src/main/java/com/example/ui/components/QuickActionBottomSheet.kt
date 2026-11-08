@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.util.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,12 +71,12 @@ fun QuickActionBottomSheet(
         .padding(bottom = 32.dp)
     ) {
       Text(
-        text = "Hızlı İşlemler",
+        text = tr("Hızlı İşlemler"),
         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
         color = MaterialTheme.colorScheme.onSurface
       )
       Text(
-        text = "Yapmak istediğiniz işlemi seçin",
+        text = tr("Yapmak istediğiniz işlemi seçin"),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )
@@ -83,8 +85,8 @@ fun QuickActionBottomSheet(
 
       if (onAddAppointment != null) {
         QuickActionRow(
-          title = "Randevu Ekle",
-          subtitle = "Telefonla veya yüz yüze alınan randevuyu takvime yaz",
+          title = tr("Randevu Ekle"),
+          subtitle = tr("Telefonla veya yüz yüze alınan randevuyu takvime yaz"),
           icon = Icons.Default.Event,
           accentColor = NavyPrimary,
           testTag = "quick_action_add_appointment",
@@ -98,8 +100,8 @@ fun QuickActionBottomSheet(
 
       // 1. Hızlı Tahsilat Al (Yeşil)
       QuickActionRow(
-        title = "Hızlı Tahsilat Al",
-        subtitle = "Müşteriden yapılan ödemeyi anında kaydet",
+        title = tr("Hızlı Tahsilat Al"),
+        subtitle = tr("Müşteriden yapılan ödemeyi anında kaydet"),
         icon = Icons.Default.MonetizationOn,
         accentColor = EmeraldPrimary,
         testTag = "quick_action_add_collection",
@@ -113,8 +115,8 @@ fun QuickActionBottomSheet(
 
       // 2. Hızlı Borç Ekle (Kırmızı/Rose)
       QuickActionRow(
-        title = "Yeni Borç Kaydet",
-        subtitle = "Açık hesap, mal satışı veya hizmet borcu gir",
+        title = tr("Yeni Borç Kaydet"),
+        subtitle = tr("Açık hesap, mal satışı veya hizmet borcu gir"),
         icon = Icons.Default.ReceiptLong,
         accentColor = RoseError,
         testTag = "quick_action_add_debt",
@@ -128,8 +130,8 @@ fun QuickActionBottomSheet(
 
       // 3. Yeni Müşteri Ekle (Lacivert)
       QuickActionRow(
-        title = "Yeni Müşteri Ekle",
-        subtitle = "İsim, telefon ve adres bilgileriyle kaydet",
+        title = tr("Yeni Müşteri Ekle"),
+        subtitle = tr("İsim, telefon ve adres bilgileriyle kaydet"),
         icon = Icons.Default.PersonAdd,
         accentColor = NavyPrimary,
         testTag = "quick_action_add_customer",
@@ -143,8 +145,8 @@ fun QuickActionBottomSheet(
 
       // 4. Hızlı Esnaf Hesap Makinesi (Amber)
       QuickActionRow(
-        title = "Hızlı Hesap Makinesi",
-        subtitle = "Tutarları topla, iskonto hesapla",
+        title = tr("Hızlı Hesap Makinesi"),
+        subtitle = tr("Tutarları topla, iskonto hesapla"),
         icon = Icons.Default.Calculate,
         accentColor = AmberWarning,
         testTag = "quick_action_calculator",
@@ -158,8 +160,8 @@ fun QuickActionBottomSheet(
 
       // 5. WhatsApp Mesaj Şablonları
       QuickActionRow(
-        title = "WhatsApp Şablonları",
-        subtitle = "Hazır hatırlatma ve makbuz mesajlarını düzenle",
+        title = tr("WhatsApp Şablonları"),
+        subtitle = tr("Hazır hatırlatma ve makbuz mesajlarını düzenle"),
         icon = Icons.Default.Send,
         accentColor = Color(0xFF25D366),
         testTag = "quick_action_templates",

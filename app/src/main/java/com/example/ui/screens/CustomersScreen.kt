@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -86,17 +88,17 @@ fun CustomersScreen(
     verticalArrangement = Arrangement.spacedBy(10.dp)
   ) {
     item {
-      ScreenHeader(title = "Müşteriler", subtitle = "$activeCount kayıtlı müşteri") {
+      ScreenHeader(title = tr("Müşteriler"), subtitle = tr("{0} kayıtlı müşteri", activeCount)) {
         Box {
           IconButton(onClick = { showSortMenu = true }, modifier = Modifier.testTag("btn_customer_sort")) {
-            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sırala", tint = MaterialTheme.colorScheme.onBackground)
+            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = tr("Sırala"), tint = MaterialTheme.colorScheme.onBackground)
           }
           DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
             listOf(
-              CustomerSort.NAME_ASC to "İsme göre (A–Z)",
-              CustomerSort.NAME_DESC to "İsme göre (Z–A)",
-              CustomerSort.DEBT_DESC to "En çok borcu olan",
-              CustomerSort.RECENT_ACTIVITY to "Son işleme göre"
+              CustomerSort.NAME_ASC to tr("İsme göre (A–Z)"),
+              CustomerSort.NAME_DESC to tr("İsme göre (Z–A)"),
+              CustomerSort.DEBT_DESC to tr("En çok borcu olan"),
+              CustomerSort.RECENT_ACTIVITY to tr("Son işleme göre")
             ).forEach { (sort, label) ->
               DropdownMenuItem(
                 text = { Text(label) },
@@ -111,7 +113,7 @@ fun CustomersScreen(
           colors = IconButtonDefaults.filledIconButtonColors(containerColor = palette.ink, contentColor = palette.onInk),
           modifier = Modifier.testTag("fab_add_customer")
         ) {
-          Icon(Icons.Default.PersonAdd, contentDescription = "Müşteri ekle", modifier = Modifier.size(20.dp))
+          Icon(Icons.Default.PersonAdd, contentDescription = tr("Müşteri ekle"), modifier = Modifier.size(20.dp))
         }
       }
     }
@@ -120,11 +122,11 @@ fun CustomersScreen(
       OutlinedTextField(
         value = searchQuery,
         onValueChange = { viewModel.searchQuery.value = it },
-        placeholder = { Text("İsim, telefon veya not ara") },
+        placeholder = { Text(tr("İsim, telefon veya not ara")) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = palette.inactive) },
         trailingIcon = {
           if (searchQuery.isNotEmpty()) {
-            IconButton(onClick = { viewModel.searchQuery.value = "" }) { Icon(Icons.Default.Clear, contentDescription = "Temizle") }
+            IconButton(onClick = { viewModel.searchQuery.value = "" }) { Icon(Icons.Default.Clear, contentDescription = tr("Temizle")) }
           }
         },
         singleLine = true,
@@ -144,11 +146,11 @@ fun CustomersScreen(
     item {
       LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val filters = listOf(
-          CustomerFilter.ALL to "Tümü",
-          CustomerFilter.WITH_DEBT to "Borcu olanlar",
-          CustomerFilter.OVERDUE to "Gecikmiş",
-          CustomerFilter.ZERO_BALANCE to "Borcu olmayanlar",
-          CustomerFilter.ARCHIVED to "Arşiv"
+          CustomerFilter.ALL to tr("Tümü"),
+          CustomerFilter.WITH_DEBT to tr("Borcu olanlar"),
+          CustomerFilter.OVERDUE to tr("Gecikmiş"),
+          CustomerFilter.ZERO_BALANCE to tr("Borcu olmayanlar"),
+          CustomerFilter.ARCHIVED to tr("Arşiv")
         )
         items(filters) { (f, label) ->
           FilterChip(
@@ -175,9 +177,9 @@ fun CustomersScreen(
       item {
         EmptyStateView(
           icon = Icons.Default.People,
-          title = if (searchQuery.isNotBlank()) "Sonuç bulunamadı" else if (all.isEmpty()) "Henüz müşteri yok" else "Bu filtrede müşteri yok",
-          description = if (searchQuery.isNotBlank()) "Farklı bir isim veya numara deneyin." else "Müşteri ekleyerek borç ve tahsilatları takip etmeye başlayın.",
-          actionButtonLabel = if (all.isEmpty()) "Müşteri ekle" else null,
+          title = if (searchQuery.isNotBlank()) tr("Sonuç bulunamadı") else if (all.isEmpty()) tr("Henüz müşteri yok") else tr("Bu filtrede müşteri yok"),
+          description = if (searchQuery.isNotBlank()) tr("Farklı bir isim veya numara deneyin.") else tr("Müşteri ekleyerek borç ve tahsilatları takip etmeye başlayın."),
+          actionButtonLabel = if (all.isEmpty()) tr("Müşteri ekle") else null,
           onActionClick = if (all.isEmpty()) ({ viewModel.openDialog(DialogState.AddEditCustomer()) }) else null
         )
       }
@@ -205,11 +207,11 @@ private fun CustomerRow(item: CustomerWithBalance, onClick: () -> Unit, onWhatsA
   val palette = LocalAppPalette.current
   val c = item.customer
   val (statusText, statusColor, statusBg) = when {
-    c.isArchived -> Triple("Arşivde", palette.muted, MaterialTheme.colorScheme.surfaceVariant)
-    item.overdueAmount > 0 -> Triple("Gecikmiş", palette.danger, palette.dangerSoft)
-    item.remainingBalance > 0 -> Triple("Borçlu", palette.warning, palette.warningSoft)
-    item.remainingBalance < 0 -> Triple("Avans", palette.ink, palette.accentSoft)
-    else -> Triple("Borcu yok", palette.success, palette.accentSoft)
+    c.isArchived -> Triple(tr("Arşivde"), palette.muted, MaterialTheme.colorScheme.surfaceVariant)
+    item.overdueAmount > 0 -> Triple(tr("Gecikmiş"), palette.danger, palette.dangerSoft)
+    item.remainingBalance > 0 -> Triple(tr("Borçlu"), palette.warning, palette.warningSoft)
+    item.remainingBalance < 0 -> Triple(tr("Avans"), palette.ink, palette.accentSoft)
+    else -> Triple(tr("Borcu yok"), palette.success, palette.accentSoft)
   }
   Row(
     modifier = Modifier
@@ -235,8 +237,8 @@ private fun CustomerRow(item: CustomerWithBalance, onClick: () -> Unit, onWhatsA
       Text(
         listOfNotNull(
           Formatters.formatPhoneCompact(c.phone).takeIf { c.phone.isNotBlank() },
-          item.lastTransactionDate?.let { "Son ${Formatters.formatShortDate(it)}" }
-        ).joinToString(" • ").ifBlank { "Telefon yok" },
+          item.lastTransactionDate?.let { tr("Son {0}", Formatters.formatShortDate(it)) }
+        ).joinToString(" • ").ifBlank { tr("Telefon yok") },
         style = MaterialTheme.typography.bodySmall,
         color = palette.muted,
         maxLines = 1,
@@ -260,7 +262,7 @@ private fun CustomerRow(item: CustomerWithBalance, onClick: () -> Unit, onWhatsA
     }
     if (c.phone.isNotBlank() && item.remainingBalance > 0) {
       IconButton(onClick = onWhatsApp, modifier = Modifier.size(36.dp)) {
-        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "WhatsApp ile hatırlat", tint = WhatsAppGreen, modifier = Modifier.size(20.dp))
+        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = tr("WhatsApp ile hatırlat"), tint = WhatsAppGreen, modifier = Modifier.size(20.dp))
       }
     } else {
       Spacer(modifier = Modifier.width(12.dp))

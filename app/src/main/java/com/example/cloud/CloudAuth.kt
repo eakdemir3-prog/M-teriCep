@@ -1,5 +1,7 @@
 package com.example.cloud
 
+import com.example.util.tr
+
 import android.app.Activity
 import android.content.Context
 import androidx.credentials.ClearCredentialStateRequest
@@ -67,9 +69,9 @@ class CloudAuth(private val context: Context) {
    * o kullanılamazsa Credential Manager'a geçilir. Hiçbir adım sonsuza kadar beklemez.
    */
   suspend fun signInWithGoogle(activity: Activity): FirebaseUser {
-    val a = auth ?: throw IllegalStateException("Bulut bağlantısı henüz kurulmadı.")
+    val a = auth ?: throw IllegalStateException(tr("Bulut bağlantısı henüz kurulmadı."))
     val clientId = CloudGate.webClientId(context)
-      ?: throw IllegalStateException("Google giriş ayarı eksik (Firebase'de Google girişini açın).")
+      ?: throw IllegalStateException(tr("Google giriş ayarı eksik (Firebase'de Google girişini açın)."))
 
     val idToken = (activity as? ComponentActivity)?.let { legacyIdToken(it, clientId) }
       ?: credentialManagerIdToken(activity, clientId)
@@ -77,9 +79,9 @@ class CloudAuth(private val context: Context) {
     val authResult = try {
       withTimeout(30_000) { a.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await() }
     } catch (e: TimeoutCancellationException) {
-      throw IllegalStateException("Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.")
+      throw IllegalStateException(tr("Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin."))
     }
-    return authResult.user ?: throw IllegalStateException("Giriş yapılamadı.")
+    return authResult.user ?: throw IllegalStateException(tr("Giriş yapılamadı."))
   }
 
   /** Klasik Google girişi (hesap seçici). Kullanılamıyorsa null döner, iptal/hata durumunda mesaj fırlatır. */
@@ -105,15 +107,15 @@ class CloudAuth(private val context: Context) {
         launcher?.unregister()
         if (cont.isActive) cont.resume(null)
       }
-    } ?: throw IllegalStateException("Giriş iptal edildi.")
+    } ?: throw IllegalStateException(tr("Giriş iptal edildi."))
     return try {
       GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException::class.java).idToken
-        ?: throw IllegalStateException("Google girişi tamamlanamadı (kimlik bilgisi alınamadı).")
+        ?: throw IllegalStateException(tr("Google girişi tamamlanamadı (kimlik bilgisi alınamadı)."))
     } catch (e: ApiException) {
       when (e.statusCode) {
-        12501, CommonStatusCodes.CANCELED -> throw IllegalStateException("Giriş iptal edildi.")
-        CommonStatusCodes.NETWORK_ERROR -> throw IllegalStateException("İnternet bağlantısı yok. Bağlanıp tekrar deneyin.")
-        CommonStatusCodes.DEVELOPER_ERROR -> throw IllegalStateException("Google girişi şu an yapılamıyor (uygulama imzası doğrulanamadı, kod 10).")
+        12501, CommonStatusCodes.CANCELED -> throw IllegalStateException(tr("Giriş iptal edildi."))
+        CommonStatusCodes.NETWORK_ERROR -> throw IllegalStateException(tr("İnternet bağlantısı yok. Bağlanıp tekrar deneyin."))
+        CommonStatusCodes.DEVELOPER_ERROR -> throw IllegalStateException(tr("Google girişi şu an yapılamıyor (uygulama imzası doğrulanamadı, kod 10)."))
         else -> null // Credential Manager ile denensin
       }
     }
@@ -140,17 +142,17 @@ class CloudAuth(private val context: Context) {
         } catch (e: GetCredentialCancellationException) {
           throw IllegalStateException(explain(e, first))
         } catch (e: NoCredentialException) {
-          throw IllegalStateException("Telefonda Google hesabı bulunamadı. Ayarlar > Hesaplar'dan Google hesabı ekleyin.")
+          throw IllegalStateException(tr("Telefonda Google hesabı bulunamadı. Ayarlar > Hesaplar'dan Google hesabı ekleyin."))
         } catch (e: GetCredentialException) {
           throw IllegalStateException(explain(e, first))
         }
       }
     } catch (e: TimeoutCancellationException) {
-      throw IllegalStateException("Google girişi yanıt vermedi. Google Play Hizmetleri'ni güncelleyip tekrar deneyin.")
+      throw IllegalStateException(tr("Google girişi yanıt vermedi. Google Play Hizmetleri'ni güncelleyip tekrar deneyin."))
     }
     val credential = result.credential
     if (credential !is CustomCredential || credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-      throw IllegalStateException("Google girişi tamamlanamadı.")
+      throw IllegalStateException(tr("Google girişi tamamlanamadı."))
     }
     return GoogleIdTokenCredential.createFrom(credential.data).idToken
   }
@@ -161,9 +163,9 @@ class CloudAuth(private val context: Context) {
     val configProblem = detail.contains("16") || detail.contains("10") || detail.contains("reauth", true) ||
       detail.contains("developer", true) || detail.contains("DEVELOPER_ERROR")
     return if (configProblem || detail.isNotBlank() && !detail.contains("cancel", true)) {
-      "Google girişi şu an yapılamıyor (uygulama imzası doğrulanamadı). Hata: $detail"
+      tr("Google girişi şu an yapılamıyor (uygulama imzası doğrulanamadı). Hata: {0}", detail)
     } else {
-      "Giriş iptal edildi. ($detail)"
+      tr("Giriş iptal edildi. ({0})", detail)
     }
   }
 

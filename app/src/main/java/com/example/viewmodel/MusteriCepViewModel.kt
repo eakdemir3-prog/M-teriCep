@@ -1,5 +1,7 @@
 package com.example.viewmodel
 
+import com.example.util.tr
+
 import com.example.model.allows
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -96,7 +98,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   fun showMessage(msg: String) { _messages.tryEmit(UiMessage(msg)) }
 
   private fun showUndo(msg: String, undo: () -> Unit) {
-    _messages.tryEmit(UiMessage(msg, "Geri Al", undo))
+    _messages.tryEmit(UiMessage(msg, tr("Geri Al"), undo))
   }
 
   // ---------------- Profil ve ayarlar ----------------
@@ -112,7 +114,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   fun updateBusinessProfile(name: String, owner: String, phone: String, city: String) {
     viewModelScope.launch {
       settings.updateBusiness(name, owner, phone, city)
-      showMessage("İşletme bilgileri kaydedildi.")
+      showMessage(tr("İşletme bilgileri kaydedildi."))
     }
   }
 
@@ -128,10 +130,10 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       val ctx = getApplication<Application>()
       if (enabled) {
         DueReminderWorker.schedule(ctx)
-        showMessage("Vade hatırlatıcı açıldı. Her sabah 09:00 civarı kontrol edilir.")
+        showMessage(tr("Vade hatırlatıcı açıldı. Her sabah 09:00 civarı kontrol edilir."))
       } else {
         DueReminderWorker.cancel(ctx)
-        showMessage("Vade hatırlatıcı kapatıldı.")
+        showMessage(tr("Vade hatırlatıcı kapatıldı."))
       }
     }
   }
@@ -144,11 +146,11 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   fun runReminderNow() {
     val ctx = getApplication<Application>()
     if (!DueReminderWorker.canNotify(ctx)) {
-      showMessage("Bildirim izni kapalı. Telefon ayarlarından MüşteriCep bildirimlerine izin verin.")
+      showMessage(tr("Bildirim izni kapalı. Telefon ayarlarından MüşteriCep bildirimlerine izin verin."))
       return
     }
     WorkManager.getInstance(ctx).enqueue(OneTimeWorkRequestBuilder<DueReminderWorker>().build())
-    showMessage("Kontrol edildi. Vadesi gelen alacak varsa bildirim gelecek.")
+    showMessage(tr("Kontrol edildi. Vadesi gelen alacak varsa bildirim gelecek."))
   }
 
   /** Özellik mevcut pakette varsa true; yoksa paket önerisi penceresini açar. */
@@ -279,7 +281,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       try {
         block()
       } catch (e: Exception) {
-        showMessage("Kaydedilemedi: ${e.message ?: "bilinmeyen hata"}")
+        showMessage(tr("Kaydedilemedi: {0}", e.message ?: "bilinmeyen hata"))
       } finally {
         _saving.value = false
       }
@@ -297,7 +299,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     existing: Customer? = null
   ) {
     if (name.isBlank()) {
-      showMessage("Müşteri adı zorunludur.")
+      showMessage(tr("Müşteri adı zorunludur."))
       return
     }
     guardedSave {
@@ -311,13 +313,13 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
         repository.insertCustomer(
           Customer(name = name.trim(), phone = phone.trim(), email = email.trim(), address = address.trim(), notes = notes.trim())
         )
-        showMessage("Müşteri eklendi: ${name.trim()}")
+        showMessage(tr("Müşteri eklendi: {0}", name.trim()))
       } else {
         // Arşiv durumu, oluşturma tarihi ve örnek veri işareti korunur.
         repository.updateCustomer(
           existing.copy(name = name.trim(), phone = phone.trim(), email = email.trim(), address = address.trim(), notes = notes.trim())
         )
-        showMessage("Müşteri güncellendi.")
+        showMessage(tr("Müşteri güncellendi."))
       }
       dismissDialog()
     }
@@ -327,7 +329,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     viewModelScope.launch {
       val newStatus = !customer.isArchived
       repository.setCustomerArchived(customer.id, newStatus)
-      showMessage(if (newStatus) "Müşteri arşive kaldırıldı." else "Müşteri arşivden çıkarıldı.")
+      showMessage(if (newStatus) tr("Müşteri arşive kaldırıldı.") else tr("Müşteri arşivden çıkarıldı."))
     }
   }
 
@@ -336,7 +338,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       dismissDialog()
       if (currentScreen.value is Screen.CustomerDetail) navigateBack()
       repository.deleteCustomer(customer)
-      showMessage("${customer.name} ve tüm hareketleri silindi.")
+      showMessage(tr("{0} ve tüm hareketleri silindi.", customer.name))
     }
   }
 
@@ -351,8 +353,8 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     category: String,
     existingId: Long = 0
   ) {
-    if (customerId <= 0) { showMessage("Lütfen müşteri seçin."); return }
-    if (Money.toCents(amount) <= 0) { showMessage("Tutar 0'dan büyük olmalıdır."); return }
+    if (customerId <= 0) { showMessage(tr("Lütfen müşteri seçin.")); return }
+    if (Money.toCents(amount) <= 0) { showMessage(tr("Tutar 0'dan büyük olmalıdır.")); return }
     guardedSave {
       val debt = Debt(
         id = existingId, customerId = customerId, amount = amount, date = date,
@@ -362,7 +364,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       when (result) {
         is SaveResult.Saved -> {
           dismissDialog()
-          showMessage(if (existingId == 0L) "Borç kaydedildi: ${Formatters.formatCurrency(amount)}" else "Borç kaydı güncellendi.")
+          showMessage(if (existingId == 0L) tr("Borç kaydedildi: {0}", Formatters.formatCurrency(amount)) else tr("Borç kaydı güncellendi."))
         }
         is SaveResult.Failed -> showMessage(result.message)
         is SaveResult.NeedsConfirmation -> showMessage(result.reason)
@@ -380,7 +382,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     viewModelScope.launch {
       repository.setDebtDeleted(id, true)
       dismissDialog()
-      showUndo("Borç kaydı silindi.") {
+      showUndo(tr("Borç kaydı silindi.")) {
         viewModelScope.launch { repository.setDebtDeleted(id, false) }
       }
     }
@@ -397,8 +399,8 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     existingId: Long = 0,
     force: Boolean = false
   ) {
-    if (customerId <= 0) { showMessage("Lütfen müşteri seçin."); return }
-    if (Money.toCents(amount) <= 0) { showMessage("Tutar 0'dan büyük olmalıdır."); return }
+    if (customerId <= 0) { showMessage(tr("Lütfen müşteri seçin.")); return }
+    if (Money.toCents(amount) <= 0) { showMessage(tr("Tutar 0'dan büyük olmalıdır.")); return }
     guardedSave {
       val record = CollectionRecord(
         id = existingId, customerId = customerId, amount = amount, date = date,
@@ -408,14 +410,14 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       when (result) {
         is SaveResult.Saved -> {
           dismissDialog()
-          showMessage(if (existingId == 0L) "Tahsilat kaydedildi: ${Formatters.formatCurrency(amount)}" else "Tahsilat güncellendi.")
+          showMessage(if (existingId == 0L) tr("Tahsilat kaydedildi: {0}", Formatters.formatCurrency(amount)) else tr("Tahsilat güncellendi."))
         }
         is SaveResult.Failed -> showMessage(result.message)
         is SaveResult.NeedsConfirmation -> openDialog(
           DialogState.ConfirmAction(
-            title = "Kontrol edin",
+            title = tr("Kontrol edin"),
             message = result.reason,
-            confirmLabel = "Yine de kaydet",
+            confirmLabel = tr("Yine de kaydet"),
             onConfirm = { saveCollection(customerId, amount, date, paymentMethod, notes, existingId, force = true) }
           )
         )
@@ -435,7 +437,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     viewModelScope.launch {
       repository.setCollectionDeleted(id, true)
       dismissDialog()
-      showUndo("Tahsilat kaydı silindi.") {
+      showUndo(tr("Tahsilat kaydı silindi.")) {
         viewModelScope.launch { repository.setCollectionDeleted(id, false) }
       }
     }
@@ -445,10 +447,10 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
 
   fun updateTemplate(template: WhatsAppTemplate) {
     if (!requireFeature(com.example.model.Feature.EDIT_TEMPLATES)) return
-    if (template.templateText.isBlank()) { showMessage("Mesaj metni boş olamaz."); return }
+    if (template.templateText.isBlank()) { showMessage(tr("Mesaj metni boş olamaz.")); return }
     viewModelScope.launch {
       repository.updateTemplate(template.copy(isCustom = true))
-      showMessage("Şablon kaydedildi.")
+      showMessage(tr("Şablon kaydedildi."))
       dismissDialog()
     }
   }
@@ -457,7 +459,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     viewModelScope.launch {
       repository.resetTemplates()
       dismissDialog()
-      showMessage("Şablonlar varsayılana döndürüldü.")
+      showMessage(tr("Şablonlar varsayılana döndürüldü."))
     }
   }
 
@@ -467,7 +469,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     viewModelScope.launch {
       val result = CsvHelper.parseCustomerCsv(csvContent, repository.existingPhones())
       if (result.validCustomers.isEmpty() && result.skippedDuplicates.isEmpty() && result.errors.isNotEmpty()) {
-        showMessage("CSV okunamadı: ${result.errors.first()}")
+        showMessage(tr("CSV okunamadı: {0}", result.errors.first()))
       } else {
         openDialog(DialogState.CsvImportPreview(result.validCustomers, result.errors, result.skippedDuplicates))
       }
@@ -485,8 +487,8 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       val skipped = validCustomers.size - toImport.size
       dismissDialog()
       showMessage(
-        if (skipped > 0) "${toImport.size} müşteri eklendi. Paket limiti nedeniyle $skipped kayıt eklenemedi."
-        else "${toImport.size} müşteri içe aktarıldı."
+        if (skipped > 0) tr("{0} müşteri eklendi. Paket limiti nedeniyle {1} kayıt eklenemedi.", toImport.size, skipped)
+        else tr("{0} müşteri içe aktarıldı.", toImport.size)
       )
     }
   }
@@ -514,17 +516,17 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
     val snapshot = try {
       BackupManager.fromJson(json)
     } catch (e: Exception) {
-      showMessage(e.message ?: "Yedek dosyası okunamadı.")
+      showMessage(e.message ?: tr("Yedek dosyası okunamadı."))
       return
     }
     openDialog(
       DialogState.ConfirmAction(
-        title = "Yedekten geri yükle",
-        message = "Yedek tarihi: ${Formatters.formatDateTime(snapshot.createdAt)}\n" +
-          "${snapshot.customers.size} müşteri, ${snapshot.debts.count { !it.isDeleted }} borç, " +
-          "${snapshot.collections.count { !it.isDeleted }} tahsilat.\n\n" +
-          "Telefondaki mevcut kayıtların YERİNE yedektekiler konacak. Devam edilsin mi?",
-        confirmLabel = "Geri yükle",
+        title = tr("Yedekten geri yükle"),
+        message = tr("Yedek tarihi: {0}\n", Formatters.formatDateTime(snapshot.createdAt)) +
+          tr("{0} müşteri, {1} borç, ", snapshot.customers.size, snapshot.debts.count { !it.isDeleted }) +
+          tr("{0} tahsilat.\n\n", snapshot.collections.count { !it.isDeleted }) +
+          tr("Telefondaki mevcut kayıtların YERİNE yedektekiler konacak. Devam edilsin mi?"),
+        confirmLabel = tr("Geri yükle"),
         isDestructive = true,
         onConfirm = {
           viewModelScope.launch {
@@ -532,10 +534,10 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
               repository.restore(snapshot)
               snapshot.profile?.let { settings.restore(it) }
               dismissDialog()
-              showMessage("Yedek geri yüklendi: ${snapshot.customers.size} müşteri.")
+              showMessage(tr("Yedek geri yüklendi: {0} müşteri.", snapshot.customers.size))
             } catch (e: Exception) {
               dismissDialog()
-              showMessage("Geri yükleme başarısız: ${e.message}")
+              showMessage(tr("Geri yükleme başarısız: {0}", e.message))
             }
           }
         }
@@ -548,9 +550,9 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   fun loadDemoData() {
     viewModelScope.launch {
       if (repository.loadSampleData()) {
-        showMessage("Örnek veriler yüklendi. İstediğinizde Ayarlar'dan silebilirsiniz.")
+        showMessage(tr("Örnek veriler yüklendi. İstediğinizde Ayarlar'dan silebilirsiniz."))
       } else {
-        showMessage("Gerçek müşteri kaydınız olduğu için örnek veri yüklenmedi.")
+        showMessage(tr("Gerçek müşteri kaydınız olduğu için örnek veri yüklenmedi."))
       }
     }
   }
@@ -558,7 +560,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
   fun clearDemoData() {
     viewModelScope.launch {
       repository.clearDemoData()
-      showMessage("Örnek veriler silindi.")
+      showMessage(tr("Örnek veriler silindi."))
     }
   }
 
@@ -567,7 +569,7 @@ class MusteriCepViewModel(application: Application) : AndroidViewModel(applicati
       repository.clearAllData()
       dismissDialog()
       navigate(Screen.Dashboard)
-      showMessage("Tüm müşteri ve hareket kayıtları silindi.")
+      showMessage(tr("Tüm müşteri ve hareket kayıtları silindi."))
     }
   }
 }

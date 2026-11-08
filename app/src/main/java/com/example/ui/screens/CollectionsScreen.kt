@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
@@ -100,12 +102,12 @@ fun CollectionsScreen(
     verticalArrangement = Arrangement.spacedBy(12.dp)
   ) {
     item {
-      ScreenHeader(title = "Kasa", subtitle = "Müşterilerden alınan ödemeler") {
+      ScreenHeader(title = tr("Kasa"), subtitle = tr("Müşterilerden alınan ödemeler")) {
         FilledIconButton(
           onClick = { viewModel.openDialog(DialogState.AddCollection()) },
           colors = IconButtonDefaults.filledIconButtonColors(containerColor = palette.ink, contentColor = palette.onInk)
         ) {
-          Icon(Icons.Default.Payments, contentDescription = "Tahsilat al", modifier = Modifier.size(20.dp))
+          Icon(Icons.Default.Payments, contentDescription = tr("Tahsilat al"), modifier = Modifier.size(20.dp))
         }
       }
     }
@@ -115,14 +117,14 @@ fun CollectionsScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
           Column(modifier = Modifier.weight(1f)) {
             Text(
-              (if (selectedMethod != null) "${selectedMethod!!.label} • " else "") + period.title,
+              (if (selectedMethod != null) tr("{0} • ", selectedMethod!!.label) else "") + period.title,
               style = MaterialTheme.typography.labelLarge,
               color = palette.muted,
               maxLines = 1,
               overflow = TextOverflow.Ellipsis
             )
             Text(Formatters.formatCurrency(total), style = moneyStyle(28, FontWeight.Bold), color = palette.success, maxLines = 1)
-            Text("${filtered.size} tahsilat", style = MaterialTheme.typography.bodySmall, color = palette.muted)
+            Text(tr("{0} tahsilat", filtered.size), style = MaterialTheme.typography.bodySmall, color = palette.muted)
           }
         }
         Spacer(modifier = Modifier.height(12.dp))
@@ -144,9 +146,9 @@ fun CollectionsScreen(
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-          MethodStat("Nakit", sumOf(PaymentMethod.CASH), Icons.Default.Payments, Modifier.weight(1f))
-          MethodStat("Havale", sumOf(PaymentMethod.BANK_TRANSFER), Icons.Default.AccountBalance, Modifier.weight(1f))
-          MethodStat("Kart", sumOf(PaymentMethod.CREDIT_CARD), Icons.Default.CreditCard, Modifier.weight(1f))
+          MethodStat(tr("Nakit"), sumOf(PaymentMethod.CASH), Icons.Default.Payments, Modifier.weight(1f))
+          MethodStat(tr("Havale"), sumOf(PaymentMethod.BANK_TRANSFER), Icons.Default.AccountBalance, Modifier.weight(1f))
+          MethodStat(tr("Kart"), sumOf(PaymentMethod.CREDIT_CARD), Icons.Default.CreditCard, Modifier.weight(1f))
         }
       }
     }
@@ -154,10 +156,10 @@ fun CollectionsScreen(
     item {
       LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-          MethodChip("Tümü (${inPeriod.size})", selectedMethod == null) { selectedMethod = null }
+          MethodChip(tr("Tümü ({0})", inPeriod.size), selectedMethod == null) { selectedMethod = null }
         }
         items(PaymentMethod.entries.toList()) { m ->
-          MethodChip("${m.label} (${inPeriod.count { it.paymentMethod == m }})", selectedMethod == m) { selectedMethod = m }
+          MethodChip(tr("{0} ({1})", m.label, inPeriod.count { it.paymentMethod == m }), selectedMethod == m) { selectedMethod = m }
         }
       }
     }
@@ -166,9 +168,9 @@ fun CollectionsScreen(
       item {
         EmptyStateView(
           icon = Icons.Default.MonetizationOn,
-          title = if (collections.isEmpty()) "Henüz tahsilat yok" else "Bu dönemde tahsilat yok",
-          description = "Müşteriden ödeme aldığınızda buraya kaydedin.",
-          actionButtonLabel = "Tahsilat al",
+          title = if (collections.isEmpty()) tr("Henüz tahsilat yok") else tr("Bu dönemde tahsilat yok"),
+          description = tr("Müşteriden ödeme aldığınızda buraya kaydedin."),
+          actionButtonLabel = tr("Tahsilat al"),
           onActionClick = { viewModel.openDialog(DialogState.AddCollection()) }
         )
       }
@@ -179,14 +181,14 @@ fun CollectionsScreen(
             if (i > 0) HorizontalDivider(color = palette.cardBorder, modifier = Modifier.padding(start = 64.dp))
             CollectionRow(
               coll = coll,
-              name = names[coll.customerId] ?: "Bilinmeyen müşteri",
+              name = names[coll.customerId] ?: tr("Bilinmeyen müşteri"),
               onOpen = { if (names.containsKey(coll.customerId)) viewModel.selectCustomer(coll.customerId) },
               onEdit = { viewModel.editCollection(coll.id) },
               onDelete = {
                 viewModel.openDialog(
                   DialogState.ConfirmDelete(
-                    title = "Tahsilatı sil",
-                    message = "${Formatters.formatCurrency(coll.amount)} tutarındaki tahsilat silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
+                    title = tr("Tahsilatı sil"),
+                    message = tr("{0} tutarındaki tahsilat silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.", Formatters.formatCurrency(coll.amount)),
                     onConfirm = { viewModel.deleteCollection(coll.id) }
                   )
                 )
@@ -267,7 +269,7 @@ private fun CollectionRow(coll: CollectionRecord, name: String, onOpen: () -> Un
     Column(modifier = Modifier.weight(1f)) {
       Text(name, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
       Text(
-        "${coll.paymentMethod.shortLabel} • ${Formatters.formatShortDate(coll.date)}",
+        tr("{0} • {1}", coll.paymentMethod.shortLabel, Formatters.formatShortDate(coll.date)),
         fontSize = 12.sp,
         color = palette.muted,
         maxLines = 1,
@@ -281,12 +283,12 @@ private fun CollectionRow(coll: CollectionRecord, name: String, onOpen: () -> Un
     Text("+" + Formatters.formatCurrency(coll.amount), style = moneyStyle(14), color = palette.success, maxLines = 1)
     Box {
       IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) {
-        Icon(Icons.Default.MoreVert, contentDescription = "Seçenekler", tint = palette.inactive, modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.MoreVert, contentDescription = tr("Seçenekler"), tint = palette.inactive, modifier = Modifier.size(18.dp))
       }
       DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-        DropdownMenuItem(text = { Text("Düzenle") }, leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }, onClick = { menu = false; onEdit() })
+        DropdownMenuItem(text = { Text(tr("Düzenle")) }, leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }, onClick = { menu = false; onEdit() })
         DropdownMenuItem(
-          text = { Text("Sil", color = palette.danger) },
+          text = { Text(tr("Sil"), color = palette.danger) },
           leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = palette.danger) },
           onClick = { menu = false; onDelete() }
         )
@@ -296,8 +298,8 @@ private fun CollectionRow(coll: CollectionRecord, name: String, onOpen: () -> Un
 }
 
 private enum class CollectionPeriod(val label: String, val title: String) {
-  TODAY("Bugün", "Bugün alınan"),
-  WEEK("Hafta", "Bu hafta alınan"),
-  MONTH("Ay", "Bu ay alınan"),
-  ALL("Tümü", "Toplam alınan")
+  TODAY(tr("Bugün"), tr("Bugün alınan")),
+  WEEK(tr("Hafta"), tr("Bu hafta alınan")),
+  MONTH(tr("Ay"), tr("Bu ay alınan")),
+  ALL(tr("Tümü"), tr("Toplam alınan"))
 }

@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.util.tr
+
 import android.app.DatePickerDialog
 import android.widget.DatePicker
 import androidx.compose.foundation.background
@@ -122,7 +124,7 @@ fun AddEditCustomerDialog(
           Formatters.cleanPhoneNumber(it.customer.phone) == clean
       }
       duplicateWarning = if (found != null) {
-        "Dikkat: Bu telefon numarası '${found.customer.name}' müşterisinde de kayıtlıdır."
+        tr("Dikkat: Bu telefon numarası '{0}' müşterisinde de kayıtlıdır.", found.customer.name)
       } else null
     } else {
       duplicateWarning = null
@@ -144,7 +146,7 @@ fun AddEditCustomerDialog(
           .verticalScroll(rememberScrollState())
       ) {
         Text(
-          text = if (existingCustomer == null) "Müşteri ekle" else "Müşteriyi düzenle",
+          text = if (existingCustomer == null) tr("Müşteri ekle") else tr("Müşteriyi düzenle"),
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
@@ -158,7 +160,7 @@ fun AddEditCustomerDialog(
             name = it
             if (it.isNotBlank()) nameError = null
           },
-          label = { Text("Ad Soyad / İşletme Adı *") },
+          label = { Text(tr("Ad Soyad / İşletme Adı *")) },
           isError = nameError != null,
           supportingText = nameError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
           singleLine = true,
@@ -173,7 +175,7 @@ fun AddEditCustomerDialog(
         OutlinedTextField(
           value = phone,
           onValueChange = { phone = it; phoneError = null },
-          label = { Text("Telefon (WhatsApp için)") },
+          label = { Text(tr("Telefon (WhatsApp için)")) },
           placeholder = { Text("0532 123 45 67") },
           isError = phoneError != null,
           supportingText = phoneError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
@@ -195,7 +197,7 @@ fun AddEditCustomerDialog(
         OutlinedTextField(
           value = email,
           onValueChange = { email = it; emailError = null },
-          label = { Text("E-posta (isteğe bağlı)") },
+          label = { Text(tr("E-posta (isteğe bağlı)")) },
           isError = emailError != null,
           supportingText = emailError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -209,7 +211,7 @@ fun AddEditCustomerDialog(
         OutlinedTextField(
           value = address,
           onValueChange = { address = it },
-          label = { Text("Adres / Konum") },
+          label = { Text(tr("Adres / Konum")) },
           maxLines = 2,
           modifier = Modifier.fillMaxWidth()
         )
@@ -220,7 +222,7 @@ fun AddEditCustomerDialog(
         OutlinedTextField(
           value = notes,
           onValueChange = { notes = it },
-          label = { Text("Notlar (Örn: Cuma günleri öder)") },
+          label = { Text(tr("Notlar (Örn: Cuma günleri öder)")) },
           maxLines = 3,
           modifier = Modifier.fillMaxWidth()
         )
@@ -232,22 +234,22 @@ fun AddEditCustomerDialog(
           horizontalArrangement = Arrangement.End
         ) {
           TextButton(onClick = onDismiss) {
-            Text("Vazgeç")
+            Text(tr("Vazgeç"))
           }
           Spacer(modifier = Modifier.width(8.dp))
           Button(
             onClick = {
               if (name.isBlank()) {
-                nameError = "Ad soyad veya işletme adı zorunludur"
+                nameError = tr("Ad soyad veya işletme adı zorunludur")
                 return@Button
               }
               val digits = phone.filter { it.isDigit() }
               if (phone.isNotBlank() && digits.length < 10) {
-                phoneError = "Numara eksik görünüyor (en az 10 hane)"
+                phoneError = tr("Numara eksik görünüyor (en az 10 hane)")
                 return@Button
               }
               if (!Formatters.isValidEmail(email)) {
-                emailError = "E-posta adresi geçersiz"
+                emailError = tr("E-posta adresi geçersiz")
                 return@Button
               }
               onSave(name, phone, email, address, notes)
@@ -256,7 +258,7 @@ fun AddEditCustomerDialog(
             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
             modifier = Modifier.testTag("btn_save_customer")
           ) {
-            Text(if (saving) "Kaydediliyor…" else "Kaydet", maxLines = 1, softWrap = false)
+            Text(if (saving) tr("Kaydediliyor…") else tr("Kaydet"), maxLines = 1, softWrap = false)
           }
         }
       }
@@ -287,8 +289,8 @@ fun CustomerPicker(
         query = it
         expanded = true
       },
-      label = { Text("Müşteri *") },
-      placeholder = { Text("İsim yazarak arayın") },
+      label = { Text(tr("Müşteri *")) },
+      placeholder = { Text(tr("İsim yazarak arayın")) },
       singleLine = true,
       isError = selectedCustomerId <= 0L && query.isNotBlank() && options.isEmpty(),
       trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -358,7 +360,7 @@ fun DatePickField(
       Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
       Spacer(modifier = Modifier.width(8.dp))
       Text(
-        if (value == null) label else "$label: ${Formatters.formatDate(value)}",
+        if (value == null) label else tr("{0}: {1}", label, Formatters.formatDate(value)),
         maxLines = 1,
         softWrap = false,
         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -367,7 +369,7 @@ fun DatePickField(
     }
     if (allowClear && value != null) {
       IconButton(onClick = { onChange(null) }) {
-        Icon(Icons.Default.Close, contentDescription = "Temizle", tint = Slate500)
+        Icon(Icons.Default.Close, contentDescription = tr("Temizle"), tint = Slate500)
       }
     }
   }
@@ -450,7 +452,7 @@ fun AddDebtDialog(
           .verticalScroll(rememberScrollState())
       ) {
         Text(
-          text = if (isEdit) "Borcu düzenle" else "Borç ekle",
+          text = if (isEdit) tr("Borcu düzenle") else tr("Borç ekle"),
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
@@ -480,8 +482,8 @@ fun AddDebtDialog(
             amountText = it
             if (Money.parse(it) != null) amountError = null
           },
-          label = { Text("Borç Tutarı (₺) *") },
-          placeholder = { Text("Örn: 1.250,50") },
+          label = { Text(tr("Borç Tutarı (₺) *")) },
+          placeholder = { Text(tr("Örn: 1.250,50")) },
           isError = amountError != null,
           supportingText = {
             val parsed = Money.parse(amountText)
@@ -499,19 +501,19 @@ fun AddDebtDialog(
         )
 
         Spacer(modifier = Modifier.height(6.dp))
-        DatePickField(label = "Tarih", value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
+        DatePickField(label = tr("Tarih"), value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
 
         Spacer(modifier = Modifier.height(10.dp))
-        Text("Vade Tarihi", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr("Vade Tarihi"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
-        DatePickField(label = "Vade", value = dueDate, onChange = { dueDate = it }, allowClear = true, endOfDay = true)
+        DatePickField(label = tr("Vade"), value = dueDate, onChange = { dueDate = it }, allowClear = true, endOfDay = true)
         Spacer(modifier = Modifier.height(6.dp))
-        ChipGrid(listOf(3 to "+3 gün", 7 to "+1 hafta", 15 to "+15 gün", 30 to "+1 ay"), columns = 4) { (days, label) ->
+        ChipGrid(listOf(3 to tr("+3 gün"), 7 to tr("+1 hafta"), 15 to tr("+15 gün"), 30 to tr("+1 ay")), columns = 4) { (days, label) ->
           GridChip(label, selected = false) { dueDate = endOfDayPlus(days) }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
-        Text("Kategori", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr("Kategori"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
         ChipGrid(categories, columns = 2) { cat ->
           GridChip(cat, selected = selectedCategory == cat) { selectedCategory = cat }
@@ -521,24 +523,24 @@ fun AddDebtDialog(
         OutlinedTextField(
           value = description,
           onValueChange = { description = it },
-          label = { Text("Açıklama (ürün, fatura no...)") },
+          label = { Text(tr("Açıklama (ürün, fatura no...)")) },
           maxLines = 3,
           modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-          TextButton(onClick = onDismiss) { Text("Vazgeç", maxLines = 1, softWrap = false) }
+          TextButton(onClick = onDismiss) { Text(tr("Vazgeç"), maxLines = 1, softWrap = false) }
           Spacer(modifier = Modifier.width(8.dp))
           Button(
             onClick = {
               val amt = Money.parse(amountText)
               if (amt == null) {
-                amountError = "Geçerli bir tutar girin (örn: 1.250,50)"
+                amountError = tr("Geçerli bir tutar girin (örn: 1.250,50)")
                 return@Button
               }
               if (selectedCustomerId <= 0L) {
-                customerError = "Listeden bir müşteri seçin"
+                customerError = tr("Listeden bir müşteri seçin")
                 return@Button
               }
               onSave(selectedCustomerId, amt, date, dueDate, description, selectedCategory)
@@ -547,7 +549,7 @@ fun AddDebtDialog(
             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
             modifier = Modifier.testTag("btn_save_debt")
           ) {
-            Text(if (saving) "Kaydediliyor…" else if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
+            Text(if (saving) tr("Kaydediliyor…") else if (isEdit) tr("Güncelle") else tr("Kaydet"), maxLines = 1, softWrap = false)
           }
         }
       }
@@ -607,7 +609,7 @@ fun AddCollectionDialog(
           .verticalScroll(rememberScrollState())
       ) {
         Text(
-          text = if (isEdit) "Tahsilatı düzenle" else "Tahsilat al",
+          text = if (isEdit) tr("Tahsilatı düzenle") else tr("Tahsilat al"),
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
@@ -640,7 +642,7 @@ fun AddCollectionDialog(
               horizontalArrangement = Arrangement.SpaceBetween,
               verticalAlignment = Alignment.CenterVertically
             ) {
-              Text("Kalan bakiye", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+              Text(tr("Kalan bakiye"), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
               Text(
                 text = Formatters.formatCurrency(remainingBalance),
                 style = moneyStyle(16),
@@ -657,8 +659,8 @@ fun AddCollectionDialog(
             amountText = it
             if (Money.parse(it) != null) amountError = null
           },
-          label = { Text("Alınan Tutar (₺) *") },
-          placeholder = { Text("Örn: 500") },
+          label = { Text(tr("Alınan Tutar (₺) *")) },
+          placeholder = { Text(tr("Örn: 500")) },
           isError = amountError != null,
           supportingText = {
             val parsed = Money.parse(amountText)
@@ -667,8 +669,8 @@ fun AddCollectionDialog(
               parsed != null && !isEdit && targetCustomer != null -> {
                 val after = remainingBalance - parsed
                 Text(
-                  if (after >= -0.004) "İşlem sonrası kalan: ${Formatters.formatCurrency(after)}"
-                  else "Fazla ödeme: ${Formatters.formatCurrency(-after)} avans olarak kalır"
+                  if (after >= -0.004) tr("İşlem sonrası kalan: {0}", Formatters.formatCurrency(after))
+                  else tr("Fazla ödeme: {0} avans olarak kalır", Formatters.formatCurrency(-after))
                 )
               }
               parsed != null -> Text(Formatters.formatCurrency(parsed))
@@ -686,7 +688,7 @@ fun AddCollectionDialog(
           Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (remainingBalance > 0) {
               Row(modifier = Modifier.fillMaxWidth()) {
-                GridChip("Tamamı: ${Formatters.formatCurrency(remainingBalance)}", selected = false) {
+                GridChip(tr("Tamamı: {0}", Formatters.formatCurrency(remainingBalance)), selected = false) {
                   amountText = Money.toInput(remainingBalance); amountError = null
                 }
               }
@@ -698,10 +700,10 @@ fun AddCollectionDialog(
         }
 
         Spacer(modifier = Modifier.height(10.dp))
-        DatePickField(label = "Tarih", value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
+        DatePickField(label = tr("Tarih"), value = date, onChange = { if (it != null) date = it }, allowClear = false, endOfDay = false)
 
         Spacer(modifier = Modifier.height(10.dp))
-        Text("Ödeme Yöntemi", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr("Ödeme Yöntemi"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(6.dp))
         ChipGrid(PaymentMethod.entries.toList(), columns = 3) { method ->
           GridChip(method.shortLabel, selected = selectedMethod == method) { selectedMethod = method }
@@ -711,24 +713,24 @@ fun AddCollectionDialog(
         OutlinedTextField(
           value = notes,
           onValueChange = { notes = it },
-          label = { Text("Not (makbuz no, banka...)") },
+          label = { Text(tr("Not (makbuz no, banka...)")) },
           maxLines = 2,
           modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-          TextButton(onClick = onDismiss) { Text("Vazgeç", maxLines = 1, softWrap = false) }
+          TextButton(onClick = onDismiss) { Text(tr("Vazgeç"), maxLines = 1, softWrap = false) }
           Spacer(modifier = Modifier.width(8.dp))
           Button(
             onClick = {
               val amt = Money.parse(amountText)
               if (amt == null) {
-                amountError = "Geçerli bir tutar girin (örn: 500 veya 1.250,50)"
+                amountError = tr("Geçerli bir tutar girin (örn: 500 veya 1.250,50)")
                 return@Button
               }
               if (selectedCustomerId <= 0L) {
-                customerError = "Listeden bir müşteri seçin"
+                customerError = tr("Listeden bir müşteri seçin")
                 return@Button
               }
               onSave(selectedCustomerId, amt, date, selectedMethod, notes)
@@ -737,7 +739,7 @@ fun AddCollectionDialog(
             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
             modifier = Modifier.testTag("btn_save_collection")
           ) {
-            Text(if (saving) "Kaydediliyor…" else if (isEdit) "Güncelle" else "Kaydet", maxLines = 1, softWrap = false)
+            Text(if (saving) tr("Kaydediliyor…") else if (isEdit) tr("Güncelle") else tr("Kaydet"), maxLines = 1, softWrap = false)
           }
         }
       }
@@ -790,7 +792,7 @@ fun SendWhatsAppDialog(
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(
-            text = "WhatsApp Mesajı Gönder",
+            text = tr("WhatsApp Mesajı Gönder"),
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface
           )
@@ -821,7 +823,7 @@ fun SendWhatsAppDialog(
           Column(modifier = Modifier.padding(12.dp)) {
             Text(customer.name, fontWeight = FontWeight.Bold)
             Text(
-              "Tel: ${Formatters.formatPhoneForDisplay(customer.phone)} • Kalan Bakiye: ${Formatters.formatCurrency(customerWithBalance.remainingBalance)}",
+              tr("Tel: {0} • Kalan Bakiye: {1}", Formatters.formatPhoneForDisplay(customer.phone), Formatters.formatCurrency(customerWithBalance.remainingBalance)),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -831,7 +833,7 @@ fun SendWhatsAppDialog(
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
-          text = "Şablon Seçin",
+          text = tr("Şablon Seçin"),
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -850,7 +852,7 @@ fun SendWhatsAppDialog(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-          text = "Mesaj Önizleme (Düzenleyebilirsiniz):",
+          text = tr("Mesaj Önizleme (Düzenleyebilirsiniz):"),
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -877,7 +879,7 @@ fun SendWhatsAppDialog(
         if (copyFeedback) {
           Spacer(modifier = Modifier.height(8.dp))
           Text(
-            text = "✓ Mesaj panoya kopyalandı!",
+            text = tr("✓ Mesaj panoya kopyalandı!"),
             color = EmeraldPrimary,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold
@@ -893,13 +895,13 @@ fun SendWhatsAppDialog(
         ) {
           OutlinedButton(
             onClick = {
-              WhatsAppHelper.copyToClipboard(context, "MusteriCep Mesaj", customizedMessage)
+              WhatsAppHelper.copyToClipboard(context, tr("MusteriCep Mesaj"), customizedMessage)
               copyFeedback = true
             }
           ) {
             Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Kopyala")
+            Text(tr("Kopyala"))
           }
 
           Button(
@@ -914,7 +916,7 @@ fun SendWhatsAppDialog(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
             modifier = Modifier.testTag("btn_send_whatsapp")
           ) {
-            Text("WhatsApp'ta Aç", color = Color.White)
+            Text(tr("WhatsApp'ta Aç"), color = Color.White)
           }
         }
       }
@@ -946,7 +948,7 @@ fun EditTemplateDialog(
           .verticalScroll(rememberScrollState())
       ) {
         Text(
-          text = "Şablonu Düzenle",
+          text = tr("Şablonu Düzenle"),
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
@@ -956,7 +958,7 @@ fun EditTemplateDialog(
         OutlinedTextField(
           value = title,
           onValueChange = { title = it },
-          label = { Text("Şablon Başlığı") },
+          label = { Text(tr("Şablon Başlığı")) },
           singleLine = true,
           modifier = Modifier.fillMaxWidth()
         )
@@ -964,27 +966,27 @@ fun EditTemplateDialog(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-          text = "Değişken Ekle (Dokununca eklenir):",
+          text = tr("Değişken Ekle (Dokununca eklenir):"),
           style = MaterialTheme.typography.labelSmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(6.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
           val variables = listOf(
-            "{musteri_adi}" to "Müşteri Adı",
-            "{kalan_bakiye}" to "Kalan Bakiye",
-            "{gecikmis_tutar}" to "Gecikmiş Tutar",
-            "{vade_tarihi}" to "En Yakın Vade",
-            "{son_tutar}" to "Son Ödeme",
-            "{toplam_borc}" to "Toplam Borç",
-            "{toplam_tahsilat}" to "Toplam Tahsilat",
-            "{isletme_adi}" to "İşletme Adı",
-            "{tarih}" to "Bugünün Tarihi"
+            "{musteri_adi}" to tr("Müşteri Adı"),
+            "{kalan_bakiye}" to tr("Kalan Bakiye"),
+            "{gecikmis_tutar}" to tr("Gecikmiş Tutar"),
+            "{vade_tarihi}" to tr("En Yakın Vade"),
+            "{son_tutar}" to tr("Son Ödeme"),
+            "{toplam_borc}" to tr("Toplam Borç"),
+            "{toplam_tahsilat}" to tr("Toplam Tahsilat"),
+            "{isletme_adi}" to tr("İşletme Adı"),
+            "{tarih}" to tr("Bugünün Tarihi")
           )
           items(variables) { (token, label) ->
             FilterChip(
               selected = false,
-              onClick = { text = if (text.isBlank() || text.endsWith(" ")) text + token else "$text $token" },
+              onClick = { text = if (text.isBlank() || text.endsWith(" ")) text + token else tr("{0} {1}", text, token) },
               label = { Text(label, fontSize = 11.sp) }
             )
           }
@@ -995,17 +997,17 @@ fun EditTemplateDialog(
         OutlinedTextField(
           value = text,
           onValueChange = { text = it },
-          label = { Text("Mesaj Metni") },
+          label = { Text(tr("Mesaj Metni")) },
           minLines = 4,
           maxLines = 8,
           modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
-        Text("Önizleme (örnek müşteri ile):", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr("Önizleme (örnek müşteri ile):"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
           text = WhatsAppHelper.buildMessage(
-            templateText = text, customerName = "Ahmet Yılmaz", businessName = "İşletmem",
+            templateText = text, customerName = tr("Ahmet Yılmaz"), businessName = tr("İşletmem"),
             totalDebt = 6300.0, totalPaid = 2000.0, remainingBalance = 4300.0,
             dueDate = System.currentTimeMillis() + 3 * 86_400_000L, lastPaymentAmount = 2000.0, overdueAmount = 2500.0
           ),
@@ -1020,7 +1022,7 @@ fun EditTemplateDialog(
           horizontalArrangement = Arrangement.End
         ) {
           TextButton(onClick = onDismiss) {
-            Text("Vazgeç")
+            Text(tr("Vazgeç"))
           }
           Spacer(modifier = Modifier.width(8.dp))
           Button(
@@ -1029,7 +1031,7 @@ fun EditTemplateDialog(
             },
             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
           ) {
-            Text("Şablonu Kaydet")
+            Text(tr("Şablonu Kaydet"))
           }
         }
       }
@@ -1098,11 +1100,11 @@ fun QuickCalculatorDialog(
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(
-            text = "Hızlı Esnaf Hesap Makinesi",
+            text = tr("Hızlı Esnaf Hesap Makinesi"),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
           )
           IconButton(onClick = onDismiss) {
-            Icon(Icons.Default.Close, contentDescription = "Kapat")
+            Icon(Icons.Default.Close, contentDescription = tr("Kapat"))
           }
         }
 
@@ -1121,7 +1123,7 @@ fun QuickCalculatorDialog(
             contentAlignment = Alignment.CenterEnd
           ) {
             Text(
-              text = (display.toDoubleOrNull()?.let { Formatters.formatCurrency(it) } ?: "$display ₺"),
+              text = (display.toDoubleOrNull()?.let { Formatters.formatCurrency(it) } ?: tr("{0} ₺", display)),
               style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
               color = MaterialTheme.colorScheme.onSurface
             )
@@ -1212,7 +1214,7 @@ fun QuickCalculatorDialog(
           colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
           modifier = Modifier.fillMaxWidth()
         ) {
-          Text("Bu tutarla tahsilat al")
+          Text(tr("Bu tutarla tahsilat al"))
         }
       }
     }
@@ -1241,7 +1243,7 @@ fun CsvImportPreviewDialog(
           .padding(20.dp)
       ) {
         Text(
-          text = "CSV Müşteri İçe Aktarım Önizleme",
+          text = tr("CSV Müşteri İçe Aktarım Önizleme"),
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
         )
 
@@ -1252,13 +1254,13 @@ fun CsvImportPreviewDialog(
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
           Text(
-            text = "Geçerli Kayıt: ${validCustomers.size}",
+            text = tr("Geçerli Kayıt: {0}", validCustomers.size),
             color = EmeraldPrimary,
             fontWeight = FontWeight.Bold
           )
           if (errors.isNotEmpty()) {
             Text(
-              text = "Hatalı Satır: ${errors.size}",
+              text = tr("Hatalı Satır: {0}", errors.size),
               color = RoseError,
               fontWeight = FontWeight.Bold
             )
@@ -1269,12 +1271,12 @@ fun CsvImportPreviewDialog(
 
         if (skipped.isNotEmpty()) {
           Text(
-            text = "Zaten kayıtlı olduğu için atlanacak: ${skipped.size}",
+            text = tr("Zaten kayıtlı olduğu için atlanacak: {0}", skipped.size),
             color = AmberWarning,
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp
           )
-          skipped.take(3).forEach { Text("• $it", fontSize = 11.sp, color = Slate500) }
+          skipped.take(3).forEach { Text(tr("• {0}", it), fontSize = 11.sp, color = Slate500) }
           Spacer(modifier = Modifier.height(10.dp))
         }
 
@@ -1285,12 +1287,12 @@ fun CsvImportPreviewDialog(
             modifier = Modifier.fillMaxWidth()
           ) {
             Column(modifier = Modifier.padding(10.dp)) {
-              Text("Hatalı Satırlar:", fontWeight = FontWeight.Bold, color = RoseError, fontSize = 12.sp)
+              Text(tr("Hatalı Satırlar:"), fontWeight = FontWeight.Bold, color = RoseError, fontSize = 12.sp)
               errors.take(3).forEach { err ->
-                Text("• $err", fontSize = 11.sp, color = RoseError)
+                Text(tr("• {0}", err), fontSize = 11.sp, color = RoseError)
               }
               if (errors.size > 3) {
-                Text("...ve ${errors.size - 3} hata daha", fontSize = 11.sp, color = RoseError)
+                Text(tr("...ve {0} hata daha", errors.size - 3), fontSize = 11.sp, color = RoseError)
               }
             }
           }
@@ -1298,7 +1300,7 @@ fun CsvImportPreviewDialog(
         }
 
         // Preview list
-        Text("Aktarılacak Müşteriler (İlk 5):", style = MaterialTheme.typography.labelSmall)
+        Text(tr("Aktarılacak Müşteriler (İlk 5):"), style = MaterialTheme.typography.labelSmall)
         Spacer(modifier = Modifier.height(6.dp))
         LazyColumn(modifier = Modifier.heightIn(max = 160.dp)) {
           items(validCustomers.take(5)) { c ->
@@ -1322,7 +1324,7 @@ fun CsvImportPreviewDialog(
           horizontalArrangement = Arrangement.End
         ) {
           TextButton(onClick = onDismiss) {
-            Text("Vazgeç")
+            Text(tr("Vazgeç"))
           }
           Spacer(modifier = Modifier.width(8.dp))
           Button(
@@ -1330,7 +1332,7 @@ fun CsvImportPreviewDialog(
             enabled = validCustomers.isNotEmpty(),
             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
           ) {
-            Text("İçe Aktarmayı Başlat")
+            Text(tr("İçe Aktarmayı Başlat"))
           }
         }
       }
@@ -1351,11 +1353,11 @@ fun TierLimitReachedDialog(
       Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.Star, contentDescription = null, tint = AmberWarning)
         Spacer(modifier = Modifier.width(8.dp))
-        Text("Müşteri sınırı doldu", fontWeight = FontWeight.Bold)
+        Text(tr("Müşteri sınırı doldu"), fontWeight = FontWeight.Bold)
       }
     },
     text = {
-      Text("Paketinizde en fazla $maxLimit müşteri kaydedebilirsiniz (arşivdekiler dahil). Şu an $currentCount müşteri kayıtlı. Daha fazla müşteri için paketinizi yükseltebilirsiniz.")
+      Text(tr("Paketinizde en fazla {0} müşteri kaydedebilirsiniz (arşivdekiler dahil). Şu an {1} müşteri kayıtlı. Daha fazla müşteri için paketinizi yükseltebilirsiniz.", maxLimit, currentCount))
     },
     confirmButton = {
       Button(
@@ -1365,12 +1367,12 @@ fun TierLimitReachedDialog(
         },
         colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
       ) {
-        Text("Paketleri gör")
+        Text(tr("Paketleri gör"))
       }
     },
     dismissButton = {
       TextButton(onClick = onDismiss) {
-        Text("Anladım")
+        Text(tr("Anladım"))
       }
     }
   )
@@ -1386,18 +1388,18 @@ fun FeatureLockedDialog(feature: com.example.model.Feature, onDismiss: () -> Uni
       Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.Star, contentDescription = null, tint = palette.warning)
         Spacer(modifier = Modifier.width(8.dp))
-        Text("${feature.required.title} paketinde", fontWeight = FontWeight.Bold)
+        Text(tr("{0} paketinde", feature.required.title), fontWeight = FontWeight.Bold)
       }
     },
     text = {
-      Text("\"${feature.label}\" ${feature.required.title} ve üstü paketlerde var. Paketleri inceleyip dilediğiniz zaman geçebilirsiniz.")
+      Text(tr("\"{0}\" {1} ve üstü paketlerde var. Paketleri inceleyip dilediğiniz zaman geçebilirsiniz.", feature.label, feature.required.title))
     },
     confirmButton = {
       Button(
         onClick = { onDismiss(); onViewPlans() },
         colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk)
-      ) { Text("Paketleri gör") }
+      ) { Text(tr("Paketleri gör")) }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) } }
   )
 }

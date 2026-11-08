@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.tr
+
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -96,7 +98,7 @@ fun CustomerDetailScreen(
   val item = customerWithBalance
   if (item == null) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-      Text("Müşteri bulunamadı.", color = palette.muted)
+      Text(tr("Müşteri bulunamadı."), color = palette.muted)
     }
     return
   }
@@ -120,7 +122,7 @@ fun CustomerDetailScreen(
     try {
       context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + customer.phone.filter { it.isDigit() || it == '+' })))
     } catch (e: Exception) {
-      viewModel.showMessage("Arama uygulaması açılamadı.")
+      viewModel.showMessage(tr("Arama uygulaması açılamadı."))
     }
   }
 
@@ -129,31 +131,31 @@ fun CustomerDetailScreen(
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
     topBar = {
       TopAppBar(
-        title = { Text("Müşteri", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(tr("Müşteri"), style = MaterialTheme.typography.titleMedium) },
         navigationIcon = {
-          IconButton(onClick = { viewModel.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri") }
+          IconButton(onClick = { viewModel.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Geri")) }
         },
         actions = {
           IconButton(onClick = { viewModel.openDialog(DialogState.AddEditCustomer(customer)) }) {
-            Icon(Icons.Default.Edit, contentDescription = "Düzenle")
+            Icon(Icons.Default.Edit, contentDescription = tr("Düzenle"))
           }
           Box {
-            IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Diğer") }
+            IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, contentDescription = tr("Diğer")) }
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
               DropdownMenuItem(
-                text = { Text(if (customer.isArchived) "Arşivden çıkar" else "Arşive kaldır") },
+                text = { Text(if (customer.isArchived) tr("Arşivden çıkar") else tr("Arşive kaldır")) },
                 leadingIcon = { Icon(if (customer.isArchived) Icons.Default.Unarchive else Icons.Default.Archive, contentDescription = null) },
                 onClick = { showMenu = false; viewModel.toggleArchiveCustomer(customer) }
               )
               DropdownMenuItem(
-                text = { Text("Müşteriyi sil", color = palette.danger) },
+                text = { Text(tr("Müşteriyi sil"), color = palette.danger) },
                 leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = palette.danger) },
                 onClick = {
                   showMenu = false
                   viewModel.openDialog(
                     DialogState.ConfirmDelete(
-                      title = "Müşteriyi sil",
-                      message = "${customer.name} ve tüm borç/tahsilat kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+                      title = tr("Müşteriyi sil"),
+                      message = tr("{0} ve tüm borç/tahsilat kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.", customer.name),
                       onConfirm = { viewModel.deleteCustomer(customer) }
                     )
                   )
@@ -182,32 +184,32 @@ fun CustomerDetailScreen(
           Column(modifier = Modifier.weight(1f)) {
             Text(customer.name, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(
-              if (customer.phone.isNotBlank()) Formatters.formatPhoneForDisplay(customer.phone) else "Telefon girilmemiş",
+              if (customer.phone.isNotBlank()) Formatters.formatPhoneForDisplay(customer.phone) else tr("Telefon girilmemiş"),
               style = MaterialTheme.typography.bodyMedium,
               color = palette.muted,
               maxLines = 1
             )
           }
           if (customer.phone.isNotBlank()) {
-            IconButton(onClick = { dial() }) { Icon(Icons.Default.Call, contentDescription = "Ara", tint = palette.ink) }
+            IconButton(onClick = { dial() }) { Icon(Icons.Default.Call, contentDescription = tr("Ara"), tint = palette.ink) }
           }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
           when {
-            customer.isArchived -> StatusPill("Arşivde", palette.muted, MaterialTheme.colorScheme.surfaceVariant)
-            item.overdueAmount > 0 -> StatusPill("Gecikmiş ödeme var", palette.danger, palette.dangerSoft)
-            item.remainingBalance > 0 -> StatusPill("Borçlu", palette.warning, palette.warningSoft)
-            item.remainingBalance < 0 -> StatusPill("Avansı var", palette.ink, palette.accentSoft)
-            else -> StatusPill("Borcu yok", palette.success, palette.accentSoft)
+            customer.isArchived -> StatusPill(tr("Arşivde"), palette.muted, MaterialTheme.colorScheme.surfaceVariant)
+            item.overdueAmount > 0 -> StatusPill(tr("Gecikmiş ödeme var"), palette.danger, palette.dangerSoft)
+            item.remainingBalance > 0 -> StatusPill(tr("Borçlu"), palette.warning, palette.warningSoft)
+            item.remainingBalance < 0 -> StatusPill(tr("Avansı var"), palette.ink, palette.accentSoft)
+            else -> StatusPill(tr("Borcu yok"), palette.success, palette.accentSoft)
           }
-          if (customer.isDemo) StatusPill("Örnek kayıt", palette.warning, palette.warningSoft)
+          if (customer.isDemo) StatusPill(tr("Örnek kayıt"), palette.warning, palette.warningSoft)
         }
       }
 
       // 2. Finansal özet
       item {
         AppCard {
-          Text("Kalan bakiye", style = MaterialTheme.typography.labelLarge, color = palette.muted)
+          Text(tr("Kalan bakiye"), style = MaterialTheme.typography.labelLarge, color = palette.muted)
           Text(
             Formatters.formatCurrency(item.remainingBalance),
             style = moneyStyle(30, FontWeight.Bold),
@@ -219,20 +221,20 @@ fun CustomerDetailScreen(
             maxLines = 1
           )
           if (item.overdueAmount > 0) {
-            Text("Gecikmiş: ${Formatters.formatCurrency(item.overdueAmount)}", style = MaterialTheme.typography.bodySmall, color = palette.danger, fontWeight = FontWeight.Medium)
+            Text(tr("Gecikmiş: {0}", Formatters.formatCurrency(item.overdueAmount)), style = MaterialTheme.typography.bodySmall, color = palette.danger, fontWeight = FontWeight.Medium)
           } else if (item.nextDueDate != null && item.remainingBalance > 0) {
-            Text("En yakın vade: ${Formatters.formatDate(item.nextDueDate)} • ${Formatters.dueLabel(item.nextDueDate)}", style = MaterialTheme.typography.bodySmall, color = palette.warning)
+            Text(tr("En yakın vade: {0} • {1}", Formatters.formatDate(item.nextDueDate), Formatters.dueLabel(item.nextDueDate)), style = MaterialTheme.typography.bodySmall, color = palette.warning)
           }
           Spacer(modifier = Modifier.height(12.dp))
           HorizontalDivider(color = palette.cardBorder)
           Spacer(modifier = Modifier.height(12.dp))
           Row(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
-              Text("Toplam borç", fontSize = 12.sp, color = palette.muted)
+              Text(tr("Toplam borç"), fontSize = 12.sp, color = palette.muted)
               Text(Formatters.formatCurrency(item.totalDebt), style = moneyStyle(15), maxLines = 1)
             }
             Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-              Text("Toplam tahsilat", fontSize = 12.sp, color = palette.muted)
+              Text(tr("Toplam tahsilat"), fontSize = 12.sp, color = palette.muted)
               Text(Formatters.formatCurrency(item.totalPaid), style = moneyStyle(15), color = palette.success, maxLines = 1)
             }
           }
@@ -242,7 +244,7 @@ fun CustomerDetailScreen(
       // 3. İşlemler
       item {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-          ActionButton("Tahsilat al", Icons.Default.Payments, filled = true, modifier = Modifier.weight(1f).testTag("btn_detail_add_collection")) {
+          ActionButton(tr("Tahsilat al"), Icons.Default.Payments, filled = true, modifier = Modifier.weight(1f).testTag("btn_detail_add_collection")) {
             viewModel.openDialog(
               DialogState.AddCollection(
                 preselectedCustomerId = customer.id,
@@ -250,7 +252,7 @@ fun CustomerDetailScreen(
               )
             )
           }
-          ActionButton("Borç ekle", Icons.AutoMirrored.Filled.ReceiptLong, filled = false, modifier = Modifier.weight(1f).testTag("btn_detail_add_debt")) {
+          ActionButton(tr("Borç ekle"), Icons.AutoMirrored.Filled.ReceiptLong, filled = false, modifier = Modifier.weight(1f).testTag("btn_detail_add_debt")) {
             viewModel.openDialog(DialogState.AddDebt(preselectedCustomerId = customer.id))
           }
         }
@@ -265,7 +267,7 @@ fun CustomerDetailScreen(
         ) {
           Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = WhatsAppGreen, modifier = Modifier.size(18.dp))
           Spacer(modifier = Modifier.width(8.dp))
-          Text("WhatsApp mesajı", color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+          Text(tr("WhatsApp mesajı"), color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
         }
       }
 
@@ -276,7 +278,7 @@ fun CustomerDetailScreen(
             if (customer.email.isNotBlank()) InfoLine(Icons.Default.Email, customer.email)
             if (customer.address.isNotBlank()) InfoLine(Icons.Default.LocationOn, customer.address)
             if (customer.notes.isNotBlank()) {
-              Text("Not", fontSize = 12.sp, color = palette.muted, modifier = Modifier.padding(top = 4.dp))
+              Text(tr("Not"), fontSize = 12.sp, color = palette.muted, modifier = Modifier.padding(top = 4.dp))
               Text(customer.notes, style = MaterialTheme.typography.bodyMedium)
             }
           }
@@ -284,15 +286,15 @@ fun CustomerDetailScreen(
       }
 
       // 5. İşlem geçmişi
-      item { SectionHeader("İşlem geçmişi (${transactions.size})") }
+      item { SectionHeader(tr("İşlem geçmişi ({0})", transactions.size)) }
 
       if (transactions.isEmpty()) {
         item {
           EmptyStateView(
             icon = Icons.AutoMirrored.Filled.ReceiptLong,
-            title = "Henüz işlem yok",
-            description = "Bu müşteriye ait borç veya tahsilat kaydı bulunmuyor.",
-            actionButtonLabel = "Borç ekle",
+            title = tr("Henüz işlem yok"),
+            description = tr("Bu müşteriye ait borç veya tahsilat kaydı bulunmuyor."),
+            actionButtonLabel = tr("Borç ekle"),
             onActionClick = { viewModel.openDialog(DialogState.AddDebt(preselectedCustomerId = customer.id)) }
           )
         }
@@ -309,8 +311,8 @@ fun CustomerDetailScreen(
                   val isDebt = t is TransactionItem.DebtItem
                   viewModel.openDialog(
                     DialogState.ConfirmDelete(
-                      title = if (isDebt) "Borç kaydını sil" else "Tahsilatı sil",
-                      message = "${Formatters.formatCurrency(t.amount)} tutarındaki kayıt silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.",
+                      title = if (isDebt) tr("Borç kaydını sil") else tr("Tahsilatı sil"),
+                      message = tr("{0} tutarındaki kayıt silinsin mi? Hemen ardından \"Geri Al\" ile geri getirebilirsiniz.", Formatters.formatCurrency(t.amount)),
                       onConfirm = { if (isDebt) viewModel.deleteDebt(t.id) else viewModel.deleteCollection(t.id) }
                     )
                   )
@@ -385,8 +387,8 @@ private fun TransactionRow(t: TransactionItem, balance: Double?, onEdit: () -> U
     Spacer(modifier = Modifier.width(12.dp))
     Column(modifier = Modifier.weight(1f)) {
       val title = when (t) {
-        is TransactionItem.DebtItem -> "Borç • ${t.category}"
-        is TransactionItem.CollectionItem -> "Tahsilat • ${t.paymentMethod.label}"
+        is TransactionItem.DebtItem -> tr("Borç • {0}", t.category)
+        is TransactionItem.CollectionItem -> tr("Tahsilat • {0}", t.paymentMethod.label)
       }
       Text(title, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
       Text(Formatters.formatDate(t.date), fontSize = 12.sp, color = palette.muted)
@@ -396,14 +398,14 @@ private fun TransactionRow(t: TransactionItem, balance: Double?, onEdit: () -> U
       if (t is TransactionItem.DebtItem) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
           when (t.status) {
-            DebtStatus.PAID -> StatusPill("Ödendi", palette.success, palette.accentSoft)
-            DebtStatus.PARTIALLY_PAID -> StatusPill("Kısmen ödendi", palette.warning, palette.warningSoft)
-            DebtStatus.OVERDUE -> StatusPill("Gecikmiş", palette.danger, palette.dangerSoft)
-            DebtStatus.UNPAID -> StatusPill("Ödenmedi", palette.muted, MaterialTheme.colorScheme.surfaceVariant)
+            DebtStatus.PAID -> StatusPill(tr("Ödendi"), palette.success, palette.accentSoft)
+            DebtStatus.PARTIALLY_PAID -> StatusPill(tr("Kısmen ödendi"), palette.warning, palette.warningSoft)
+            DebtStatus.OVERDUE -> StatusPill(tr("Gecikmiş"), palette.danger, palette.dangerSoft)
+            DebtStatus.UNPAID -> StatusPill(tr("Ödenmedi"), palette.muted, MaterialTheme.colorScheme.surfaceVariant)
           }
           if (t.dueDate != null && t.status != DebtStatus.PAID) {
             Text(
-              "Vade ${Formatters.formatShortDate(t.dueDate)}",
+              tr("Vade {0}", Formatters.formatShortDate(t.dueDate)),
               fontSize = 11.sp,
               color = if (t.status == DebtStatus.OVERDUE) palette.danger else palette.muted,
               maxLines = 1
@@ -421,20 +423,20 @@ private fun TransactionRow(t: TransactionItem, balance: Double?, onEdit: () -> U
         maxLines = 1
       )
       if (t is TransactionItem.DebtItem && t.remainingAmount > 0 && t.remainingAmount < t.amount) {
-        Text("Kalan ${Formatters.formatCurrencyShort(t.remainingAmount)}", fontSize = 11.sp, color = palette.warning, maxLines = 1)
+        Text(tr("Kalan {0}", Formatters.formatCurrencyShort(t.remainingAmount)), fontSize = 11.sp, color = palette.warning, maxLines = 1)
       }
       if (balance != null) {
-        Text("Bakiye ${Formatters.formatCurrencyShort(balance)}", fontSize = 11.sp, color = palette.muted, maxLines = 1)
+        Text(tr("Bakiye {0}", Formatters.formatCurrencyShort(balance)), fontSize = 11.sp, color = palette.muted, maxLines = 1)
       }
     }
     Box {
       IconButton(onClick = { menu = true }, modifier = Modifier.size(36.dp)) {
-        Icon(Icons.Default.MoreVert, contentDescription = "İşlem seçenekleri", tint = palette.inactive, modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.MoreVert, contentDescription = tr("İşlem seçenekleri"), tint = palette.inactive, modifier = Modifier.size(18.dp))
       }
       DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-        DropdownMenuItem(text = { Text("Düzenle") }, leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }, onClick = { menu = false; onEdit() })
+        DropdownMenuItem(text = { Text(tr("Düzenle")) }, leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }, onClick = { menu = false; onEdit() })
         DropdownMenuItem(
-          text = { Text("Sil", color = palette.danger) },
+          text = { Text(tr("Sil"), color = palette.danger) },
           leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = palette.danger) },
           onClick = { menu = false; onDelete() }
         )

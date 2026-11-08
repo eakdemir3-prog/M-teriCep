@@ -1,5 +1,7 @@
 package com.example.billing
 
+import com.example.util.tr
+
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -64,7 +66,7 @@ object BillingManager : PurchasesUpdatedListener {
     scope.launch {
       val before = settings?.currentTier()
       settings?.setTier(t)
-      if (announce && t != SubscriptionTier.FREE && before != t) _messages.tryEmit("${t.title} paketiniz açıldı. Teşekkürler!")
+      if (announce && t != SubscriptionTier.FREE && before != t) _messages.tryEmit(tr("{0} paketiniz açıldı. Teşekkürler!", t.title))
     }
   }
 
@@ -158,14 +160,14 @@ object BillingManager : PurchasesUpdatedListener {
     val c = client
     val d = tier.productId?.let { details[it] }
     if (c == null || !c.isReady || d == null) {
-      _messages.tryEmit("Google Play'e bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.")
+      _messages.tryEmit(tr("Google Play'e bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin."))
       connect()
       return
     }
     val base = if (yearly) Billing.BASE_YEARLY else Billing.BASE_MONTHLY
     val offer = d.subscriptionOfferDetails?.filter { it.basePlanId == base }?.minByOrNull { if (it.offerId == null) 1 else 0 }
     if (offer == null) {
-      _messages.tryEmit("Bu paket şu an satın alınamıyor. Lütfen daha sonra tekrar deneyin.")
+      _messages.tryEmit(tr("Bu paket şu an satın alınamıyor. Lütfen daha sonra tekrar deneyin."))
       return
     }
     val params = BillingFlowParams.newBuilder().setProductDetailsParamsList(
@@ -187,7 +189,7 @@ object BillingManager : PurchasesUpdatedListener {
       BillingClient.BillingResponseCode.OK -> scope.launch { handlePurchases(purchases.orEmpty(), fromQuery = false) }
       BillingClient.BillingResponseCode.USER_CANCELED -> Unit
       BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> scope.launch { refresh() }
-      else -> _messages.tryEmit("Satın alma tamamlanamadı (kod ${result.responseCode}). Tekrar deneyin.")
+      else -> _messages.tryEmit(tr("Satın alma tamamlanamadı (kod {0}). Tekrar deneyin.", result.responseCode))
     }
   }
 
@@ -211,12 +213,12 @@ object BillingManager : PurchasesUpdatedListener {
       val tier = p.products.mapNotNull { SubscriptionTier.fromProductId(it) }.maxByOrNull { it.rank } ?: continue
       if (tier.rank > best.rank) { best = tier; bestPurchase = p }
     }
-    if (!fromQuery && pending) _messages.tryEmit("Ödemeniz onay bekliyor. Onaylanınca paketiniz açılacak.")
+    if (!fromQuery && pending) _messages.tryEmit(tr("Ödemeniz onay bekliyor. Onaylanınca paketiniz açılacak."))
     if (fromQuery || list.isNotEmpty()) {
       currentPurchase = bestPurchase
       val before = settings?.currentTier()
       settings?.setTier(best)
-      if (!fromQuery && best != SubscriptionTier.FREE && before != best) _messages.tryEmit("${best.title} paketiniz açıldı. Teşekkürler!")
+      if (!fromQuery && best != SubscriptionTier.FREE && before != best) _messages.tryEmit(tr("{0} paketiniz açıldı. Teşekkürler!", best.title))
     }
   }
 
@@ -224,10 +226,10 @@ object BillingManager : PurchasesUpdatedListener {
   /** "Satın alımları yükle" düğmesi. */
   suspend fun restore() {
     if (useRc) {
-      RevenueCatBilling.restore(onDone = { applyTier(it, false); _messages.tryEmit("Satın alımlar kontrol edildi: ${it.title}") }, onError = { _messages.tryEmit(it) })
+      RevenueCatBilling.restore(onDone = { applyTier(it, false); _messages.tryEmit(tr("Satın alımlar kontrol edildi: {0}", it.title)) }, onError = { _messages.tryEmit(it) })
     } else {
       refresh()
-      _messages.tryEmit("Satın alımlar kontrol edildi.")
+      _messages.tryEmit(tr("Satın alımlar kontrol edildi."))
     }
   }
 

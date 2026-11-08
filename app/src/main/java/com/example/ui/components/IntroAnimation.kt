@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.util.tr
+
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -127,7 +129,7 @@ fun IntroAnimation(onFinished: () -> Unit) {
       }
       Spacer(modifier = Modifier.height(4.dp))
       Text(
-        "MüşteriCep",
+        tr("MüşteriCep"),
         color = IntroInk,
         fontSize = 30.sp,
         fontWeight = FontWeight.Bold,
@@ -139,14 +141,14 @@ fun IntroAnimation(onFinished: () -> Unit) {
       )
       Spacer(modifier = Modifier.height(6.dp))
       Text(
-        "Tahsilat • Randevu • Müşteri",
+        tr("Tahsilat • Randevu • Müşteri"),
         color = IntroMuted,
         fontSize = 14.sp,
         modifier = Modifier.graphicsLayer { alpha = subAlpha.value }
       )
     }
     Text(
-      "EA Vision Labs",
+      tr("EA Vision Labs"),
       color = IntroMuted.copy(alpha = 0.8f),
       fontSize = 12.sp,
       fontWeight = FontWeight.Medium,

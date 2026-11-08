@@ -1,5 +1,7 @@
 package com.example.billing
 
+import com.example.util.tr
+
 import android.app.Activity
 import android.content.Context
 import com.example.model.Billing
@@ -75,9 +77,9 @@ internal object RevenueCatBilling {
     onDone: (SubscriptionTier) -> Unit,
     onError: (String) -> Unit
   ) {
-    val id = "${tier.productId}:${if (yearly) Billing.BASE_YEARLY else Billing.BASE_MONTHLY}"
+    val id = tr("{0}:{1}", tier.productId, if (yearly) Billing.BASE_YEARLY else Billing.BASE_MONTHLY)
     val product = products[id] ?: run {
-      onError("Paket bilgisi yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.")
+      onError(tr("Paket bilgisi yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."))
       return
     }
     val params = PurchaseParams.Builder(activity, product)
@@ -86,7 +88,7 @@ internal object RevenueCatBilling {
     }
     Purchases.sharedInstance.purchaseWith(
       params.build(),
-      onError = { error, userCancelled -> if (!userCancelled) onError("Satın alma tamamlanamadı: ${error.message}") },
+      onError = { error, userCancelled -> if (!userCancelled) onError(tr("Satın alma tamamlanamadı: {0}", error.message)) },
       onSuccess = { _, info -> onDone(tierOf(info)) }
     )
   }
@@ -94,7 +96,7 @@ internal object RevenueCatBilling {
   fun restore(onDone: (SubscriptionTier) -> Unit, onError: (String) -> Unit) {
     if (!configured) return
     Purchases.sharedInstance.restorePurchasesWith(
-      onError = { onError("Satın alımlar yüklenemedi: ${it.message}") },
+      onError = { onError(tr("Satın alımlar yüklenemedi: {0}", it.message)) },
       onSuccess = { onDone(tierOf(it)) }
     )
   }
