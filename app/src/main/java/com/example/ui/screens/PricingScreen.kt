@@ -180,7 +180,8 @@ fun PricingScreen(
           Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
               Text(tier.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-              if (isCurrent) StatusPill(tr("Mevcut paket"), palette.success, palette.accentSoft)
+              if (tier.comingSoon && !isCurrent) StatusPill(tr("Yakında"), palette.muted, palette.cardBorder)
+              else if (isCurrent) StatusPill(tr("Mevcut paket"), palette.success, palette.accentSoft)
               else StatusPill(tier.badgeText, palette.warning, palette.warningSoft)
             }
             Row(verticalAlignment = Alignment.Bottom) {
@@ -197,7 +198,10 @@ fun PricingScreen(
                 Text(feat, style = MaterialTheme.typography.bodySmall)
               }
             }
-            if (tier.productId != null && !isCurrent) {
+            if (tier.comingSoon && !isCurrent) {
+              Spacer(modifier = Modifier.height(10.dp))
+              Text(tr("Bu paket çok yakında satışta. Ekibiniz varsa takipte kalın."), style = MaterialTheme.typography.bodySmall, color = palette.muted)
+            } else if (tier.productId != null && !isCurrent) {
               Spacer(modifier = Modifier.height(14.dp))
               val upgrade = tier.rank > current.rank
               Button(

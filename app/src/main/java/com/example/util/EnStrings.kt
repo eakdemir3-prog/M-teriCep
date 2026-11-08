@@ -9,6 +9,9 @@ internal object EnStrings {
     part2(m)
     part3(m)
     part4(m)
+    m["Yakında"] = "Coming soon"
+    m["Bu paket çok yakında satışta. Ekibiniz varsa takipte kalın."] = "This plan is coming very soon. Stay tuned if you have a team."
+    m["Birden fazla çalışanınız varsa her birine ayrı takvim açabileceksiniz; müşteriler personel seçerek randevu alacak. İşletme paketi yakında."] = "If you have more than one employee you'll be able to give each a separate calendar, and customers will choose staff when booking. The Business plan is coming soon."
     m["Vade yok"] = "No due date"
     m["Bugün (vadesi geldi)"] = "Today (due)"
     m["Yarın"] = "Tomorrow"

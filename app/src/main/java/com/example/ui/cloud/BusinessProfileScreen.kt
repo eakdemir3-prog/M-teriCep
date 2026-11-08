@@ -395,11 +395,11 @@ fun BusinessProfileScreen(
           val allowed = tierNow.allows(com.example.model.Feature.STAFF)
           if (!allowed) {
             Text(
-              tr("Birden fazla çalışanınız varsa her birine ayrı takvim açın; müşteriler personel seçerek randevu alsın. Bu özellik İşletme paketinde."),
+              tr("Birden fazla çalışanınız varsa her birine ayrı takvim açabileceksiniz; müşteriler personel seçerek randevu alacak. İşletme paketi yakında."),
               style = MaterialTheme.typography.bodySmall, color = Slate500
             )
             Spacer(modifier = Modifier.height(6.dp))
-            OutlinedButton(onClick = onOpenPlans) { Text(tr("İşletme paketini gör")) }
+            OutlinedButton(onClick = onOpenPlans) { Text(tr("Paketleri gör")) }
           } else if (existing == null) {
             Text(tr("Personel eklemek için önce üstten Kaydet'e basın."), style = MaterialTheme.typography.bodySmall, color = Slate500)
           } else {

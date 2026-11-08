@@ -34,6 +34,9 @@ enum class SubscriptionTier(
   PRO("Pro", 2, "mustericep_pro", "299 ₺", "2.990 ₺", UNLIMITED, UNLIMITED, UNLIMITED, "En kapsamlı"),
   BUSINESS("İşletme", 3, "mustericep_isletme", "499 ₺", "4.990 ₺", UNLIMITED, UNLIMITED, UNLIMITED, "Ekipler için", maxStaff = 10);
 
+  /** Henüz satışta değil (mağazada "Yakında" görünür, satın alınamaz). */
+  val comingSoon: Boolean get() = this == BUSINESS
+
   val title: String get() = tr(titleKey)
   val badgeText: String get() = tr(badgeKey)
 
