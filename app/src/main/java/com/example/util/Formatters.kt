@@ -20,10 +20,12 @@ object Formatters {
     }
     DecimalFormat("#,##0.00 ₺", symbols).apply { roundingMode = RoundingMode.HALF_UP }
   }
+  /** Tarih adları arayüz diline göre (ay adları İngilizce arayüzde İngilizce). */
+  private fun uiLocale(): Locale = if (I18n.isEnglish) Locale.ENGLISH else turkishLocale
   private val dateFormat = ThreadLocal.withInitial { SimpleDateFormat("dd.MM.yyyy", turkishLocale) }
   private val dateTimeFormat = ThreadLocal.withInitial { SimpleDateFormat("dd.MM.yyyy HH:mm", turkishLocale) }
-  private val dayMonthFormat = ThreadLocal.withInitial { SimpleDateFormat("d MMMM yyyy", turkishLocale) }
-  private val shortDayMonth = ThreadLocal.withInitial { SimpleDateFormat("d MMM", turkishLocale) }
+  private val dayMonthFormat get() = SimpleDateFormat("d MMMM yyyy", uiLocale())
+  private val shortDayMonth get() = SimpleDateFormat("d MMM", uiLocale())
 
   fun formatCurrency(amount: Double): String {
     val v = Money.round(amount)
@@ -48,24 +50,24 @@ object Formatters {
 
   fun formatFriendlyDate(timestamp: Long?): String {
     if (timestamp == null || timestamp == 0L) return "-"
-    return dayMonthFormat.get()!!.format(Date(timestamp))
+    return dayMonthFormat.format(Date(timestamp))
   }
 
   fun formatShortDate(timestamp: Long?): String {
     if (timestamp == null || timestamp == 0L) return "-"
-    return shortDayMonth.get()!!.format(Date(timestamp))
+    return shortDayMonth.format(Date(timestamp))
   }
 
   /** "Bugün", "Yarın", "3 gün kaldı", "5 gün gecikti" gibi vade açıklaması. */
   fun dueLabel(dueDate: Long?, now: Long = System.currentTimeMillis()): String {
-    if (dueDate == null) return "Vade yok"
+    if (dueDate == null) return tr("Vade yok")
     val days = daysBetween(now, dueDate)
     return when {
-      days == 0 -> if (dueDate < now) "Bugün (vadesi geldi)" else "Bugün"
-      days == 1 -> "Yarın"
-      days > 1 -> "$days gün kaldı"
-      days == -1 -> "1 gün gecikti"
-      else -> "${-days} gün gecikti"
+      days == 0 -> if (dueDate < now) tr("Bugün (vadesi geldi)") else tr("Bugün")
+      days == 1 -> tr("Yarın")
+      days > 1 -> tr("{0} gün kaldı", days)
+      days == -1 -> tr("1 gün gecikti")
+      else -> tr("{0} gün gecikti", -days)
     }
   }
 

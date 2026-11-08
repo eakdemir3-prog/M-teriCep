@@ -77,14 +77,16 @@ import com.example.viewmodel.MusteriCepViewModel
 import java.util.Calendar
 
 /** Rapor dönemi. */
-private enum class ReportRange(val label: String) {
-  TODAY(tr("Bugün")),
-  WEEK(tr("Bu hafta")),
-  MONTH(tr("Bu ay")),
-  LAST_MONTH(tr("Geçen ay")),
-  QUARTER(tr("Son 3 ay")),
-  YEAR(tr("Bu yıl")),
-  ALL(tr("Tümü"))
+private enum class ReportRange(private val labelKey: String) {
+  TODAY("Bugün"),
+  WEEK("Bu hafta"),
+  MONTH("Bu ay"),
+  LAST_MONTH("Geçen ay"),
+  QUARTER("Son 3 ay"),
+  YEAR("Bu yıl"),
+  ALL("Tümü");
+
+  val label: String get() = tr(labelKey)
 }
 
 private fun rangeBounds(r: ReportRange, now: Long): Pair<Long, Long> {

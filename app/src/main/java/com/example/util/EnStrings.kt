@@ -9,6 +9,12 @@ internal object EnStrings {
     part2(m)
     part3(m)
     part4(m)
+    m["Vade yok"] = "No due date"
+    m["Bugün (vadesi geldi)"] = "Today (due)"
+    m["Yarın"] = "Tomorrow"
+    m["{0} gün kaldı"] = "{0} days left"
+    m["1 gün gecikti"] = "1 day overdue"
+    m["{0} gün gecikti"] = "{0} days overdue"
     m
   }
 

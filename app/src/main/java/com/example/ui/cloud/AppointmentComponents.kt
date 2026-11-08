@@ -80,7 +80,7 @@ fun DayStrip(
         ) {
           val content = if (selected) palette.onInk else if (open) MaterialTheme.colorScheme.onSurface else Slate500.copy(alpha = 0.5f)
           Text(
-            if (day == today) tr("Bugün") else WorkingDay.SHORT_DAY_NAMES[dow - 1],
+            if (day == today) tr("Bugün") else tr(WorkingDay.SHORT_DAY_NAMES[dow - 1]),
             fontSize = 11.sp,
             color = content
           )

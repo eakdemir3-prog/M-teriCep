@@ -297,9 +297,12 @@ private fun CollectionRow(coll: CollectionRecord, name: String, onOpen: () -> Un
   }
 }
 
-private enum class CollectionPeriod(val label: String, val title: String) {
-  TODAY(tr("Bugün"), tr("Bugün alınan")),
-  WEEK(tr("Hafta"), tr("Bu hafta alınan")),
-  MONTH(tr("Ay"), tr("Bu ay alınan")),
-  ALL(tr("Tümü"), tr("Toplam alınan"))
+private enum class CollectionPeriod(private val labelKey: String, private val titleKey: String) {
+  TODAY("Bugün", "Bugün alınan"),
+  WEEK("Hafta", "Bu hafta alınan"),
+  MONTH("Ay", "Bu ay alınan"),
+  ALL("Tümü", "Toplam alınan");
+
+  val label: String get() = tr(labelKey)
+  val title: String get() = tr(titleKey)
 }
