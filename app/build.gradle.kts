@@ -20,6 +20,10 @@ android {
     versionName = "1.0.6"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    // RevenueCat herkese açık Android SDK anahtarı (goog_...). Boşsa doğrudan Google Play Billing kullanılır.
+    val rcKey = System.getenv("REVENUECAT_API_KEY") ?: (project.findProperty("revenuecatKey") as String?) ?: ""
+    buildConfigField("String", "REVENUECAT_KEY", "\"$rcKey\"")
   }
 
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,
@@ -92,11 +96,13 @@ dependencies {
   implementation(platform(libs.firebase.bom))
   implementation(libs.firebase.auth)
   implementation(libs.firebase.firestore)
+  implementation(libs.firebase.messaging)
   implementation(libs.androidx.credentials)
   implementation(libs.androidx.credentials.play.services)
   implementation(libs.googleid)
   implementation(libs.androidx.core.splashscreen)
   implementation(libs.billing.ktx)
+  implementation(libs.revenuecat)
   implementation(libs.play.services.auth)
   implementation(libs.kotlinx.coroutines.play.services)
   implementation(libs.androidx.activity.compose)

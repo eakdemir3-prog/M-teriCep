@@ -43,6 +43,7 @@ jobs:
         env:
           STORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          REVENUECAT_API_KEY: ${{ secrets.REVENUECAT_API_KEY }}
         run: |
           set -o pipefail
           gradle :app:bundleRelease :app:assembleRelease --no-configuration-cache 2>&1 | tee build.log

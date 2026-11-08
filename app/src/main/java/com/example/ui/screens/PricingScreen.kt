@@ -220,7 +220,7 @@ fun PricingScreen(
       item {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
           OutlinedButton(
-            onClick = { scope.launch { BillingManager.refresh(); viewModel.showMessage("Satın alımlar kontrol edildi.") } },
+            onClick = { scope.launch { BillingManager.restore() } },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.weight(1f)
           ) { Text("Satın alımları yükle", maxLines = 1, fontSize = 13.sp) }

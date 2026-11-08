@@ -1,5 +1,11 @@
 package com.example.ui.cloud
 
+import androidx.compose.foundation.rememberScrollState
+
+import androidx.compose.foundation.verticalScroll
+
+import com.example.model.allows
+
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.pm.PackageManager
@@ -88,7 +94,14 @@ import com.example.viewmodel.CloudViewModel
 /** İşletme vitrini, çalışma saatleri ve hizmetler. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCity: String, defaultPhone: String, onBack: () -> Unit) {
+fun BusinessProfileScreen(
+  cloud: CloudViewModel,
+  defaultName: String,
+  defaultCity: String,
+  defaultPhone: String,
+  onBack: () -> Unit,
+  onOpenPlans: () -> Unit = {}
+) {
   val existing by cloud.myBusiness.collectAsState()
   val services by cloud.myServices.collectAsState()
   val user by cloud.firebaseUser.collectAsState()
@@ -113,6 +126,9 @@ fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCit
   var window by remember(existing?.id) { mutableStateOf(base.bookingWindowDays) }
   val hours = remember(existing?.id) { mutableStateListOf<WorkingDay>().apply { addAll(base.workingHours.sortedBy { it.dayOfWeek }) } }
   var editService by remember { mutableStateOf<ServiceItem?>(null) }
+  var editStaff by remember { mutableStateOf<com.example.cloud.Staff?>(null) }
+  val staff by cloud.myStaff.collectAsState()
+  val tierNow by cloud.tier.collectAsState()
   var logo by remember(existing?.id) { mutableStateOf(base.logo) }
   var lat by remember(existing?.id) { mutableStateOf(base.latitude) }
   var lng by remember(existing?.id) { mutableStateOf(base.longitude) }
@@ -371,6 +387,52 @@ fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCit
         }
       }
 
+      // 5. Personel (İşletme paketi)
+      item {
+        FormCard("Personel") {
+          val allowed = tierNow.allows(com.example.model.Feature.STAFF)
+          if (!allowed) {
+            Text(
+              "Birden fazla çalışanınız varsa her birine ayrı takvim açın; müşteriler personel seçerek randevu alsın. Bu özellik İşletme paketinde.",
+              style = MaterialTheme.typography.bodySmall, color = Slate500
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedButton(onClick = onOpenPlans) { Text("İşletme paketini gör") }
+          } else if (existing == null) {
+            Text("Personel eklemek için önce üstten Kaydet'e basın.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+          } else {
+            if (staff.isEmpty()) {
+              Text("Henüz personel yok. Personel eklemezseniz tek takvim kullanılır.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+            }
+            staff.forEach { st ->
+              Row(
+                modifier = Modifier.fillMaxWidth().clickable { editStaff = st }.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                com.example.ui.components.InitialsAvatar(st.name, size = 34.dp)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                  Text(st.name + if (!st.isActive) " (izinli)" else "", fontWeight = FontWeight.SemiBold)
+                  Text(
+                    if (st.serviceIds.isEmpty()) "Tüm hizmetler"
+                    else services.filter { it.id in st.serviceIds }.joinToString(", ") { it.name },
+                    style = MaterialTheme.typography.bodySmall, color = Slate500, maxLines = 1
+                  )
+                }
+                Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = Slate500)
+              }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("${staff.size} / ${tierNow.maxStaff} personel", style = MaterialTheme.typography.bodySmall, color = Slate500)
+            OutlinedButton(onClick = { editStaff = com.example.cloud.Staff(name = "") }, enabled = staff.size < tierNow.maxStaff) {
+              Icon(Icons.Default.Add, contentDescription = null)
+              Spacer(modifier = Modifier.width(6.dp))
+              Text("Personel ekle")
+            }
+          }
+        }
+      }
+
       item {
         Button(onClick = { save() }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp)) {
           Text("Kaydet", fontWeight = FontWeight.Bold)
@@ -378,6 +440,16 @@ fun BusinessProfileScreen(cloud: CloudViewModel, defaultName: String, defaultCit
         Spacer(modifier = Modifier.height(40.dp))
       }
     }
+  }
+
+  editStaff?.let { st ->
+    StaffDialog(
+      initial = st,
+      services = services,
+      onDismiss = { editStaff = null },
+      onSave = { cloud.saveStaff(it); editStaff = null },
+      onDelete = if (st.id.isNotBlank()) ({ cloud.deleteStaff(st); editStaff = null }) else null
+    )
   }
 
   editService?.let { s ->
@@ -491,6 +563,58 @@ private fun ServiceDialog(initial: ServiceItem, onDismiss: () -> Unit, onSave: (
       Button(onClick = {
         onSave(initial.copy(name = name, durationMinutes = duration, price = Money.parse(price) ?: 0.0, isActive = active))
       }) { Text("Kaydet") }
+    },
+    dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+  )
+}
+
+@Composable
+private fun StaffDialog(
+  initial: com.example.cloud.Staff,
+  services: List<ServiceItem>,
+  onDismiss: () -> Unit,
+  onSave: (com.example.cloud.Staff) -> Unit,
+  onDelete: (() -> Unit)?
+) {
+  var name by remember { mutableStateOf(initial.name) }
+  var active by remember { mutableStateOf(initial.isActive) }
+  var all by remember { mutableStateOf(initial.serviceIds.isEmpty()) }
+  var picked by remember { mutableStateOf(initial.serviceIds.toSet()) }
+  androidx.compose.material3.AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text(if (initial.id.isBlank()) "Personel ekle" else "Personeli düzenle", fontWeight = FontWeight.Bold) },
+    text = {
+      Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        OutlinedTextField(value = name, onValueChange = { name = it.take(40) }, label = { Text("Ad (müşteriler görür)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Text("Randevu alıyor", modifier = Modifier.weight(1f))
+          androidx.compose.material3.Switch(checked = active, onCheckedChange = { active = it })
+        }
+        Text("Kapalıysa (izin, tatil) müşteriler bu personeli göremez.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+        Spacer(modifier = Modifier.height(10.dp))
+        Text("Verdiği hizmetler", fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { all = !all }) {
+          androidx.compose.material3.Checkbox(checked = all, onCheckedChange = { all = it })
+          Text("Tüm hizmetler")
+        }
+        if (!all) services.forEach { sv ->
+          Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { picked = if (sv.id in picked) picked - sv.id else picked + sv.id }) {
+            androidx.compose.material3.Checkbox(checked = sv.id in picked, onCheckedChange = { picked = if (it) picked + sv.id else picked - sv.id })
+            Text(sv.name)
+          }
+        }
+        if (onDelete != null) {
+          Spacer(modifier = Modifier.height(8.dp))
+          TextButton(onClick = onDelete) { Text("Personeli sil", color = RoseError) }
+        }
+      }
+    },
+    confirmButton = {
+      Button(
+        onClick = { onSave(initial.copy(name = name.trim(), isActive = active, serviceIds = if (all) emptyList() else picked.toList())) },
+        enabled = name.isNotBlank() && (all || picked.isNotEmpty())
+      ) { Text("Kaydet") }
     },
     dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
   )

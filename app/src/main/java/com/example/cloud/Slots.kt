@@ -18,6 +18,18 @@ object Slots {
     return (0 until blocks).map { i -> blockKey(start + i * BLOCK_MINUTES * 60_000L) }
   }
 
+  /** Personelli işletmede kilit anahtarı personel önekiyle tutulur: "{personel}_202610251430". */
+  fun lockKeys(start: Long, durationMinutes: Int, staffId: String): List<String> =
+    blockKeys(start, durationMinutes).map { if (staffId.isBlank()) it else "${staffId}_$it" }
+
+  /**
+   * Blok, [staffId] için dolu mu? Öneksiz (işletme geneli) kilitler herkesi kapatır;
+   * personelsiz bakışta ([staffId] boş) herhangi bir kilit bloğu kapatır.
+   */
+  fun isTaken(block: String, staffId: String, taken: Set<String>): Boolean =
+    block in taken || (staffId.isNotBlank() && "${staffId}_$block" in taken) ||
+      (staffId.isBlank() && taken.any { it.endsWith("_$block") })
+
   fun blockKey(timestamp: Long): String {
     val c = Calendar.getInstance().apply { timeInMillis = timestamp }
     return "%04d%02d%02d%02d%02d".format(
@@ -46,7 +58,8 @@ object Slots {
     takenBlocks: Set<String>,
     now: Long,
     minNoticeMinutes: Int = 0,
-    stepMinutes: Int = BLOCK_MINUTES
+    stepMinutes: Int = BLOCK_MINUTES,
+    staffId: String = ""
   ): List<Long> {
     if (!day.isOpen || durationMinutes <= 0) return emptyList()
     val result = mutableListOf<Long>()
@@ -58,7 +71,7 @@ object Slots {
       val start = atMinute(dayStart, m)
       if (!overlapsBreak && start >= now + minNoticeMinutes * 60_000L) {
         val keys = blockKeys(start, durationMinutes)
-        if (keys.none { it in takenBlocks }) result += start
+        if (keys.none { isTaken(it, staffId, takenBlocks) }) result += start
       }
       m += stepMinutes
     }

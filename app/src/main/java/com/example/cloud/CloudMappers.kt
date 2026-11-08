@@ -26,6 +26,20 @@ internal object CloudMappers {
     reviewedAppointmentIds = (doc.get("reviewedAppointmentIds") as? List<String>) ?: emptyList()
   )
 
+  fun staffToMap(s: Staff): Map<String, Any?> = mapOf(
+    "name" to s.name.trim(),
+    "isActive" to s.isActive,
+    "serviceIds" to s.serviceIds
+  )
+
+  @Suppress("UNCHECKED_CAST")
+  fun staff(doc: DocumentSnapshot): Staff = Staff(
+    id = doc.id,
+    name = doc.getString("name") ?: "",
+    isActive = doc.getBoolean("isActive") ?: true,
+    serviceIds = (doc.get("serviceIds") as? List<String>) ?: emptyList()
+  )
+
   fun reviewToMap(r: Review): Map<String, Any?> = mapOf(
     "businessId" to r.businessId,
     "customerUid" to r.customerUid,
@@ -160,7 +174,9 @@ internal object CloudMappers {
     "ledgerPosted" to a.ledgerPosted,
     "businessAddress" to a.businessAddress,
     "businessLat" to a.businessLat,
-    "businessLng" to a.businessLng
+    "businessLng" to a.businessLng,
+    "staffId" to a.staffId,
+    "staffName" to a.staffName
   )
 
   fun appointment(doc: DocumentSnapshot): Appointment = Appointment(
@@ -184,6 +200,8 @@ internal object CloudMappers {
     ledgerPosted = doc.getBoolean("ledgerPosted") ?: false,
     businessAddress = doc.getString("businessAddress") ?: "",
     businessLat = doc.getDouble("businessLat"),
-    businessLng = doc.getDouble("businessLng")
+    businessLng = doc.getDouble("businessLng"),
+    staffId = doc.getString("staffId") ?: "",
+    staffName = doc.getString("staffName") ?: ""
   )
 }

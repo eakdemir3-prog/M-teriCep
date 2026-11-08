@@ -112,6 +112,19 @@ class MainActivity : ComponentActivity() {
         }
         val cloud: CloudViewModel = viewModel()
         val mode by cloud.mode.collectAsState()
+        // Android 13+: randevu bildirimleri için izin (giriş yapıldıktan sonra bir kez sorulur).
+        val notifPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+          androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { }
+        LaunchedEffect(mode) {
+          if ((mode == AppMode.BUSINESS || mode == AppMode.CUSTOMER) && cloud.isSignedIn &&
+            android.os.Build.VERSION.SDK_INT >= 33 &&
+            androidx.core.content.ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+          ) {
+            notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+          }
+        }
         MyApplicationTheme(themeMode = profile.themeMode) {
           androidx.compose.material3.Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
             when (mode) {
@@ -235,7 +248,8 @@ fun MusteriCepApp(
             defaultName = profile.businessName,
             defaultCity = profile.city,
             defaultPhone = profile.phone,
-            onBack = { viewModel.navigateBack() }
+            onBack = { viewModel.navigateBack() },
+            onOpenPlans = { viewModel.navigate(Screen.Pricing) }
           )
         }
       }

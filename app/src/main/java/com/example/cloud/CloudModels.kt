@@ -52,6 +52,16 @@ data class WorkingDay(
   }
 }
 
+/** İşletme paketi: randevu alınabilen personel. [serviceIds] boşsa tüm hizmetleri verir. */
+data class Staff(
+  val id: String = "",
+  val name: String,
+  val isActive: Boolean = true,
+  val serviceIds: List<String> = emptyList()
+) {
+  fun canDo(serviceId: String) = serviceIds.isEmpty() || serviceId in serviceIds
+}
+
 data class ServiceItem(
   val id: String = "",
   val name: String,
@@ -136,7 +146,10 @@ data class Appointment(
   /** Randevu alınırken işletmenin adresi ve konumu (yol tarifi için). */
   val businessAddress: String = "",
   val businessLat: Double? = null,
-  val businessLng: Double? = null
+  val businessLng: Double? = null,
+  /** İşletme paketinde randevuyu karşılayan personel (boş = işletme geneli). */
+  val staffId: String = "",
+  val staffName: String = ""
 ) {
   val end: Long get() = start + durationMinutes * 60_000L
 }

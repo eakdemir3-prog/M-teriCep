@@ -1,0 +1,34 @@
+name: Firebase (kurallar + bildirim fonksiyonları)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["functions/**", "firestore.rules", "firebase.json"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - name: Anahtar kontrolü
+        if: env.SA == ''
+        run: echo "::warning::FIREBASE_SERVICE_ACCOUNT eklenmemiş; yayınlama atlandı."
+      - uses: actions/checkout@v4
+        if: env.SA != ''
+      - uses: actions/setup-node@v4
+        if: env.SA != ''
+        with:
+          node-version: 20
+      - name: Bağımlılıklar
+        if: env.SA != ''
+        run: cd functions && npm install --omit=dev
+      - name: Hizmet hesabı
+        if: env.SA != ''
+        run: printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      - name: Yayınla
+        if: env.SA != ''
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx --yes firebase-tools@13 deploy --only firestore:rules,functions --project device-streaming-a7c40cfa --non-interactive --force

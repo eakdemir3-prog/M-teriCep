@@ -1,5 +1,7 @@
 package com.example.viewmodel
 
+import com.example.model.allows
+
 import android.app.Activity
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -192,6 +194,8 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   fun signOut() {
     viewModelScope.launch {
       AppointmentWorker.cancel(app)
+      runCatching { com.example.cloud.PushService.unregister() }
+      kotlinx.coroutines.delay(300)
       auth.signOut()
       settings.setLocalOnly(false)
       _customerStack.value = listOf(CustomerScreen.Discover)
@@ -244,6 +248,35 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     if (u == null) flowOf(emptyList()) else cloud.servicesFlow(u.uid).catch { emit(emptyList()) }
   }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+  /** İşletme sahibinin personel listesi. */
+  val myStaff: StateFlow<List<com.example.cloud.Staff>> = firebaseUser.flatMapLatest { u ->
+    if (u == null) flowOf(emptyList()) else cloud.staffFlow(u.uid).catch { emit(emptyList()) }
+  }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+  fun saveStaff(s: com.example.cloud.Staff) {
+    val u = firebaseUser.value ?: return
+    if (s.name.isBlank()) { say("Personel adını girin."); return }
+    val t = tier.value
+    if (!t.allows(com.example.model.Feature.STAFF)) {
+      say("Personel ve ayrı takvimler İşletme paketinde. Ayarlar > Paketler'den geçebilirsiniz.")
+      return
+    }
+    if (s.id.isBlank() && myStaff.value.size >= t.maxStaff) {
+      say("${t.title} paketinde en fazla ${t.maxStaff} personel eklenebilir.")
+      return
+    }
+    viewModelScope.launch {
+      try { cloud.saveStaff(u.uid, s); say("Personel kaydedildi.") } catch (e: Exception) { say("Kaydedilemedi: ${e.message}") }
+    }
+  }
+
+  fun deleteStaff(s: com.example.cloud.Staff) {
+    val u = firebaseUser.value ?: return
+    viewModelScope.launch {
+      try { cloud.deleteStaff(u.uid, s.id); say("Personel silindi.") } catch (e: Exception) { say("Silinemedi: ${e.message}") }
+    }
+  }
+
   private val _selectedDay = MutableStateFlow(Formatters.startOfDay(System.currentTimeMillis()))
   val selectedDay: StateFlow<Long> = _selectedDay.asStateFlow()
   fun selectDay(dayStart: Long) { _selectedDay.value = Formatters.startOfDay(dayStart) }
@@ -279,6 +312,15 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
           kotlinx.coroutines.delay(800)
           refreshUsage(b, t)
         }
+    }
+  }
+
+  init {
+    viewModelScope.launch {
+      firebaseUser.collect { u ->
+        if (u != null) runCatching { com.example.cloud.PushService.register(app) }
+        runCatching { com.example.billing.BillingManager.identify(u?.uid) }
+      }
     }
   }
 
@@ -349,7 +391,15 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   /** İşletmenin telefonla/yüz yüze aldığı randevuyu takvime eklemesi. */
-  fun addManualAppointment(customerName: String, phone: String, service: ServiceItem, start: Long, note: String) {
+  fun addManualAppointment(
+    customerName: String,
+    phone: String,
+    service: ServiceItem,
+    start: Long,
+    note: String,
+    staffChoice: List<com.example.cloud.Staff> = emptyList()
+  ) {
+    val chosen = if (staffChoice.isEmpty()) null else slotStaff[start] ?: staffChoice.first()
     val u = firebaseUser.value ?: return
     val b = myBusiness.value ?: run { say("Önce işletme bilgilerini kaydedin."); return }
     if (customerName.isBlank()) { say("Müşteri adını girin."); return }
@@ -365,7 +415,8 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
             businessId = u.uid, businessName = b.name, customerName = customerName.trim(),
             customerPhone = phone.trim(), serviceId = service.id, serviceName = service.name,
             durationMinutes = service.durationMinutes, price = service.price, start = start,
-            status = AppointmentStatus.CONFIRMED, note = note.trim()
+            status = AppointmentStatus.CONFIRMED, note = note.trim(),
+            staffId = chosen?.id ?: "", staffName = chosen?.name ?: ""
           )
         )
         say("Randevu eklendi: ${Formatters.formatDateTime(start)}")
@@ -534,6 +585,11 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     if (id == null) flowOf(null) else cloud.businessFlow(id).catch { emit(null) }
   }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+  /** Müşterinin baktığı işletmenin etkin personeli (boşsa personelsiz işletme). */
+  val viewedStaff: StateFlow<List<com.example.cloud.Staff>> = _viewedBusinessId.flatMapLatest { id ->
+    if (id == null) flowOf(emptyList()) else cloud.staffFlow(id).map { l -> l.filter { it.isActive } }.catch { emit(emptyList()) }
+  }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
   val viewedServices: StateFlow<List<ServiceItem>> = _viewedBusinessId.flatMapLatest { id ->
     if (id == null) flowOf(emptyList()) else cloud.servicesFlow(id).map { l -> l.filter { it.isActive } }.catch { emit(emptyList()) }
   }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -543,19 +599,42 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
   val availableSlots: StateFlow<List<Long>?> = _slots.asStateFlow()
 
   /** Seçilen gün ve hizmet için boş saatleri getirir (işletme ve müşteri tarafında ortak). */
-  fun loadSlots(business: BusinessProfile, dayStart: Long, durationMinutes: Int, applyNotice: Boolean = true) {
+  /** Saat → o saatte boş olan personel (personelli işletmede "Fark etmez" seçimi için). */
+  private var slotStaff: Map<Long, com.example.cloud.Staff> = emptyMap()
+
+  /**
+   * [staff] boşsa işletme geneli saatler. Doluysa seçilen personelin boş saatleri; birden fazla
+   * personel verilirse ("Fark etmez") en az birinin boş olduğu saatler.
+   */
+  fun loadSlots(
+    business: BusinessProfile,
+    dayStart: Long,
+    durationMinutes: Int,
+    applyNotice: Boolean = true,
+    staff: List<com.example.cloud.Staff> = emptyList()
+  ) {
     _slots.value = null
     viewModelScope.launch {
       try {
         val taken = cloud.takenBlocks(business.id, dayKeyOf(dayStart))
-        _slots.value = Slots.available(
+        fun avail(staffId: String) = Slots.available(
           day = business.dayFor(dayStart),
           dayStart = dayStart,
           durationMinutes = durationMinutes,
           takenBlocks = taken,
           now = System.currentTimeMillis(),
-          minNoticeMinutes = if (applyNotice) business.minNoticeMinutes else 0
+          minNoticeMinutes = if (applyNotice) business.minNoticeMinutes else 0,
+          staffId = staffId
         )
+        if (staff.isEmpty()) {
+          slotStaff = emptyMap()
+          _slots.value = avail("")
+        } else {
+          val map = linkedMapOf<Long, com.example.cloud.Staff>()
+          staff.forEach { st -> avail(st.id).forEach { t -> if (t !in map) map[t] = st } }
+          slotStaff = map
+          _slots.value = map.keys.sorted()
+        }
       } catch (e: Exception) {
         _slots.value = emptyList()
         say("Saatler yüklenemedi: ${e.message}")
@@ -563,7 +642,15 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
-  fun book(business: BusinessProfile, service: ServiceItem, start: Long, note: String, onDone: () -> Unit) {
+  fun book(
+    business: BusinessProfile,
+    service: ServiceItem,
+    start: Long,
+    note: String,
+    staffChoice: List<com.example.cloud.Staff> = emptyList(),
+    onDone: () -> Unit
+  ) {
+    val chosen = if (staffChoice.isEmpty()) null else slotStaff[start] ?: staffChoice.first()
     val u = firebaseUser.value ?: return
     val p = userProfile.value ?: return
     if (p.phone.filter { it.isDigit() }.length < 10) {
@@ -590,7 +677,8 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
             serviceId = service.id, serviceName = service.name, durationMinutes = service.durationMinutes,
             price = service.price, start = start, status = status, note = note.trim(),
             businessAddress = com.example.cloud.BusinessLocation.addressText(business),
-            businessLat = business.latitude, businessLng = business.longitude
+            businessLat = business.latitude, businessLng = business.longitude,
+            staffId = chosen?.id ?: "", staffName = chosen?.name ?: ""
           )
         )
         runCatching { cloud.setFavorite(u.uid, business.id, true) }
@@ -599,7 +687,7 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
         onDone()
       } catch (e: Exception) {
         say(if (e.isSlotTaken()) "Bu saat az önce doldu, lütfen başka bir saat seçin." else "Randevu alınamadı: ${e.message}")
-        loadSlots(business, Formatters.startOfDay(start), service.durationMinutes)
+        loadSlots(business, Formatters.startOfDay(start), service.durationMinutes, staff = staffChoice)
       } finally {
         _busy.value = false
       }

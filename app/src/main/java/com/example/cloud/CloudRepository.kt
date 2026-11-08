@@ -46,6 +46,7 @@ class CloudRepository {
     runCatching {
       val services = businesses().document(uid).collection("services").get().await()
       services.documents.forEach { it.reference.delete().await() }
+      businesses().document(uid).collection("staff").get().await().documents.forEach { it.reference.delete().await() }
     }
     runCatching { businesses().document(uid).delete().await() }
     users().document(uid).delete().await()
@@ -168,6 +169,23 @@ class CloudRepository {
     ref.set(CloudMappers.serviceToMap(s)).await()
   }
 
+  // ---------------- Personel (İşletme paketi) ----------------
+
+  fun staffFlow(businessId: String): Flow<List<Staff>> =
+    queryFlow(businesses().document(businessId).collection("staff")) { docs ->
+      docs.map(CloudMappers::staff).sortedBy { it.name.lowercase() }
+    }
+
+  suspend fun saveStaff(businessId: String, s: Staff) {
+    val col = businesses().document(businessId).collection("staff")
+    val ref = if (s.id.isBlank()) col.document() else col.document(s.id)
+    ref.set(CloudMappers.staffToMap(s)).await()
+  }
+
+  suspend fun deleteStaff(businessId: String, staffId: String) {
+    businesses().document(businessId).collection("staff").document(staffId).delete().await()
+  }
+
   suspend fun deleteService(businessId: String, serviceId: String) {
     businesses().document(businessId).collection("services").document(serviceId).delete().await()
   }
@@ -187,7 +205,7 @@ class CloudRepository {
   suspend fun book(appointment: Appointment): String {
     val apptRef = appointments().document()
     val bizRef = businesses().document(appointment.businessId)
-    val keys = Slots.blockKeys(appointment.start, appointment.durationMinutes)
+    val keys = Slots.lockKeys(appointment.start, appointment.durationMinutes, appointment.staffId)
     val lockRefs = keys.map { bizRef.collection("locks").document(it) }
     db.runTransaction { tx ->
       val existing = lockRefs.map { tx.get(it) }
@@ -218,7 +236,7 @@ class CloudRepository {
     )
     if (status == AppointmentStatus.CANCELLED || status == AppointmentStatus.REJECTED) {
       updates["cancelledBy"] = byUid
-      Slots.blockKeys(appt.start, appt.durationMinutes).forEach { key ->
+      Slots.lockKeys(appt.start, appt.durationMinutes, appt.staffId).forEach { key ->
         batch.delete(businesses().document(appt.businessId).collection("locks").document(key))
       }
     }

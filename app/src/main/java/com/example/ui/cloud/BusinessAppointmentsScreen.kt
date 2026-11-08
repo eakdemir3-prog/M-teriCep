@@ -96,6 +96,8 @@ fun BusinessAppointmentsScreen(
   val busy by cloud.busy.collectAsState()
   val palette = LocalAppPalette.current
   var ledgerFor by remember { mutableStateOf<Appointment?>(null) }
+  val staffList by cloud.myStaff.collectAsState()
+  var staffFilter by remember { mutableStateOf<String?>(null) }
   var notifyFor by remember { mutableStateOf<Pair<Appointment, AppointmentStatus>?>(null) }
 
   LazyColumn(
@@ -256,7 +258,18 @@ fun BusinessAppointmentsScreen(
       DayStrip(selectedDay = selectedDay, onSelect = { cloud.selectDay(it) }, days = 45, business = business, startOffset = -7)
     }
 
+    if (staffList.isNotEmpty()) {
+      item {
+        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          item { FilterChip(selected = staffFilter == null, onClick = { staffFilter = null }, label = { Text("Tüm personel") }) }
+          items(staffList, key = { "sf_" + it.id }) { st ->
+            FilterChip(selected = staffFilter == st.id, onClick = { staffFilter = st.id }, label = { Text(st.name) })
+          }
+        }
+      }
+    }
     val visible = dayList.filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.REJECTED }
+      .filter { staffFilter == null || it.staffId == staffFilter }
     val cancelled = dayList.size - visible.size
     if (visible.isEmpty()) {
       item {
@@ -373,7 +386,10 @@ private fun BusinessAppointmentRow(
       Spacer(modifier = Modifier.width(10.dp))
       Column(modifier = Modifier.weight(1f)) {
         Text(a.customerName, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("${a.serviceName} • ${Formatters.formatCurrency(a.price)}", style = MaterialTheme.typography.bodySmall, color = Slate500, maxLines = 1)
+        Text(
+          "${a.serviceName} • ${Formatters.formatCurrency(a.price)}" + if (a.staffName.isNotBlank()) " • ${a.staffName}" else "",
+          style = MaterialTheme.typography.bodySmall, color = Slate500, maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
         Spacer(modifier = Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
           AppointmentStatusChip(a.status)
@@ -517,12 +533,20 @@ fun ManualAppointmentDialog(cloud: CloudViewModel, onDismiss: () -> Unit) {
   var service by remember { mutableStateOf<ServiceItem?>(active.firstOrNull()) }
   var day by remember { mutableStateOf(Formatters.startOfDay(System.currentTimeMillis())) }
   var time by remember { mutableStateOf<Long?>(null) }
+  val staffAll by cloud.myStaff.collectAsState()
+  val staffFor = staffAll.filter { st -> st.isActive && service?.let { st.canDo(it.id) } ?: true }
+  var staffPick by remember { mutableStateOf<com.example.cloud.Staff?>(null) }
+  val staffChoice = when {
+    staffFor.isEmpty() -> emptyList()
+    staffPick != null && staffFor.any { it.id == staffPick?.id } -> listOf(staffPick!!)
+    else -> staffFor
+  }
 
-  LaunchedEffect(service, day, business) {
+  LaunchedEffect(service, day, business, staffChoice.map { it.id }) {
     val b = business
     val s = service
     time = null
-    if (b != null && s != null) cloud.loadSlots(b, day, s.durationMinutes, applyNotice = false)
+    if (b != null && s != null) cloud.loadSlots(b, day, s.durationMinutes, applyNotice = false, staff = staffChoice)
   }
 
   Dialog(onDismissRequest = onDismiss) {
@@ -547,6 +571,16 @@ fun ManualAppointmentDialog(cloud: CloudViewModel, onDismiss: () -> Unit) {
             FilterChip(selected = service?.id == s.id, onClick = { service = s }, label = { Text("${s.name} • ${durationText(s.durationMinutes)}", fontSize = 12.sp) })
           }
         }
+        if (staffFor.isNotEmpty()) {
+          Spacer(modifier = Modifier.height(10.dp))
+          Text("Personel", style = MaterialTheme.typography.labelMedium)
+          LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            item { FilterChip(selected = staffPick == null, onClick = { staffPick = null }, label = { Text("Fark etmez", fontSize = 12.sp) }) }
+            items(staffFor, key = { it.id }) { st ->
+              FilterChip(selected = staffPick?.id == st.id, onClick = { staffPick = st }, label = { Text(st.name, fontSize = 12.sp) })
+            }
+          }
+        }
         Spacer(modifier = Modifier.height(10.dp))
         DayStrip(selectedDay = day, onSelect = { day = it }, days = 60, business = business)
         Spacer(modifier = Modifier.height(10.dp))
@@ -560,7 +594,7 @@ fun ManualAppointmentDialog(cloud: CloudViewModel, onDismiss: () -> Unit) {
             onClick = {
               val s = service ?: return@Button
               val t = time ?: return@Button
-              cloud.addManualAppointment(name, phone, s, t, note)
+              cloud.addManualAppointment(name, phone, s, t, note, staffChoice)
               onDismiss()
             },
             enabled = name.isNotBlank() && time != null && service != null

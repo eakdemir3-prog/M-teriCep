@@ -23,11 +23,14 @@ enum class SubscriptionTier(
   val maxCustomerLimit: Int,
   val monthlyAppointments: Int,
   val maxServices: Int,
-  val badgeText: String
+  val badgeText: String,
+  /** Personel sayısı (0 = personel özelliği yok, tek takvim). */
+  val maxStaff: Int = 0
 ) {
   FREE("Ücretsiz", 0, null, "0 ₺", "0 ₺", 25, 30, 3, "Başlamak için"),
   STARTER("Başlangıç", 1, "mustericep_baslangic", "149 ₺", "1.490 ₺", 150, 300, 15, "Popüler"),
-  PRO("Pro", 2, "mustericep_pro", "299 ₺", "2.990 ₺", UNLIMITED, UNLIMITED, UNLIMITED, "En kapsamlı");
+  PRO("Pro", 2, "mustericep_pro", "299 ₺", "2.990 ₺", UNLIMITED, UNLIMITED, UNLIMITED, "En kapsamlı"),
+  BUSINESS("İşletme", 3, "mustericep_isletme", "499 ₺", "4.990 ₺", UNLIMITED, UNLIMITED, UNLIMITED, "Ekipler için", maxStaff = 10);
 
   fun limitText(n: Int): String = if (n == UNLIMITED) "Sınırsız" else n.toString()
 
@@ -43,6 +46,7 @@ enum class SubscriptionTier(
       FREE -> listOf("5 hazır WhatsApp şablonu", "Bu ayın raporları")
       STARTER -> listOf("WhatsApp şablonlarını düzenleme", "Tüm dönem raporları", "CSV (Excel) dışa aktarma", "Otomatik vade hatırlatıcısı")
       PRO -> listOf("WhatsApp şablonlarını düzenleme", "Tüm dönem raporları", "CSV dışa ve toplu içe aktarma", "Otomatik vade hatırlatıcısı", "İşletme listesinde üst sırada")
+      BUSINESS -> listOf("Pro'daki her şey", "10 personele kadar ayrı takvim", "Müşteri personel seçerek randevu alır", "Personel bazlı randevu listesi", "İşletme listesinde üst sırada")
     }
 
   companion object {
@@ -59,7 +63,8 @@ enum class Feature(val label: String, val required: SubscriptionTier) {
   DUE_REMINDERS("Otomatik vade hatırlatıcısı", SubscriptionTier.STARTER),
   MORE_CUSTOMERS("Daha fazla müşteri", SubscriptionTier.STARTER),
   MORE_SERVICES("Daha fazla hizmet", SubscriptionTier.STARTER),
-  MORE_APPOINTMENTS("Daha fazla aylık randevu", SubscriptionTier.STARTER);
+  MORE_APPOINTMENTS("Daha fazla aylık randevu", SubscriptionTier.STARTER),
+  STAFF("Personel ve ayrı takvimler", SubscriptionTier.BUSINESS);
 }
 
 fun SubscriptionTier.allows(f: Feature): Boolean = !Billing.ENABLED || rank >= f.required.rank

@@ -286,6 +286,15 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
   val profile by cloud.userProfile.collectAsState()
   val busy by cloud.busy.collectAsState()
   val reviews by cloud.viewedReviews.collectAsState()
+  val allStaff by cloud.viewedStaff.collectAsState()
+  /** null = "Fark etmez" */
+  var staffSel by remember(businessId) { mutableStateOf<com.example.cloud.Staff?>(null) }
+  val eligible = allStaff.filter { st -> service?.let { st.canDo(it.id) } ?: true }
+  val staffChoice = when {
+    eligible.isEmpty() -> emptyList()
+    staffSel != null && eligible.any { it.id == staffSel?.id } -> listOf(staffSel!!)
+    else -> eligible
+  }
   var showReviews by remember(businessId) { mutableStateOf(false) }
   if (showReviews) {
     business?.let { bb -> ReviewsDialog(bb.name, bb.ratingAvg, bb.ratingCount, reviews) { showReviews = false } }
@@ -298,11 +307,11 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
 
   LaunchedEffect(businessId) { cloud.viewBusiness(businessId) }
   LaunchedEffect(services) { if (service == null || services.none { it.id == service?.id }) service = services.firstOrNull() }
-  LaunchedEffect(business, service, day) {
+  LaunchedEffect(business, service, day, staffChoice.map { it.id }) {
     time = null
     val b = business
     val s = service
-    if (b != null && b.id == businessId && s != null) cloud.loadSlots(b, day, s.durationMinutes)
+    if (b != null && b.id == businessId && s != null) cloud.loadSlots(b, day, s.durationMinutes, staff = staffChoice)
   }
 
   Column(modifier = Modifier.fillMaxSize()) {
@@ -400,6 +409,27 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
         }
       }
 
+      if (service != null && eligible.isNotEmpty()) {
+        item {
+          SectionTitle("Personel")
+          Spacer(modifier = Modifier.height(6.dp))
+          androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+              androidx.compose.material3.FilterChip(
+                selected = staffSel == null, onClick = { staffSel = null },
+                label = { Text("Fark etmez") }
+              )
+            }
+            items(eligible, key = { it.id }) { st ->
+              androidx.compose.material3.FilterChip(
+                selected = staffSel?.id == st.id, onClick = { staffSel = st },
+                label = { Text(st.name) }
+              )
+            }
+          }
+        }
+      }
+
       if (service != null) {
         item {
           SectionTitle("2. Gün seçin")
@@ -420,7 +450,7 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
         item {
           val t = time
           Button(
-            onClick = { val s = service; if (s != null && t != null) cloud.book(b, s, t, note) { cloud.openCustomerTab(CustomerScreen.MyAppointments) } },
+            onClick = { val s = service; if (s != null && t != null) cloud.book(b, s, t, note, staffChoice) { cloud.openCustomerTab(CustomerScreen.MyAppointments) } },
             enabled = t != null && !busy,
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth().height(52.dp)
@@ -535,7 +565,10 @@ private fun CustomerAppointmentCard(
       Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
           Text(a.businessName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-          Text("${a.serviceName} • ${durationText(a.durationMinutes)}", style = MaterialTheme.typography.bodySmall, color = Slate500)
+          Text(
+            "${a.serviceName} • ${durationText(a.durationMinutes)}" + if (a.staffName.isNotBlank()) " • ${a.staffName}" else "",
+            style = MaterialTheme.typography.bodySmall, color = Slate500
+          )
         }
         AppointmentStatusChip(a.status)
       }

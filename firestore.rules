@@ -32,6 +32,12 @@ service cloud.firestore {
         allow write: if isMe(bid);
       }
 
+      // Personel (İşletme paketi)
+      match /staff/{sid} {
+        allow read: if signedIn();
+        allow write: if isMe(bid);
+      }
+
       // Puan ve yorum: belge kimliği randevu kimliğidir. Yalnızca o randevunun müşterisi,
       // randevu tamamlandıktan (veya saati geçtikten) sonra bir kez yazabilir.
       match /reviews/{aid} {

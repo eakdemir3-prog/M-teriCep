@@ -57,10 +57,33 @@ object BillingManager : PurchasesUpdatedListener {
   private var details: Map<String, ProductDetails> = emptyMap()
   private var currentPurchase: Purchase? = null
 
+  /** RevenueCat anahtarı varsa satın almalar RevenueCat üzerinden yürür. */
+  private val useRc: Boolean get() = RevenueCatBilling.isAvailable(com.example.BuildConfig.REVENUECAT_KEY)
+
+  private fun applyTier(t: SubscriptionTier, announce: Boolean) {
+    scope.launch {
+      val before = settings?.currentTier()
+      settings?.setTier(t)
+      if (announce && t != SubscriptionTier.FREE && before != t) _messages.tryEmit("${t.title} paketiniz açıldı. Teşekkürler!")
+    }
+  }
+
+  /** Giriş yapan Google hesabına abonelikleri bağlar (RevenueCat). */
+  fun identify(uid: String?) {
+    if (useRc) RevenueCatBilling.identify(uid) { applyTier(it, false) }
+  }
+
   fun init(context: Context) {
     if (!Billing.ENABLED || client != null) return
     appContext = context.applicationContext
     settings = SettingsStore(context.applicationContext)
+    if (useRc) {
+      RevenueCatBilling.configure(context, com.example.BuildConfig.REVENUECAT_KEY) { applyTier(it, false) }
+      _ready.value = true
+      RevenueCatBilling.identify(com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid) { applyTier(it, false) }
+      scope.launch { refresh() }
+      return
+    }
     client = BillingClient.newBuilder(context.applicationContext)
       .setListener(this)
       .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
@@ -85,6 +108,10 @@ object BillingManager : PurchasesUpdatedListener {
 
   /** Fiyatları ve mevcut abonelikleri Play'den yeniden okur. */
   suspend fun refresh() {
+    if (useRc) {
+      RevenueCatBilling.refresh(onInfo = { applyTier(it, false) }, onPrices = { _prices.value = it })
+      return
+    }
     val c = client ?: return
     if (!c.isReady) { connect(); return }
     val products = SubscriptionTier.entries.mapNotNull { it.productId }.map {
@@ -124,6 +151,10 @@ object BillingManager : PurchasesUpdatedListener {
 
   /** Satın alma ekranını açar. Var olan abonelik varsa yeni pakete geçiş yapılır. */
   fun purchase(activity: Activity, tier: SubscriptionTier, yearly: Boolean) {
+    if (useRc) {
+      RevenueCatBilling.purchase(activity, tier, yearly, onDone = { applyTier(it, true) }, onError = { _messages.tryEmit(it) })
+      return
+    }
     val c = client
     val d = tier.productId?.let { details[it] }
     if (c == null || !c.isReady || d == null) {
@@ -190,6 +221,16 @@ object BillingManager : PurchasesUpdatedListener {
   }
 
   /** Play Store'daki abonelik yönetimi sayfası (iptal, ödeme yöntemi). */
+  /** "Satın alımları yükle" düğmesi. */
+  suspend fun restore() {
+    if (useRc) {
+      RevenueCatBilling.restore(onDone = { applyTier(it, false); _messages.tryEmit("Satın alımlar kontrol edildi: ${it.title}") }, onError = { _messages.tryEmit(it) })
+    } else {
+      refresh()
+      _messages.tryEmit("Satın alımlar kontrol edildi.")
+    }
+  }
+
   fun manageIntent(tier: SubscriptionTier?): Intent {
     val pkg = appContext?.packageName ?: "com.eavisionlabs.mustericep"
     val url = if (tier?.productId != null) "https://play.google.com/store/account/subscriptions?sku=${tier.productId}&package=$pkg"
