@@ -22,7 +22,7 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     // RevenueCat herkese açık Android SDK anahtarı (goog_...). Boşsa doğrudan Google Play Billing kullanılır.
-    val rcKey = System.getenv("REVENUECAT_API_KEY") ?: (project.findProperty("revenuecatKey") as String?) ?: "goog_feFUeUfmmegtJVAsGAfeJaCZFPW"
+    val rcKey = System.getenv("REVENUECAT_API_KEY")?.takeIf { it.isNotBlank() } ?: (project.findProperty("revenuecatKey") as String?) ?: "goog_feFUeUfmmegtJVAsGAfeJaCZFPW"
     buildConfigField("String", "REVENUECAT_KEY", "\"$rcKey\"")
   }
 
