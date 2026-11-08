@@ -20,6 +20,13 @@ jobs:
         env:
           PASS: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
         run: openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in ci/firebase-sa.json.enc -out "$RUNNER_TEMP/sa.json" -pass env:PASS
+      - name: Gerekli Google API'lerini aç
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json"
+          gcloud services enable cloudbilling.googleapis.com eventarc.googleapis.com run.googleapis.com \
+            cloudfunctions.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
+            pubsub.googleapis.com fcm.googleapis.com firestore.googleapis.com --project device-streaming-a7c40cfa
+          sleep 30
       - name: Yayınla
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
