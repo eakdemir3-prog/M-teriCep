@@ -30,4 +30,10 @@ jobs:
       - name: Yayınla
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: npx --yes firebase-tools@14 deploy --only firestore:rules,functions --project device-streaming-a7c40cfa --non-interactive --force
+        run: |
+          # İlk kurulumda Eventarc izinlerinin yayılması birkaç dakika sürebilir; gerekirse tekrar dene.
+          for i in 1 2 3; do
+            npx --yes firebase-tools@14 deploy --only firestore:rules,functions --project device-streaming-a7c40cfa --non-interactive --force && exit 0
+            echo "Deneme $i başarısız, 90 sn sonra tekrar..."; sleep 90
+          done
+          exit 1
