@@ -336,7 +336,7 @@ private fun ActionButton(label: String, icon: ImageVector, filled: Boolean, modi
       onClick = onClick,
       shape = RoundedCornerShape(12.dp),
       contentPadding = PaddingValues(vertical = 12.dp, horizontal = 8.dp),
-      colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk),
+      colors = ButtonDefaults.buttonColors(containerColor = palette.brand, contentColor = palette.onBrand),
       modifier = modifier
     ) {
       Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))

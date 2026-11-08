@@ -210,8 +210,8 @@ fun PricingScreen(
                   if (act != null) BillingManager.purchase(act, tier, yearly)
                 },
                 colors = ButtonDefaults.buttonColors(
-                  containerColor = if (upgrade) palette.ink else MaterialTheme.colorScheme.surfaceVariant,
-                  contentColor = if (upgrade) palette.onInk else MaterialTheme.colorScheme.onSurface
+                  containerColor = if (upgrade) palette.brand else MaterialTheme.colorScheme.surfaceVariant,
+                  contentColor = if (upgrade) palette.onBrand else MaterialTheme.colorScheme.onSurface
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth().height(48.dp)

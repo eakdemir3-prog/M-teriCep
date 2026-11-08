@@ -95,8 +95,8 @@ fun MusteriCepBottomBar(
       NavTab(tr("Kasa"), Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet, Screen.Collections, "nav_collections")
     )
   }
-  val gradient = Brush.horizontalGradient(listOf(palette.ink, palette.accent))
-  val borderBrush = Brush.horizontalGradient(listOf(palette.accent.copy(alpha = 0.55f), palette.accent, palette.ink))
+  val gradient = Brush.horizontalGradient(listOf(palette.brand, palette.accent))
+  val borderBrush = Brush.horizontalGradient(listOf(palette.brand.copy(alpha = 0.6f), palette.accent, palette.brand))
 
   Row(
     modifier = Modifier
@@ -144,13 +144,13 @@ fun MusteriCepBottomBar(
         .size(64.dp)
         .shadow(10.dp, CircleShape, ambientColor = palette.accent, spotColor = palette.accent)
         .clip(CircleShape)
-        .background(Brush.linearGradient(listOf(palette.ink, palette.accent)))
+        .background(Brush.linearGradient(listOf(palette.brand, palette.accent)))
         .clickable(role = Role.Button, onClick = onQuickActionClick)
         .testTag("fab_quick_action")
         .semantics { contentDescription = tr("Hızlı işlem") },
       contentAlignment = Alignment.Center
     ) {
-      Icon(Icons.Default.Add, contentDescription = null, tint = palette.onInk, modifier = Modifier.size(28.dp))
+      Icon(Icons.Default.Add, contentDescription = null, tint = palette.onBrand, modifier = Modifier.size(28.dp))
     }
   }
 }
@@ -190,7 +190,7 @@ private fun RowScope.NavPill(
         Icon(
           imageVector = if (selected) tab.selectedIcon else tab.icon,
           contentDescription = null,
-          tint = if (selected) palette.onInk else palette.inactive,
+          tint = if (selected) palette.onBrand else palette.inactive,
           modifier = Modifier.size(if (selected) 22.dp else 24.dp)
         )
         if (badge > 0 && !selected) {
@@ -222,7 +222,7 @@ private fun RowScope.NavPill(
           val fontScale = LocalDensity.current.fontScale
           Text(
             text = tab.label,
-            color = palette.onInk,
+            color = palette.onBrand,
             fontSize = (13f / fontScale.coerceAtLeast(1f)).sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,

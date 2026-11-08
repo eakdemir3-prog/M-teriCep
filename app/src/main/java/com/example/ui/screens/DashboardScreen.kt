@@ -218,23 +218,23 @@ fun DashboardScreen(
       AppCard(onClick = {
         viewModel.customerFilter.value = CustomerFilter.WITH_DEBT
         viewModel.navigate(Screen.Customers)
-      }) {
-        Text(tr("Toplam alacak"), style = MaterialTheme.typography.labelLarge, color = palette.muted)
+      }, containerColor = palette.heroBackground) {
+        Text(tr("Toplam alacak"), style = MaterialTheme.typography.labelLarge, color = palette.heroMuted)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
           Formatters.formatCurrency(summary.totalReceivable),
           style = moneyStyle(30, FontWeight.Bold),
-          color = MaterialTheme.colorScheme.onSurface,
+          color = palette.heroContent,
           maxLines = 1
         )
-        Text(tr("{0} borçlu müşteri", summary.debtorCount), style = MaterialTheme.typography.bodySmall, color = palette.muted)
+        Text(tr("{0} borçlu müşteri", summary.debtorCount), style = MaterialTheme.typography.bodySmall, color = palette.heroMuted)
         Spacer(modifier = Modifier.height(14.dp))
-        HorizontalDivider(color = palette.cardBorder)
+        HorizontalDivider(color = palette.heroContent.copy(alpha = 0.12f))
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
-          MiniStat(tr("Bu ay tahsil"), Formatters.formatCurrencyShort(summary.thisMonthCollected), palette.success, Modifier.weight(1f))
-          MiniStat(tr("Gecikmiş"), Formatters.formatCurrencyShort(summary.overdueAmount), if (summary.overdueAmount > 0) palette.danger else palette.muted, Modifier.weight(1f))
-          MiniStat(tr("Yaklaşan (7 gün)"), Formatters.formatCurrencyShort(summary.upcomingAmount), if (summary.upcomingAmount > 0) palette.warning else palette.muted, Modifier.weight(1f))
+          MiniStat(tr("Bu ay tahsil"), Formatters.formatCurrencyShort(summary.thisMonthCollected), palette.brand, Modifier.weight(1f), palette.heroMuted)
+          MiniStat(tr("Gecikmiş"), Formatters.formatCurrencyShort(summary.overdueAmount), if (summary.overdueAmount > 0) Color(0xFFF87171) else palette.heroMuted, Modifier.weight(1f), palette.heroMuted)
+          MiniStat(tr("Yaklaşan (7 gün)"), Formatters.formatCurrencyShort(summary.upcomingAmount), if (summary.upcomingAmount > 0) Color(0xFFFBBF24) else palette.heroMuted, Modifier.weight(1f), palette.heroMuted)
         }
       }
     }
@@ -400,9 +400,9 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun MiniStat(label: String, value: String, color: Color, modifier: Modifier) {
+private fun MiniStat(label: String, value: String, color: Color, modifier: Modifier, labelColor: Color = LocalAppPalette.current.muted) {
   Column(modifier = modifier) {
-    Text(label, fontSize = 11.sp, color = LocalAppPalette.current.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(label, fontSize = 11.sp, color = labelColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     Spacer(modifier = Modifier.height(2.dp))
     Text(value, style = moneyStyle(14), color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
   }

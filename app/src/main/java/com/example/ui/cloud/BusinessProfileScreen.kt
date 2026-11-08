@@ -293,7 +293,7 @@ fun BusinessProfileScreen(
             modifier = Modifier.fillMaxWidth().height(46.dp), shape = RoundedCornerShape(12.dp)
           ) {
             if (locBusy) {
-              CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = palette.onInk)
+              CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
               Spacer(modifier = Modifier.width(8.dp))
               Text(tr("Konum alınıyor…"))
             } else {

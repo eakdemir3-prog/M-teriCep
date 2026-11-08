@@ -110,7 +110,7 @@ fun CustomersScreen(
         }
         FilledIconButton(
           onClick = { viewModel.openDialog(DialogState.AddEditCustomer()) },
-          colors = IconButtonDefaults.filledIconButtonColors(containerColor = palette.ink, contentColor = palette.onInk),
+          colors = IconButtonDefaults.filledIconButtonColors(containerColor = palette.brand, contentColor = palette.onBrand),
           modifier = Modifier.testTag("fab_add_customer")
         ) {
           Icon(Icons.Default.PersonAdd, contentDescription = tr("Müşteri ekle"), modifier = Modifier.size(20.dp))

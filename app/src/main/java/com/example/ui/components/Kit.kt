@@ -51,12 +51,13 @@ fun AppCard(
   modifier: Modifier = Modifier,
   padding: Dp = 16.dp,
   onClick: (() -> Unit)? = null,
+  containerColor: androidx.compose.ui.graphics.Color? = null,
   content: @Composable ColumnScope.() -> Unit
 ) {
   val palette = LocalAppPalette.current
   val shape = RoundedCornerShape(16.dp)
-  val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-  val border = BorderStroke(1.dp, palette.cardBorder)
+  val colors = CardDefaults.cardColors(containerColor = containerColor ?: MaterialTheme.colorScheme.surface)
+  val border = BorderStroke(1.dp, if (containerColor != null) containerColor else palette.cardBorder)
   if (onClick != null) {
     Card(onClick = onClick, shape = shape, colors = colors, border = border, modifier = modifier.fillMaxWidth()) {
       Column(modifier = Modifier.padding(padding), content = content)

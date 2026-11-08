@@ -68,8 +68,8 @@ fun DayStrip(
       val selected = day == selectedDay
       Surface(
         shape = RoundedCornerShape(14.dp),
-        color = if (selected) NavyPrimary else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, if (selected) NavyPrimary else palette.cardBorder),
+        color = if (selected) palette.brand else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, if (selected) palette.brand else palette.cardBorder),
         modifier = Modifier
           .width(56.dp)
           .clickable { onSelect(day) }
@@ -78,7 +78,7 @@ fun DayStrip(
           horizontalAlignment = Alignment.CenterHorizontally,
           modifier = Modifier.padding(vertical = 8.dp)
         ) {
-          val content = if (selected) palette.onInk else if (open) MaterialTheme.colorScheme.onSurface else Slate500.copy(alpha = 0.5f)
+          val content = if (selected) palette.onBrand else if (open) MaterialTheme.colorScheme.onSurface else Slate500.copy(alpha = 0.5f)
           Text(
             if (day == today) tr("Bugün") else tr(WorkingDay.SHORT_DAY_NAMES[dow - 1]),
             fontSize = 11.sp,
@@ -89,7 +89,7 @@ fun DayStrip(
           Text(
             if (count > 0) "$count" else if (!open) tr("kapalı") else " ",
             fontSize = 10.sp,
-            color = if (selected) palette.onInk else if (count > 0) AmberWarning else Slate500
+            color = if (selected) palette.onBrand else if (count > 0) AmberWarning else Slate500
           )
         }
       }
@@ -113,8 +113,8 @@ fun SlotGrid(slots: List<Long>?, selected: Long?, onSelect: (Long) -> Unit, empt
             val isSel = t == selected
             Surface(
               shape = RoundedCornerShape(10.dp),
-              color = if (isSel) palette.ink else MaterialTheme.colorScheme.surface,
-              border = BorderStroke(1.dp, if (isSel) palette.ink else palette.cardBorder),
+              color = if (isSel) palette.brand else MaterialTheme.colorScheme.surface,
+              border = BorderStroke(1.dp, if (isSel) palette.brand else palette.cardBorder),
               modifier = Modifier
                 .weight(1f)
                 .clickable { onSelect(t) }
@@ -124,7 +124,7 @@ fun SlotGrid(slots: List<Long>?, selected: Long?, onSelect: (Long) -> Unit, empt
                 fontWeight = FontWeight.SemiBold,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 maxLines = 1,
-                color = if (isSel) palette.onInk else MaterialTheme.colorScheme.onSurface,
+                color = if (isSel) palette.onBrand else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(vertical = 10.dp)
               )
             }

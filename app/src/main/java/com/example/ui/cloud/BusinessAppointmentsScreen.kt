@@ -437,7 +437,7 @@ private fun JoinCodeCard(business: BusinessProfile) {
     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
       Column(modifier = Modifier.weight(1f)) {
         Text(tr("Müşteri kodunuz"), style = MaterialTheme.typography.labelMedium, color = palette.heroMuted)
-        Text(business.joinCode.ifBlank { "------" }, style = moneyStyle(26), color = if (palette.isDark) palette.success else palette.ink)
+        Text(business.joinCode.ifBlank { "------" }, style = moneyStyle(26), color = palette.brand)
         Text(
           if (business.isListed) tr("Listede görünüyorsunuz; kodla da bulunabilirsiniz.") else tr("Listede gizlisiniz; müşteriler sadece kodla bulur."),
           style = MaterialTheme.typography.bodySmall,

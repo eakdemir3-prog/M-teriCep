@@ -105,7 +105,7 @@ fun CollectionsScreen(
       ScreenHeader(title = tr("Kasa"), subtitle = tr("Müşterilerden alınan ödemeler")) {
         FilledIconButton(
           onClick = { viewModel.openDialog(DialogState.AddCollection()) },
-          colors = IconButtonDefaults.filledIconButtonColors(containerColor = palette.ink, contentColor = palette.onInk)
+          colors = IconButtonDefaults.filledIconButtonColors(containerColor = palette.brand, contentColor = palette.onBrand)
         ) {
           Icon(Icons.Default.Payments, contentDescription = tr("Tahsilat al"), modifier = Modifier.size(20.dp))
         }

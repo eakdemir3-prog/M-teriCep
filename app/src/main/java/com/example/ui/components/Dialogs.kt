@@ -1397,7 +1397,7 @@ fun FeatureLockedDialog(feature: com.example.model.Feature, onDismiss: () -> Uni
     confirmButton = {
       Button(
         onClick = { onDismiss(); onViewPlans() },
-        colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk)
+        colors = ButtonDefaults.buttonColors(containerColor = palette.brand, contentColor = palette.onBrand)
       ) { Text(tr("Paketleri gör")) }
     },
     dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Vazgeç")) } }

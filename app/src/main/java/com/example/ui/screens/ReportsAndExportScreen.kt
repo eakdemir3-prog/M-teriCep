@@ -368,7 +368,7 @@ fun ReportsAndExportScreen(
               else FileShare.shareText(context, tr("MusteriCep_Musteriler_{0}.csv", today), "text/csv", viewModel.exportCustomersCsv(), tr("Müşteri listesini gönder"))
             },
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk),
+            colors = ButtonDefaults.buttonColors(containerColor = palette.brand, contentColor = palette.onBrand),
             modifier = Modifier
               .fillMaxWidth()
               .testTag("btn_export_customers_csv")
@@ -442,7 +442,7 @@ fun ReportsAndExportScreen(
                 else if (importCsvText.isNotBlank()) viewModel.parseAndPreviewCsv(importCsvText)
                 else viewModel.showMessage(tr("Önce CSV metnini yapıştırın."))
               },
-              colors = ButtonDefaults.buttonColors(containerColor = palette.ink, contentColor = palette.onInk),
+              colors = ButtonDefaults.buttonColors(containerColor = palette.brand, contentColor = palette.onBrand),
               modifier = Modifier
                 .fillMaxWidth()
                 .testTag("btn_preview_csv")

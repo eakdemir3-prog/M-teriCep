@@ -34,28 +34,31 @@ data class AppPalette(
   val heroBackground: Color,
   val heroContent: Color,
   val heroMuted: Color,
-  val cardBorder: Color
+  val cardBorder: Color,
+  /** Marka dolgusu (limon yeşili): seçili sekme, + düğmesi, ana düğmeler. Üstündeki yazı onBrand. */
+  val brand: Color = Color(0xFFC6F432),
+  val onBrand: Color = Color(0xFF0E0F12)
 )
 
-/** Varsayılan: beyaz kartlar, açık gri zemin, zümrüt yeşili vurgu. */
+/** Açık mod: %60 kırık beyaz, %30 gece siyahı, %10 limon yeşili (yazı gereken yerde koyu zeytin). */
 val DefterPalette = AppPalette(
   isDark = false,
-  ink = Color(0xFF0F766E),
+  ink = Color(0xFF4D7C0F),
   onInk = Color(0xFFFFFFFF),
-  accent = Color(0xFF10B981),
-  accentSoft = Color(0xFFECFDF5),
-  success = Color(0xFF16A34A),
+  accent = Color(0xFF84CC16),
+  accentSoft = Color(0xFFF1FBD2),
+  success = Color(0xFF4D7C0F),
   danger = Color(0xFFDC2626),
   dangerSoft = Color(0xFFFEF2F2),
   warning = Color(0xFFD97706),
   warningSoft = Color(0xFFFFFBEB),
-  text = Color(0xFF172033),
-  muted = Color(0xFF64748B),
-  inactive = Color(0xFF94A3B8),
-  heroBackground = Color(0xFFFFFFFF),
-  heroContent = Color(0xFF172033),
-  heroMuted = Color(0xFF64748B),
-  cardBorder = Color(0xFFE5EAF0)
+  text = Color(0xFF0E0F12),
+  muted = Color(0xFF6B7280),
+  inactive = Color(0xFF9CA3AF),
+  heroBackground = Color(0xFF0E0F12),
+  heroContent = Color(0xFFF5F7FA),
+  heroMuted = Color(0xFF9CA3AF),
+  cardBorder = Color(0xFFE6E8E3)
 )
 
 /** Koyu mod: %60 gece siyahı, %30 beyaz, %10 limon yeşili. */

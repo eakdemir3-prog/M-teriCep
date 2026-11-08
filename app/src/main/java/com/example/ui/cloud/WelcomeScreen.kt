@@ -129,7 +129,7 @@ fun WelcomeScreen(cloud: CloudViewModel) {
             .height(52.dp)
         ) {
           if (busy) {
-            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = palette.onInk)
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
           } else {
             Text(
               when (role) {
