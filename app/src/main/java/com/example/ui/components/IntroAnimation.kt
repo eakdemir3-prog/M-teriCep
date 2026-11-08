@@ -42,11 +42,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val IntroBackground = Color(0xFFFFFFFF)
-private val IntroInk = Color(0xFF172033)
-private val IntroGreen = Color(0xFF0F766E)
-private val IntroAccent = Color(0xFF10B981)
-private val IntroMuted = Color(0xFF64748B)
+private val IntroBackground = Color(0xFF0E0F12)
+private val IntroInk = Color(0xFFF5F7FA)
+private val IntroGreen = Color(0xFFC6F432)
+private val IntroAccent = Color(0xFFA3E635)
+private val IntroMuted = Color(0xFF9CA3AF)
 
 /**
  * Açılış animasyonu (~1,3 sn): simge yaylanarak büyür, arkasında yeşil halka yayılır,
