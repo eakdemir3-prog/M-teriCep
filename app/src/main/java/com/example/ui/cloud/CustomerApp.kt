@@ -285,7 +285,16 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
   val slots by cloud.availableSlots.collectAsState()
   val profile by cloud.userProfile.collectAsState()
   val busy by cloud.busy.collectAsState()
+  var service by remember(businessId) { mutableStateOf<ServiceItem?>(null) }
+  var day by remember(businessId) { mutableStateOf(Formatters.startOfDay(System.currentTimeMillis())) }
+  var time by remember(businessId) { mutableStateOf<Long?>(null) }
+  var note by remember(businessId) { mutableStateOf("") }
+  val isFav = profile?.favoriteBusinessIds?.contains(businessId) == true
   val reviews by cloud.viewedReviews.collectAsState()
+  var showReviews by remember(businessId) { mutableStateOf(false) }
+  if (showReviews) {
+    business?.let { bb -> ReviewsDialog(bb.name, bb.ratingAvg, bb.ratingCount, reviews) { showReviews = false } }
+  }
   val allStaff by cloud.viewedStaff.collectAsState()
   /** null = "Fark etmez" */
   var staffSel by remember(businessId) { mutableStateOf<com.example.cloud.Staff?>(null) }
@@ -295,15 +304,6 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
     staffSel != null && eligible.any { it.id == staffSel?.id } -> listOf(staffSel!!)
     else -> eligible
   }
-  var showReviews by remember(businessId) { mutableStateOf(false) }
-  if (showReviews) {
-    business?.let { bb -> ReviewsDialog(bb.name, bb.ratingAvg, bb.ratingCount, reviews) { showReviews = false } }
-  }
-  var service by remember(businessId) { mutableStateOf<ServiceItem?>(null) }
-  var day by remember(businessId) { mutableStateOf(Formatters.startOfDay(System.currentTimeMillis())) }
-  var time by remember(businessId) { mutableStateOf<Long?>(null) }
-  var note by remember(businessId) { mutableStateOf("") }
-  val isFav = profile?.favoriteBusinessIds?.contains(businessId) == true
 
   LaunchedEffect(businessId) { cloud.viewBusiness(businessId) }
   LaunchedEffect(services) { if (service == null || services.none { it.id == service?.id }) service = services.firstOrNull() }
