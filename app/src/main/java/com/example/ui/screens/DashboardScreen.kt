@@ -95,7 +95,8 @@ fun DashboardScreen(
   viewModel: MusteriCepViewModel,
   modifier: Modifier = Modifier,
   appointmentsToday: List<Appointment>? = null,
-  pendingCount: Int = 0
+  pendingCount: Int = 0,
+  business: com.example.cloud.BusinessProfile? = null
 ) {
   val summary by viewModel.dashboardSummary.collectAsState()
   val profile by viewModel.profile.collectAsState()
@@ -149,16 +150,22 @@ fun DashboardScreen(
           .padding(top = 10.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Image(
-          painter = painterResource(R.drawable.ic_brand),
-          contentDescription = null,
-          modifier = Modifier.size(40.dp)
-        )
+        // İşletme bilgileri girildiyse logosu ve adı; yoksa uygulama simgesi
+        if (business != null && business.logo.isNotBlank()) {
+          com.example.cloud.BusinessLogoImage(business.logo, size = 44.dp, corner = 12.dp)
+        } else {
+          Image(
+            painter = painterResource(R.drawable.ic_brand),
+            contentDescription = null,
+            modifier = Modifier.size(40.dp)
+          )
+        }
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
           Text(
-            profile.displayBusinessName,
+            business?.name?.takeIf { it.isNotBlank() } ?: tr(profile.displayBusinessName),
             style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -183,7 +190,7 @@ fun DashboardScreen(
       }
     }
 
-    if (!profile.isProfileComplete) {
+    if (!profile.isProfileComplete && business?.name.isNullOrBlank()) {
       item {
         NoticeRow(
           icon = Icons.Default.Storefront,

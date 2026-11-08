@@ -3,8 +3,8 @@ package com.example.ui.components
 import com.example.util.tr
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -101,9 +102,9 @@ fun MusteriCepBottomBar(
     modifier = Modifier
       .fillMaxWidth()
       .navigationBarsPadding()
-      .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 12.dp),
+      .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(10.dp)
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
   ) {
     Surface(
       shape = RoundedCornerShape(32.dp),
@@ -111,13 +112,13 @@ fun MusteriCepBottomBar(
       shadowElevation = 10.dp,
       modifier = Modifier
         .weight(1f)
-        .height(64.dp)
+        .height(60.dp)
         .border(BorderStroke(1.5.dp, borderBrush), RoundedCornerShape(32.dp))
     ) {
       Row(
         modifier = Modifier
           .fillMaxHeight()
-          .padding(horizontal = 7.dp),
+          .padding(horizontal = 5.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
         tabs.forEach { tab ->
@@ -149,7 +150,7 @@ fun MusteriCepBottomBar(
         .semantics { contentDescription = tr("Hızlı işlem") },
       contentAlignment = Alignment.Center
     ) {
-      Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
+      Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
     }
   }
 }
@@ -163,14 +164,10 @@ private fun RowScope.NavPill(
   onClick: () -> Unit
 ) {
   val palette = LocalAppPalette.current
-  val weight by animateFloatAsState(
-    targetValue = if (selected) 2.4f else 1f,
-    animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
-    label = "navWeight"
-  )
+  // Seçili sekme yazısı kadar genişler; diğerleri kalan alanı eşit paylaşır
   Box(
     modifier = Modifier
-      .weight(weight)
+      .then(if (selected) Modifier.animateContentSize(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)) else Modifier.weight(1f))
       .height(50.dp)
       .clip(RoundedCornerShape(25.dp))
       .then(if (selected) Modifier.background(gradient) else Modifier)
@@ -184,7 +181,8 @@ private fun RowScope.NavPill(
       .semantics {
         this.selected = selected
         contentDescription = tab.label + if (badge > 0) tr(", {0} bekleyen", badge) else ""
-      },
+      }
+      .then(if (selected) Modifier.padding(horizontal = 14.dp) else Modifier),
     contentAlignment = Alignment.Center
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -220,11 +218,12 @@ private fun RowScope.NavPill(
         exit = fadeOut() + shrinkHorizontally()
       ) {
         Row {
-          Spacer(modifier = Modifier.width(7.dp))
+          Spacer(modifier = Modifier.width(6.dp))
+          val fontScale = LocalDensity.current.fontScale
           Text(
             text = tab.label,
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = (13f / fontScale.coerceAtLeast(1f)).sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             softWrap = false

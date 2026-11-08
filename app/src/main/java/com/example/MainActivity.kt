@@ -167,6 +167,7 @@ fun MusteriCepApp(
   val cloudUser by cloud.firebaseUser.collectAsState()
   val pending by cloud.pendingAppointments.collectAsState()
   val today by cloud.todayAppointments.collectAsState()
+  val myBusiness by cloud.myBusiness.collectAsState()
 
   LaunchedEffect(Unit) {
     cloud.messages.collectLatest { msg -> snackbarHostState.showSnackbar(msg.text) }
@@ -228,7 +229,8 @@ fun MusteriCepApp(
           is Screen.Dashboard -> DashboardScreen(
             viewModel = viewModel,
             appointmentsToday = if (cloudUser != null) today else null,
-            pendingCount = pending.size
+            pendingCount = pending.size,
+            business = if (cloudUser != null) myBusiness else null
           )
           is Screen.Customers -> CustomersScreen(viewModel = viewModel)
           is Screen.Collections -> CollectionsScreen(viewModel = viewModel)
