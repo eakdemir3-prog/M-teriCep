@@ -58,25 +58,25 @@ val DefterPalette = AppPalette(
   cardBorder = Color(0xFFE5EAF0)
 )
 
-/** Koyu mod: aynı dil, gece için. */
+/** Koyu mod: %60 gece siyahı, %30 beyaz, %10 limon yeşili. */
 val KomutaPalette = AppPalette(
   isDark = true,
-  ink = Color(0xFF34D399),
-  onInk = Color(0xFF052E2B),
-  accent = Color(0xFF10B981),
-  accentSoft = Color(0xFF0F2E2A),
-  success = Color(0xFF4ADE80),
+  ink = Color(0xFFC6F432),
+  onInk = Color(0xFF0E0F12),
+  accent = Color(0xFFA3E635),
+  accentSoft = Color(0xFF222A12),
+  success = Color(0xFFC6F432),
   danger = Color(0xFFF87171),
   dangerSoft = Color(0xFF3A1A1C),
   warning = Color(0xFFFBBF24),
   warningSoft = Color(0xFF3A2C10),
-  text = Color(0xFFE6EBF2),
-  muted = Color(0xFF94A3B8),
-  inactive = Color(0xFF64748B),
-  heroBackground = Color(0xFF161D26),
-  heroContent = Color(0xFFE6EBF2),
-  heroMuted = Color(0xFF94A3B8),
-  cardBorder = Color(0xFF263241)
+  text = Color(0xFFF5F7FA),
+  muted = Color(0xFF9CA3AF),
+  inactive = Color(0xFF6B7280),
+  heroBackground = Color(0xFF17191E),
+  heroContent = Color(0xFFF5F7FA),
+  heroMuted = Color(0xFF9CA3AF),
+  cardBorder = Color(0xFF262A31)
 )
 
 val LocalAppPalette = staticCompositionLocalOf { DefterPalette }

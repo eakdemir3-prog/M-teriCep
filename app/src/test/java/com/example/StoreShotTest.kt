@@ -106,8 +106,9 @@ class StoreShotTest {
       ShadowLooper.idleMainLooper(); Thread.sleep(50)
     }
     var current: Screen by mutableStateOf(Screen.Dashboard)
+    var theme by mutableStateOf(AppThemeMode.DEFTER)
     rule.setContent {
-      MyApplicationTheme(themeMode = AppThemeMode.DEFTER) {
+      MyApplicationTheme(themeMode = theme) {
         Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
           Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
@@ -129,6 +130,9 @@ class StoreShotTest {
       Screen.Dashboard to "ana", Screen.Customers to "musteriler", Screen.Collections to "kasa",
       Screen.ReportsAndExport to "raporlar", Screen.WhatsAppTemplates to "sablonlar"
     )) { current = s; save(n) }
+    theme = AppThemeMode.KOMUTA
+    for ((s, n) in listOf(Screen.Dashboard to "koyu_ana", Screen.Customers to "koyu_musteriler", Screen.Collections to "koyu_kasa")) { current = s; save(n) }
+    theme = AppThemeMode.DEFTER
     vm.selectCustomer(detailId)
     val dl = System.currentTimeMillis() + 10_000
     while (System.currentTimeMillis() < dl && vm.selectedCustomerTransactions.value.isEmpty()) { ShadowLooper.idleMainLooper(); Thread.sleep(50) }

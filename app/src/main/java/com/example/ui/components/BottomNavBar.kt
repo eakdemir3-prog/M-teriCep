@@ -150,7 +150,7 @@ fun MusteriCepBottomBar(
         .semantics { contentDescription = tr("Hızlı işlem") },
       contentAlignment = Alignment.Center
     ) {
-      Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+      Icon(Icons.Default.Add, contentDescription = null, tint = palette.onInk, modifier = Modifier.size(28.dp))
     }
   }
 }
@@ -190,7 +190,7 @@ private fun RowScope.NavPill(
         Icon(
           imageVector = if (selected) tab.selectedIcon else tab.icon,
           contentDescription = null,
-          tint = if (selected) Color.White else palette.inactive,
+          tint = if (selected) palette.onInk else palette.inactive,
           modifier = Modifier.size(if (selected) 22.dp else 24.dp)
         )
         if (badge > 0 && !selected) {
@@ -222,7 +222,7 @@ private fun RowScope.NavPill(
           val fontScale = LocalDensity.current.fontScale
           Text(
             text = tab.label,
-            color = Color.White,
+            color = palette.onInk,
             fontSize = (13f / fontScale.coerceAtLeast(1f)).sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,

@@ -143,15 +143,15 @@ fun CustomerApp(cloud: CloudViewModel, themeMode: AppThemeMode, onThemeChange: (
         Row(
           modifier = Modifier
             .fillMaxWidth()
-            .background(com.example.ui.theme.LocalAppPalette.current.text)
+            .background(MaterialTheme.colorScheme.inverseSurface)
             .clickable { cloud.switchMode(ctx as? android.app.Activity, com.example.cloud.UserRole.BUSINESS) }
             .padding(horizontal = 16.dp, vertical = 9.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+          Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.size(16.dp))
           Spacer(modifier = Modifier.width(8.dp))
-          Text(tr("Müşteri modundasınız"), color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
-          Text(tr("İşletmeme dön →"), color = Color(0xFF5EEAD4), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+          Text(tr("Müşteri modundasınız"), color = MaterialTheme.colorScheme.inverseOnSurface, fontSize = 13.sp, modifier = Modifier.weight(1f))
+          Text(tr("İşletmeme dön →"), color = MaterialTheme.colorScheme.inversePrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
       }
     Box(modifier = Modifier.weight(1f)) {
