@@ -1,5 +1,7 @@
 package com.example.ui.cloud
 
+import androidx.compose.material.icons.filled.Star
+
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -94,6 +96,7 @@ fun BusinessAppointmentsScreen(
   val busy by cloud.busy.collectAsState()
   val palette = LocalAppPalette.current
   var ledgerFor by remember { mutableStateOf<Appointment?>(null) }
+  var notifyFor by remember { mutableStateOf<Pair<Appointment, AppointmentStatus>?>(null) }
 
   LazyColumn(
     modifier = Modifier
@@ -188,6 +191,30 @@ fun BusinessAppointmentsScreen(
           }
         }
       }
+      item {
+        val b0 = business!!
+        val myReviews by cloud.myBusinessReviews.collectAsState()
+        var showMine by remember { mutableStateOf(false) }
+        Card(
+          onClick = { cloud.loadMyBusinessReviews(); showMine = true },
+          shape = RoundedCornerShape(16.dp),
+          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+          border = BorderStroke(1.dp, LocalAppPalette.current.cardBorder),
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Star, contentDescription = null, tint = StarGold, modifier = Modifier.size(22.dp))
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Değerlendirmeler", fontWeight = FontWeight.SemiBold)
+              if (b0.ratingCount > 0) RatingBadge(b0.ratingAvg, b0.ratingCount)
+              else Text("Henüz yorum yok. Tamamlanan randevulardan sonra müşterileriniz puan verebilir.", style = MaterialTheme.typography.bodySmall, color = Slate500)
+            }
+            Text("Gör", color = LocalAppPalette.current.ink, fontWeight = FontWeight.SemiBold)
+          }
+        }
+        if (showMine) ReviewsDialog(b0.name, b0.ratingAvg, b0.ratingCount, myReviews) { showMine = false }
+      }
       item { JoinCodeCard(business!!) }
     }
 
@@ -208,12 +235,12 @@ fun BusinessAppointmentsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
               Button(
-                onClick = { cloud.setAppointmentStatus(a, AppointmentStatus.CONFIRMED) },
+                onClick = { cloud.setAppointmentStatus(a, AppointmentStatus.CONFIRMED); notifyFor = a to AppointmentStatus.CONFIRMED },
                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
                 modifier = Modifier.weight(1f)
               ) { Text("Onayla") }
               OutlinedButton(
-                onClick = { cloud.setAppointmentStatus(a, AppointmentStatus.REJECTED) },
+                onClick = { cloud.setAppointmentStatus(a, AppointmentStatus.REJECTED); notifyFor = a to AppointmentStatus.REJECTED },
                 modifier = Modifier.weight(1f)
               ) { Text("Reddet", color = RoseError) }
             }
@@ -253,7 +280,10 @@ fun BusinessAppointmentsScreen(
       items(visible, key = { "d_" + it.id }) { a ->
         BusinessAppointmentRow(
           a = a,
-          onStatus = { cloud.setAppointmentStatus(a, it) },
+          onStatus = { st ->
+            cloud.setAppointmentStatus(a, st)
+            if (st == AppointmentStatus.CONFIRMED || st == AppointmentStatus.CANCELLED) notifyFor = a to st
+          },
           onComplete = { ledgerFor = a },
           onCall = {
             if (a.customerPhone.isNotBlank()) {
@@ -268,6 +298,39 @@ fun BusinessAppointmentsScreen(
       }
     }
     item { Spacer(modifier = Modifier.height(if (busy) 120.dp else 90.dp)) }
+  }
+
+  notifyFor?.let { (a, st) ->
+    if (a.customerPhone.isBlank()) {
+      notifyFor = null
+    } else {
+      val msg = statusMessage(a, st)
+      androidx.compose.material3.AlertDialog(
+        onDismissRequest = { notifyFor = null },
+        title = { Text("Müşteriye bildirilsin mi?", fontWeight = FontWeight.Bold) },
+        text = {
+          Column {
+            Text("${a.customerName} kişisine WhatsApp'tan şu mesaj hazırlanacak:", style = MaterialTheme.typography.bodySmall, color = Slate500)
+            Spacer(modifier = Modifier.height(8.dp))
+            androidx.compose.material3.Surface(shape = RoundedCornerShape(12.dp), color = LocalAppPalette.current.accentSoft) {
+              Text(msg, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp))
+            }
+          }
+        },
+        confirmButton = {
+          Button(
+            onClick = {
+              WhatsAppHelper.openWhatsAppChat(context, a.customerPhone, msg) { err ->
+                android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_LONG).show()
+              }
+              notifyFor = null
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen)
+          ) { Text("WhatsApp'tan gönder") }
+        },
+        dismissButton = { TextButton(onClick = { notifyFor = null }) { Text("Gerek yok") } }
+      )
+    }
   }
 
   ledgerFor?.let { a ->
@@ -506,5 +569,20 @@ fun ManualAppointmentDialog(cloud: CloudViewModel, onDismiss: () -> Unit) {
         }
       }
     }
+  }
+}
+
+/** İşletmenin müşteriye göndereceği durum mesajı (WhatsApp). */
+private fun statusMessage(a: Appointment, st: AppointmentStatus): String {
+  val whenText = "${Formatters.formatFriendlyDate(a.start)} saat ${timeOf(a.start)}"
+  return when (st) {
+    AppointmentStatus.CONFIRMED ->
+      "Merhaba ${a.customerName}, $whenText ${a.serviceName} randevunuz onaylandı. Sizi bekliyoruz. ${a.businessName}" +
+        if (a.businessAddress.isNotBlank()) "\nAdres: ${a.businessAddress}" else ""
+    AppointmentStatus.REJECTED ->
+      "Merhaba ${a.customerName}, $whenText için ${a.serviceName} randevu isteğinizi maalesef karşılayamıyoruz. Uygulamadan başka bir saat seçebilirsiniz. ${a.businessName}"
+    AppointmentStatus.CANCELLED ->
+      "Merhaba ${a.customerName}, $whenText ${a.serviceName} randevunuz iptal edildi. Yeni randevu için uygulamadan uygun bir saat seçebilirsiniz. ${a.businessName}"
+    else -> "Merhaba ${a.customerName}, $whenText ${a.serviceName} randevunuzla ilgili bilgilendirme. ${a.businessName}"
   }
 }

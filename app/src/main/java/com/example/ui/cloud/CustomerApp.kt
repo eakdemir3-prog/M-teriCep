@@ -1,5 +1,7 @@
 package com.example.ui.cloud
 
+import androidx.compose.material.icons.filled.Star
+
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 
 import androidx.compose.ui.graphics.Color
@@ -259,7 +261,13 @@ private fun BusinessRow(b: BusinessProfile, onClick: () -> Unit) {
       com.example.cloud.BusinessLogoImage(logo = b.logo, size = 46.dp)
       Spacer(modifier = Modifier.width(12.dp))
       Column(modifier = Modifier.weight(1f)) {
-        Text(b.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Text(b.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+          if (b.ratingCount > 0) {
+            Spacer(modifier = Modifier.width(8.dp))
+            RatingBadge(b.ratingAvg, b.ratingCount, 13.dp)
+          }
+        }
         Text(
           listOf(b.category, listOf(b.district, b.city).filter { it.isNotBlank() }.joinToString(", ")).filter { it.isNotBlank() }.joinToString(" • "),
           style = MaterialTheme.typography.bodySmall, color = Slate500, maxLines = 1
@@ -277,6 +285,11 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
   val slots by cloud.availableSlots.collectAsState()
   val profile by cloud.userProfile.collectAsState()
   val busy by cloud.busy.collectAsState()
+  val reviews by cloud.viewedReviews.collectAsState()
+  var showReviews by remember(businessId) { mutableStateOf(false) }
+  if (showReviews) {
+    business?.let { bb -> ReviewsDialog(bb.name, bb.ratingAvg, bb.ratingCount, reviews) { showReviews = false } }
+  }
   var service by remember(businessId) { mutableStateOf<ServiceItem?>(null) }
   var day by remember(businessId) { mutableStateOf(Formatters.startOfDay(System.currentTimeMillis())) }
   var time by remember(businessId) { mutableStateOf<Long?>(null) }
@@ -310,6 +323,13 @@ private fun BookingScreen(cloud: CloudViewModel, businessId: String) {
             Column(modifier = Modifier.weight(1f)) {
               Text(b.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
               if (b.category.isNotBlank()) Text(b.category, style = MaterialTheme.typography.labelMedium, color = Slate500)
+              if (b.ratingCount > 0) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { showReviews = true }) {
+                  RatingBadge(b.ratingAvg, b.ratingCount, 15.dp)
+                  Text("  Yorumlar", fontSize = 13.sp, color = LocalAppPalette.current.ink, fontWeight = FontWeight.SemiBold)
+                }
+              }
             }
           }
           if (b.description.isNotBlank()) {
@@ -429,7 +449,11 @@ private fun todayHoursText(b: BusinessProfile): String {
 @Composable
 private fun MyAppointmentsScreen(cloud: CloudViewModel) {
   val list by cloud.myAppointments.collectAsState()
+  val me by cloud.userProfile.collectAsState()
   var toCancel by remember { mutableStateOf<Appointment?>(null) }
+  var toReview by remember { mutableStateOf<Appointment?>(null) }
+  var justReviewed by remember { mutableStateOf(setOf<String>()) }
+  val reviewed = (me?.reviewedAppointmentIds.orEmpty()).toSet() + justReviewed
   val now = System.currentTimeMillis()
   val upcoming = list.filter { it.end >= now && it.status.isActive }.sortedBy { it.start }
   val past = list.filter { !(it.end >= now && it.status.isActive) }.sortedByDescending { it.start }
@@ -452,9 +476,33 @@ private fun MyAppointmentsScreen(cloud: CloudViewModel) {
     }
     if (past.isNotEmpty()) {
       item { SectionTitle("Geçmiş") }
-      items(past.take(30), key = { "p_" + it.id }) { a -> CustomerAppointmentCard(a, onCancel = null, onRebook = { cloud.openBusiness(a.businessId) }) }
+      items(past.take(30), key = { "p_" + it.id }) { a ->
+        val canReview = (a.status == AppointmentStatus.COMPLETED || (a.status == AppointmentStatus.CONFIRMED && a.end < now)) && a.customerUid.isNotBlank()
+        CustomerAppointmentCard(
+          a, onCancel = null, onRebook = { cloud.openBusiness(a.businessId) },
+          reviewState = when {
+            !canReview -> null
+            a.id in reviewed -> true
+            else -> false
+          },
+          onReview = { toReview = a }
+        )
+      }
     }
     item { Spacer(modifier = Modifier.height(24.dp)) }
+  }
+
+  toReview?.let { a ->
+    WriteReviewDialog(
+      businessName = a.businessName,
+      serviceName = a.serviceName,
+      onDismiss = { toReview = null },
+      onSubmit = { rating, comment ->
+        cloud.submitReview(a, rating, comment)
+        justReviewed = justReviewed + a.id
+        toReview = null
+      }
+    )
   }
 
   toCancel?.let { a ->
@@ -469,7 +517,13 @@ private fun MyAppointmentsScreen(cloud: CloudViewModel) {
 }
 
 @Composable
-private fun CustomerAppointmentCard(a: Appointment, onCancel: (() -> Unit)?, onRebook: () -> Unit) {
+private fun CustomerAppointmentCard(
+  a: Appointment,
+  onCancel: (() -> Unit)?,
+  onRebook: () -> Unit,
+  reviewState: Boolean? = null,
+  onReview: () -> Unit = {}
+) {
   val palette = LocalAppPalette.current
   Card(
     shape = RoundedCornerShape(14.dp),
@@ -501,6 +555,15 @@ private fun CustomerAppointmentCard(a: Appointment, onCancel: (() -> Unit)?, onR
           }
         }
         if (onCancel != null) TextButton(onClick = onCancel) { Text("İptal et", color = RoseError) }
+        when (reviewState) {
+          false -> TextButton(onClick = onReview) {
+            Icon(Icons.Default.Star, contentDescription = null, tint = StarGold, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Değerlendir")
+          }
+          true -> Text("Değerlendirildi ✓", fontSize = 12.sp, color = palette.success, modifier = Modifier.align(Alignment.CenterVertically).padding(horizontal = 8.dp))
+          null -> Unit
+        }
         TextButton(onClick = onRebook) { Text(if (onCancel != null) "İşletme" else "Tekrar al") }
       }
     }

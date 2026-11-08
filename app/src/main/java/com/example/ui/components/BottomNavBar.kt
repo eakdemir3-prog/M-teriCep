@@ -1,12 +1,22 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,29 +38,43 @@ import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.People
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.LocalAppPalette
 import com.example.viewmodel.Screen
 
+private data class NavTab(
+  val label: String,
+  val selectedIcon: ImageVector,
+  val icon: ImageVector,
+  val screen: Screen,
+  val tag: String
+)
+
 /**
- * Alt menü: 5 eşit sütun. Ortadaki "+" kendi sütununda durur; hiçbir yazının üstüne binmez
- * ve her ekran genişliğinde etiketler tek satırda kalır.
+ * Yüzen kapsül alt menü (ZihinPark tarzı). Seçili sekme yeşil degrade bir kapsüle dönüşüp
+ * adını gösterir; diğerleri yalnızca simgedir. Hızlı işlem "+" kapsülün sağında ayrı durur.
  */
 @Composable
 fun MusteriCepBottomBar(
@@ -60,143 +84,151 @@ fun MusteriCepBottomBar(
   pendingCount: Int = 0
 ) {
   val palette = LocalAppPalette.current
-  Surface(
-    modifier = Modifier.fillMaxWidth(),
-    color = MaterialTheme.colorScheme.surface
+  val tabs = remember {
+    listOf(
+      NavTab("Ana Sayfa", Icons.Filled.Dashboard, Icons.Outlined.Dashboard, Screen.Dashboard, "nav_dashboard"),
+      NavTab("Randevu", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth, Screen.Appointments, "nav_appointments"),
+      NavTab("Müşteriler", Icons.Filled.People, Icons.Outlined.People, Screen.Customers, "nav_customers"),
+      NavTab("Kasa", Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet, Screen.Collections, "nav_collections")
+    )
+  }
+  val gradient = Brush.horizontalGradient(listOf(palette.ink, palette.accent))
+  val borderBrush = Brush.horizontalGradient(listOf(palette.accent.copy(alpha = 0.55f), palette.accent, palette.ink))
+
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .navigationBarsPadding()
+      .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 12.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(10.dp)
   ) {
-    Column(modifier = Modifier.navigationBarsPadding()) {
-      HorizontalDivider(thickness = 0.5.dp, color = palette.cardBorder)
+    Surface(
+      shape = RoundedCornerShape(32.dp),
+      color = MaterialTheme.colorScheme.surface,
+      shadowElevation = 10.dp,
+      modifier = Modifier
+        .weight(1f)
+        .height(64.dp)
+        .border(BorderStroke(1.5.dp, borderBrush), RoundedCornerShape(32.dp))
+    ) {
       Row(
         modifier = Modifier
-          .fillMaxWidth()
-          .height(64.dp),
+          .fillMaxHeight()
+          .padding(horizontal = 7.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        NavCell(
-          label = "Ana Sayfa",
-          selectedIcon = Icons.Filled.Dashboard,
-          unselectedIcon = Icons.Outlined.Dashboard,
-          isSelected = currentScreen is Screen.Dashboard,
-          testTag = "nav_dashboard",
-          onClick = { onNavigate(Screen.Dashboard) }
-        )
-        NavCell(
-          label = "Randevu",
-          selectedIcon = Icons.Filled.CalendarMonth,
-          unselectedIcon = Icons.Outlined.CalendarMonth,
-          isSelected = currentScreen is Screen.Appointments,
-          testTag = "nav_appointments",
-          badge = pendingCount,
-          onClick = { onNavigate(Screen.Appointments) }
-        )
-
-        // Ortadaki hızlı işlem düğmesi (kendi sütununda)
-        Box(
-          modifier = Modifier
-            .weight(1f)
-            .fillMaxHeight(),
-          contentAlignment = Alignment.Center
-        ) {
-          Box(
-            modifier = Modifier
-              .size(46.dp)
-              .clip(CircleShape)
-              .background(palette.ink)
-              .clickable(role = Role.Button, onClick = onQuickActionClick)
-              .testTag("fab_quick_action"),
-            contentAlignment = Alignment.Center
-          ) {
-            Icon(
-              imageVector = Icons.Default.Add,
-              contentDescription = "Hızlı işlem",
-              tint = palette.onInk,
-              modifier = Modifier.size(26.dp)
-            )
+        tabs.forEach { tab ->
+          val selected = when (tab.screen) {
+            Screen.Dashboard -> currentScreen is Screen.Dashboard
+            Screen.Appointments -> currentScreen is Screen.Appointments
+            Screen.Customers -> currentScreen is Screen.Customers
+            else -> currentScreen is Screen.Collections
           }
+          NavPill(
+            tab = tab,
+            selected = selected,
+            badge = if (tab.screen == Screen.Appointments) pendingCount else 0,
+            gradient = gradient,
+            onClick = { if (!selected) onNavigate(tab.screen) }
+          )
         }
-
-        NavCell(
-          label = "Müşteriler",
-          selectedIcon = Icons.Filled.People,
-          unselectedIcon = Icons.Outlined.People,
-          isSelected = currentScreen is Screen.Customers,
-          testTag = "nav_customers",
-          onClick = { onNavigate(Screen.Customers) }
-        )
-        NavCell(
-          label = "Kasa",
-          selectedIcon = Icons.Filled.AccountBalanceWallet,
-          unselectedIcon = Icons.Outlined.AccountBalanceWallet,
-          isSelected = currentScreen is Screen.Collections,
-          testTag = "nav_collections",
-          onClick = { onNavigate(Screen.Collections) }
-        )
       }
+    }
+
+    Box(
+      modifier = Modifier
+        .size(64.dp)
+        .shadow(10.dp, CircleShape, ambientColor = palette.accent, spotColor = palette.accent)
+        .clip(CircleShape)
+        .background(Brush.linearGradient(listOf(palette.ink, palette.accent)))
+        .clickable(role = Role.Button, onClick = onQuickActionClick)
+        .testTag("fab_quick_action")
+        .semantics { contentDescription = "Hızlı işlem" },
+      contentAlignment = Alignment.Center
+    ) {
+      Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
     }
   }
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.RowScope.NavCell(
-  label: String,
-  selectedIcon: ImageVector,
-  unselectedIcon: ImageVector,
-  isSelected: Boolean,
-  testTag: String,
-  badge: Int = 0,
+private fun RowScope.NavPill(
+  tab: NavTab,
+  selected: Boolean,
+  badge: Int,
+  gradient: Brush,
   onClick: () -> Unit
 ) {
   val palette = LocalAppPalette.current
-  val tint = if (isSelected) palette.ink else palette.inactive
-  Column(
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.Center,
+  val weight by animateFloatAsState(
+    targetValue = if (selected) 2.4f else 1f,
+    animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+    label = "navWeight"
+  )
+  Box(
     modifier = Modifier
-      .weight(1f)
-      .fillMaxHeight()
-      .clickable(role = Role.Tab, onClick = onClick)
-      .testTag(testTag)
-  ) {
-    Box(
-      modifier = Modifier
-        .width(40.dp)
-        .height(26.dp),
-      contentAlignment = Alignment.Center
-    ) {
-      Icon(
-        imageVector = if (isSelected) selectedIcon else unselectedIcon,
-        contentDescription = null,
-        tint = tint,
-        modifier = Modifier.size(24.dp)
+      .weight(weight)
+      .height(50.dp)
+      .clip(RoundedCornerShape(25.dp))
+      .then(if (selected) Modifier.background(gradient) else Modifier)
+      .clickable(
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null,
+        role = Role.Tab,
+        onClick = onClick
       )
-      if (badge > 0) {
-        Surface(
-          shape = CircleShape,
-          color = AmberWarning,
-          border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-          modifier = Modifier
-            .align(Alignment.TopEnd)
-            .offset(x = (-4).dp, y = (-2).dp)
-        ) {
+      .testTag(tab.tag)
+      .semantics {
+        this.selected = selected
+        contentDescription = tab.label + if (badge > 0) ", $badge bekleyen" else ""
+      },
+    contentAlignment = Alignment.Center
+  ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Box {
+        Icon(
+          imageVector = if (selected) tab.selectedIcon else tab.icon,
+          contentDescription = null,
+          tint = if (selected) Color.White else palette.inactive,
+          modifier = Modifier.size(if (selected) 22.dp else 24.dp)
+        )
+        if (badge > 0 && !selected) {
+          Surface(
+            shape = CircleShape,
+            color = AmberWarning,
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+            modifier = Modifier
+              .align(Alignment.TopEnd)
+              .offset(x = 9.dp, y = (-7).dp)
+          ) {
+            Text(
+              text = if (badge > 9) "9+" else badge.toString(),
+              color = Color.White,
+              fontSize = 9.sp,
+              fontWeight = FontWeight.Bold,
+              modifier = Modifier.padding(horizontal = 4.dp)
+            )
+          }
+        }
+      }
+      AnimatedVisibility(
+        visible = selected,
+        enter = fadeIn() + expandHorizontally(),
+        exit = fadeOut() + shrinkHorizontally()
+      ) {
+        Row {
+          Spacer(modifier = Modifier.width(7.dp))
           Text(
-            text = if (badge > 9) "9+" else badge.toString(),
-            color = MaterialTheme.colorScheme.surface,
-            fontSize = 9.sp,
+            text = tab.label,
+            color = Color.White,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            maxLines = 1,
+            softWrap = false
           )
         }
       }
     }
-    Spacer(modifier = Modifier.height(3.dp))
-    Text(
-      text = label,
-      fontSize = 11.sp,
-      fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-      color = if (isSelected) palette.ink else palette.muted,
-      maxLines = 1,
-      softWrap = false,
-      overflow = TextOverflow.Ellipsis
-    )
   }
 }

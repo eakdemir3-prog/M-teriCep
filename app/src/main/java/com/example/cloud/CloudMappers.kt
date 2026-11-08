@@ -11,6 +11,7 @@ internal object CloudMappers {
     "email" to u.email,
     "phone" to u.phone,
     "favoriteBusinessIds" to u.favoriteBusinessIds,
+    "reviewedAppointmentIds" to u.reviewedAppointmentIds,
     "updatedAt" to System.currentTimeMillis()
   )
 
@@ -21,7 +22,29 @@ internal object CloudMappers {
     displayName = doc.getString("displayName") ?: "",
     email = doc.getString("email") ?: "",
     phone = doc.getString("phone") ?: "",
-    favoriteBusinessIds = (doc.get("favoriteBusinessIds") as? List<String>) ?: emptyList()
+    favoriteBusinessIds = (doc.get("favoriteBusinessIds") as? List<String>) ?: emptyList(),
+    reviewedAppointmentIds = (doc.get("reviewedAppointmentIds") as? List<String>) ?: emptyList()
+  )
+
+  fun reviewToMap(r: Review): Map<String, Any?> = mapOf(
+    "businessId" to r.businessId,
+    "customerUid" to r.customerUid,
+    "customerName" to r.customerName,
+    "rating" to r.rating,
+    "comment" to r.comment.trim(),
+    "serviceName" to r.serviceName,
+    "createdAt" to r.createdAt
+  )
+
+  fun review(doc: DocumentSnapshot): Review = Review(
+    id = doc.id,
+    businessId = doc.getString("businessId") ?: "",
+    customerUid = doc.getString("customerUid") ?: "",
+    customerName = doc.getString("customerName") ?: "",
+    rating = doc.getLong("rating")?.toInt() ?: 0,
+    comment = doc.getString("comment") ?: "",
+    serviceName = doc.getString("serviceName") ?: "",
+    createdAt = doc.getLong("createdAt") ?: 0L
   )
 
   fun dayToMap(d: WorkingDay): Map<String, Any?> = mapOf(
@@ -63,6 +86,8 @@ internal object CloudMappers {
     "lat" to b.latitude,
     "lng" to b.longitude,
     "tierRank" to b.tierRank,
+    "ratingAvg" to b.ratingAvg,
+    "ratingCount" to b.ratingCount,
     "bookingFull" to b.bookingFull,
     "bookingFullMonth" to if (b.bookingFull) currentMonthKey() else "",
     "updatedAt" to System.currentTimeMillis()
@@ -89,6 +114,8 @@ internal object CloudMappers {
     latitude = doc.getDouble("lat"),
     longitude = doc.getDouble("lng"),
     tierRank = doc.getLong("tierRank")?.toInt() ?: 0,
+    ratingAvg = doc.getDouble("ratingAvg") ?: 0.0,
+    ratingCount = doc.getLong("ratingCount")?.toInt() ?: 0,
     // Sınır yalnızca dolduğu ay için geçerli: yeni ayda işletme uygulamayı açmasa da randevu açılır.
     bookingFull = (doc.getBoolean("bookingFull") ?: false) && doc.getString("bookingFullMonth") == currentMonthKey()
   )

@@ -10,7 +10,21 @@ data class UserProfile(
   val displayName: String = "",
   val email: String = "",
   val phone: String = "",
-  val favoriteBusinessIds: List<String> = emptyList()
+  val favoriteBusinessIds: List<String> = emptyList(),
+  /** Değerlendirdiği randevuların kimlikleri (aynı randevu iki kez puanlanmasın). */
+  val reviewedAppointmentIds: List<String> = emptyList()
+)
+
+/** Müşterinin bir işletmeye verdiği puan ve yorum. Belge kimliği = randevu kimliği. */
+data class Review(
+  val id: String,
+  val businessId: String,
+  val customerUid: String,
+  val customerName: String,
+  val rating: Int,
+  val comment: String,
+  val serviceName: String = "",
+  val createdAt: Long = System.currentTimeMillis()
 )
 
 /** Haftanın bir günü için çalışma saatleri. dayOfWeek: 1 = Pazartesi ... 7 = Pazar. Saatler dakika cinsinden (09:00 = 540). */
@@ -74,7 +88,10 @@ data class BusinessProfile(
   /** İşletmenin paket seviyesi (0 ücretsiz, 1 Başlangıç, 2 Pro): Pro işletmeler listede üstte. */
   val tierRank: Int = 0,
   /** Aylık randevu sınırı doldu mu? Doluysa müşteriler online randevu alamaz. */
-  val bookingFull: Boolean = false
+  val bookingFull: Boolean = false,
+  /** Ortalama puan ve yorum sayısı (işletme sahibinin uygulaması günceller). */
+  val ratingAvg: Double = 0.0,
+  val ratingCount: Int = 0
 ) {
   val hasLocation: Boolean get() = latitude != null && longitude != null
   fun dayFor(timestamp: Long): WorkingDay {

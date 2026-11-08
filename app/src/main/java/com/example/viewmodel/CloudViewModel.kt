@@ -282,7 +282,13 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
+  private var lastRatingSync = 0L
+
   private suspend fun refreshUsage(b: BusinessProfile, t: com.example.model.SubscriptionTier) {
+    if (System.currentTimeMillis() - lastRatingSync > 3_600_000L) {
+      lastRatingSync = System.currentTimeMillis()
+      runCatching { cloud.syncRating(b.id) }
+    }
     val limited = com.example.model.Billing.ENABLED && t.monthlyAppointments != com.example.model.UNLIMITED
     val count = runCatching { cloud.monthAppointmentCount(b.id) }.getOrNull()
     _monthCount.value = count
@@ -476,7 +482,53 @@ class CloudViewModel(application: Application) : AndroidViewModel(application) {
 
   // Seçili işletme (randevu ekranı)
   private val _viewedBusinessId = MutableStateFlow<String?>(null)
-  fun viewBusiness(id: String) { _viewedBusinessId.value = id }
+  fun viewBusiness(id: String) {
+    _viewedBusinessId.value = id
+    _viewedReviews.value = emptyList()
+    viewModelScope.launch { _viewedReviews.value = runCatching { cloud.latestReviews(id) }.getOrDefault(emptyList()) }
+  }
+
+  private val _viewedReviews = MutableStateFlow<List<com.example.cloud.Review>>(emptyList())
+  val viewedReviews: StateFlow<List<com.example.cloud.Review>> = _viewedReviews.asStateFlow()
+
+  private val _myReviews = MutableStateFlow<List<com.example.cloud.Review>>(emptyList())
+  /** İşletme sahibinin gördüğü son yorumlar. */
+  val myBusinessReviews: StateFlow<List<com.example.cloud.Review>> = _myReviews.asStateFlow()
+
+  fun loadMyBusinessReviews() {
+    val b = myBusiness.value ?: return
+    viewModelScope.launch {
+      _myReviews.value = runCatching { cloud.latestReviews(b.id, 50) }.getOrDefault(emptyList())
+      runCatching { cloud.syncRating(b.id) }
+    }
+  }
+
+  /** Müşteri: geçmiş randevu için puan ve yorum. */
+  fun submitReview(a: Appointment, rating: Int, comment: String) {
+    val u = firebaseUser.value ?: return
+    if (rating !in 1..5) { say("Lütfen 1 ile 5 arasında yıldız seçin."); return }
+    if (comment.length > 300) { say("Yorum en fazla 300 karakter olabilir."); return }
+    val name = (userProfile.value?.displayName ?: u.displayName ?: "").trim().split(Regex("\\s+")).let { parts ->
+      when {
+        parts.isEmpty() || parts[0].isBlank() -> "Müşteri"
+        parts.size == 1 -> parts[0]
+        else -> parts[0] + " " + parts.last().take(1) + "."
+      }
+    }
+    viewModelScope.launch {
+      try {
+        cloud.submitReview(
+          com.example.cloud.Review(
+            id = a.id, businessId = a.businessId, customerUid = u.uid, customerName = name,
+            rating = rating, comment = comment.trim(), serviceName = a.serviceName
+          )
+        )
+        say("Teşekkürler! Değerlendirmeniz kaydedildi.")
+      } catch (e: Exception) {
+        say("Değerlendirme kaydedilemedi: ${e.message}")
+      }
+    }
+  }
 
   val viewedBusiness: StateFlow<BusinessProfile?> = _viewedBusinessId.flatMapLatest { id ->
     if (id == null) flowOf(null) else cloud.businessFlow(id).catch { emit(null) }

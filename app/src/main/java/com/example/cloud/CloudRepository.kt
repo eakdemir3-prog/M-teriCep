@@ -78,6 +78,30 @@ class CloudRepository {
     users().document(user.uid).set(CloudMappers.userToMap(user), SetOptions.merge()).await()
   }
 
+  // ---------------- Puan ve yorum ----------------
+
+  private fun reviews(businessId: String) = businesses().document(businessId).collection("reviews")
+
+  suspend fun submitReview(r: Review) {
+    reviews(r.businessId).document(r.id).set(CloudMappers.reviewToMap(r)).await()
+    runCatching {
+      users().document(r.customerUid).update("reviewedAppointmentIds", FieldValue.arrayUnion(r.id)).await()
+    }
+  }
+
+  suspend fun latestReviews(businessId: String, limit: Long = 30): List<Review> =
+    reviews(businessId).orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+      .limit(limit).get().await().documents.map(CloudMappers::review)
+
+  /** İşletme sahibi: tüm yorumlardan ortalamayı hesaplayıp vitrine yazar. */
+  suspend fun syncRating(businessId: String): Pair<Double, Int> {
+    val all = reviews(businessId).limit(500).get().await().documents.map(CloudMappers::review).filter { it.rating in 1..5 }
+    val avg = if (all.isEmpty()) 0.0 else all.sumOf { it.rating }.toDouble() / all.size
+    val rounded = Math.round(avg * 10) / 10.0
+    businesses().document(businessId).update(mapOf("ratingAvg" to rounded, "ratingCount" to all.size)).await()
+    return rounded to all.size
+  }
+
   suspend fun setFavorite(uid: String, businessId: String, favorite: Boolean) {
     users().document(uid).update(
       "favoriteBusinessIds",
