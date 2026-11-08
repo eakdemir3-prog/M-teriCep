@@ -66,7 +66,7 @@
   <header>
     <div class="brand"><span class="mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="3" fill="currentColor" opacity=".25"/><rect x="3" y="5" width="18" height="5" rx="2" fill="currentColor"/></svg></span>MüşteriCep · EA Vision Labs</div>
     <h1>Gizlilik Politikası ve KVKK Aydınlatma Metni</h1>
-    <p class="lead">Son güncelleme: 8 Kasım 2026. Bu metin MüşteriCep uygulamasının hangi verileri, neden ve nerede işlediğini açıklar. Geliştirici: Emre Akdemir (EA Vision Labs), eakdemir3@gmail.com.</p>
+    <p class="lead">Son güncelleme: 8 Kasım 2026 (sürüm 1.1). Bu metin MüşteriCep uygulamasının hangi verileri, neden ve nerede işlediğini açıklar. Geliştirici: Emre Akdemir (EA Vision Labs), eakdemir3@gmail.com.</p>
   </header>
 
   <section><h2>1. Kısaca</h2>
@@ -85,7 +85,10 @@
         <tr><td>Profil: ad, telefon, favori işletmeler, kullanım modu</td><td>Firebase Firestore</td><td>Randevu almak, işletmenin sizi tanıması</td></tr>
         <tr><td>İşletme vitrini: ad, kategori, adres, telefon, açıklama, logo, harita konumu, çalışma saatleri, hizmet ve fiyatlar</td><td>Firebase Firestore</td><td>Müşterilerin işletmeyi bulması ve yol tarifi alması</td></tr>
         <tr><td>Randevular: tarih-saat, hizmet, müşteri adı ve telefonu, not, durum</td><td>Firebase Firestore</td><td>Randevu oluşturma ve yönetme</td></tr>
-        <tr><td>Abonelik durumu</td><td>Google Play (ödeme bilgileriniz bize ulaşmaz)</td><td>Paket özelliklerini açmak</td></tr>
+        <tr><td>Puan ve yorumlar: puan, yorum, adınız ve soyadınızın baş harfi</td><td>Firebase Firestore</td><td>İşletme değerlendirmelerinin gösterilmesi</td></tr>
+        <tr><td>Personel adları ve verdikleri hizmetler (İşletme paketi)</td><td>Firebase Firestore</td><td>Personel seçerek randevu alınması</td></tr>
+        <tr><td>Bildirim anahtarı (cihaza özel FCM kimliği)</td><td>Firebase Firestore, Firebase Cloud Messaging</td><td>Randevu bildirimlerinin telefonunuza gönderilmesi</td></tr>
+        <tr><td>Abonelik ve satın alma geçmişi, uygulama kullanıcı kimliği</td><td>Google Play ve RevenueCat (ödeme kartı bilgileriniz bize ulaşmaz)</td><td>Paket özelliklerini açmak, satın alımı doğrulamak, telefon değişse de paketi korumak</td></tr>
       </tbody>
     </table></div>
   </section>
@@ -94,7 +97,7 @@
     <ul>
       <li><b>Konum</b> (isteğe bağlı): yalnızca işletme sahibi "Şu anki konumu kullan"a bastığında, işletmenin harita konumunu kaydetmek için bir kez alınır. Arka planda konum toplanmaz.</li>
       <li><b>Fotoğraf seçici</b>: yalnızca seçtiğiniz logo görseli küçültülerek işletme vitrinine eklenir. Galerinize erişilmez.</li>
-      <li><b>Bildirim</b>: vade ve randevu hatırlatmaları için.</li>
+      <li><b>Bildirim</b>: vade ve randevu hatırlatmaları ile yeni randevu, onay ve iptal bildirimleri için.</li>
       <li><b>İnternet</b>: online randevu, giriş ve abonelik için.</li>
     </ul></section>
 
