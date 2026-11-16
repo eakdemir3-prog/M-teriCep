@@ -101,12 +101,16 @@ data class BusinessProfile(
   val bookingFull: Boolean = false,
   /** Ortalama puan ve yorum sayısı (işletme sahibinin uygulaması günceller). */
   val ratingAvg: Double = 0.0,
+  /** Tatil ve izin günleri ("yyyyMMdd"); bu tarihlerde randevu alınmaz. */
+  val closedDates: List<String> = emptyList(),
   val ratingCount: Int = 0
 ) {
   val hasLocation: Boolean get() = latitude != null && longitude != null
   fun dayFor(timestamp: Long): WorkingDay {
     val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
     val d = WorkingDay.fromCalendarDay(cal.get(Calendar.DAY_OF_WEEK))
+    // Tatil / izin günü: o tarih randevuya kapalı
+    if (dayKeyOf(timestamp) in closedDates) return WorkingDay(d, isOpen = false)
     return workingHours.firstOrNull { it.dayOfWeek == d } ?: WorkingDay(d, isOpen = false)
   }
 }

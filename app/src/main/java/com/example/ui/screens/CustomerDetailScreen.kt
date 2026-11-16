@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NorthEast
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.SouthWest
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Button
@@ -85,7 +86,9 @@ import com.example.viewmodel.MusteriCepViewModel
 @Composable
 fun CustomerDetailScreen(
   viewModel: MusteriCepViewModel,
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
+  businessName: String? = null,
+  businessLogo: String = ""
 ) {
   val context = LocalContext.current
   val customerWithBalance by viewModel.selectedCustomerWithBalance.collectAsState()
@@ -257,17 +260,41 @@ fun CustomerDetailScreen(
           }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(
-          onClick = { viewModel.openDialog(DialogState.SendWhatsApp(item)) },
-          shape = RoundedCornerShape(12.dp),
-          contentPadding = PaddingValues(vertical = 12.dp),
-          modifier = Modifier
-            .fillMaxWidth()
-            .testTag("btn_whatsapp_message")
-        ) {
-          Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = WhatsAppGreen, modifier = Modifier.size(18.dp))
-          Spacer(modifier = Modifier.width(8.dp))
-          Text(tr("WhatsApp mesajı"), color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+          OutlinedButton(
+            onClick = { viewModel.openDialog(DialogState.SendWhatsApp(item)) },
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(vertical = 12.dp),
+            modifier = Modifier
+              .weight(1f)
+              .testTag("btn_whatsapp_message")
+          ) {
+            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = WhatsAppGreen, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(tr("WhatsApp mesajı"), color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+          }
+          OutlinedButton(
+            onClick = {
+              val profile = viewModel.profile.value
+              val name = businessName?.takeIf { it.isNotBlank() } ?: tr(profile.displayBusinessName)
+              runCatching {
+                val file = com.example.util.StatementPdf.create(context, name, profile.phone, businessLogo, item, transactions)
+                com.example.util.StatementPdf.share(
+                  context, file,
+                  tr("Sayın {0}, {1} hesap ekstreniz ektedir. Kalan bakiye: {2}", customer.name, name, com.example.util.Formatters.formatCurrency(item.remainingBalance))
+                )
+              }.onFailure { viewModel.showMessage(tr("Ekstre oluşturulamadı.")) }
+            },
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(vertical = 12.dp),
+            modifier = Modifier
+              .weight(1f)
+              .testTag("btn_statement_pdf")
+          ) {
+            Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = palette.danger, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(tr("PDF ekstre"), color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+          }
         }
       }
 

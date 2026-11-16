@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
@@ -115,6 +116,31 @@ fun AddEditCustomerDialog(
   var emailError by remember { mutableStateOf<String?>(null) }
   var duplicateWarning by remember { mutableStateOf<String?>(null) }
 
+  // Rehberden seçim: telefon seçici yalnızca seçilen kişiye geçici erişim verir, rehber izni gerekmez.
+  val pickContext = androidx.compose.ui.platform.LocalContext.current
+  val contactPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+    androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+  ) { result ->
+    val uri = result.data?.data ?: return@rememberLauncherForActivityResult
+    runCatching {
+      pickContext.contentResolver.query(
+        uri,
+        arrayOf(
+          android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+          android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER
+        ),
+        null, null, null
+      )?.use { c ->
+        if (c.moveToFirst()) {
+          val n = c.getString(0).orEmpty().trim()
+          val num = c.getString(1).orEmpty().trim()
+          if (n.isNotBlank() && name.isBlank()) { name = n; nameError = null }
+          if (num.isNotBlank()) { phone = num; phoneError = null }
+        }
+      }
+    }
+  }
+
   // Check duplicate phone live
   LaunchedEffect(phone) {
     val clean = Formatters.cleanPhoneNumber(phone)
@@ -150,6 +176,28 @@ fun AddEditCustomerDialog(
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
+
+        if (existingCustomer == null) {
+          Spacer(modifier = Modifier.height(10.dp))
+          androidx.compose.material3.OutlinedButton(
+            onClick = {
+              runCatching {
+                contactPicker.launch(
+                  android.content.Intent(android.content.Intent.ACTION_PICK, android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                )
+              }
+            },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().testTag("btn_pick_contact")
+          ) {
+            androidx.compose.material3.Icon(
+              androidx.compose.material.icons.Icons.Default.Contacts, contentDescription = null,
+              modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(tr("Rehberden seç"))
+          }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 

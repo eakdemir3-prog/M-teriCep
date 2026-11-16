@@ -52,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -292,6 +293,34 @@ fun SettingsScreen(
           }
           Spacer(modifier = Modifier.height(6.dp))
           TextButton(onClick = { viewModel.runReminderNow() }) { Text(tr("Şimdi kontrol et")) }
+        }
+      }
+    }
+
+    // 3b. Uygulama kilidi
+    item {
+      var lockOn by remember { mutableStateOf(com.example.util.AppLock.isEnabled(context)) }
+      SettingsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Icon(Icons.Default.Lock, contentDescription = null, tint = LocalAppPalette.current.ink)
+          Spacer(modifier = Modifier.width(10.dp))
+          Column(modifier = Modifier.weight(1f)) {
+            Text(tr("Uygulama kilidi"), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(tr("Açılışta parmak izi, yüz tanıma veya ekran kilidi şifresi istenir."), fontSize = 12.sp, color = Slate500)
+          }
+          Switch(
+            checked = lockOn,
+            onCheckedChange = { enable ->
+              if (enable && !com.example.util.AppLock.deviceSecure(context)) {
+                viewModel.showMessage(tr("Önce telefonunuzda ekran kilidi (PIN, desen veya şifre) kurun."))
+              } else {
+                com.example.util.AppLock.setEnabled(context, enable)
+                lockOn = enable
+                viewModel.showMessage(if (enable) tr("Uygulama kilidi açıldı.") else tr("Uygulama kilidi kapatıldı."))
+              }
+            },
+            modifier = Modifier.testTag("switch_app_lock")
+          )
         }
       }
     }

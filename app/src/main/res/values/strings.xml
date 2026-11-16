@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MüşteriCep</string>
+    <string name="widget_label">MüşteriCep • Alacak</string>
+    <string name="widget_description">Toplam alacak ve gecikmiş tutar</string>
 </resources>

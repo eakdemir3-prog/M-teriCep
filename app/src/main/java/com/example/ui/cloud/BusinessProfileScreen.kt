@@ -43,7 +43,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -127,6 +130,11 @@ fun BusinessProfileScreen(
   var minNotice by remember(existing?.id) { mutableStateOf(base.minNoticeMinutes) }
   var window by remember(existing?.id) { mutableStateOf(base.bookingWindowDays) }
   val hours = remember(existing?.id) { mutableStateListOf<WorkingDay>().apply { addAll(base.workingHours.sortedBy { it.dayOfWeek }) } }
+  // Geçmiş tatil günleri listede tutulmaz
+  val closed = remember(existing?.id) {
+    val today = com.example.cloud.dayKeyOf(System.currentTimeMillis())
+    mutableStateListOf<String>().apply { addAll(base.closedDates.filter { it >= today }.sorted()) }
+  }
   var editService by remember { mutableStateOf<ServiceItem?>(null) }
   var editStaff by remember { mutableStateOf<com.example.cloud.Staff?>(null) }
   val staff by cloud.myStaff.collectAsState()
@@ -184,9 +192,19 @@ fun BusinessProfileScreen(
         name = name, category = category, city = city, district = district, address = address,
         phone = phone, description = description, isListed = listed, autoApprove = autoApprove,
         minNoticeMinutes = minNotice, bookingWindowDays = window, workingHours = hours.toList(),
-        logo = logo, latitude = lat, longitude = lng
+        logo = logo, latitude = lat, longitude = lng, closedDates = closed.toList()
       )
     )
+  }
+
+  fun pickClosedDate() {
+    val c = java.util.Calendar.getInstance()
+    android.app.DatePickerDialog(context, { _, y, m, d ->
+      val key = "%04d%02d%02d".format(y, m + 1, d)
+      if (key !in closed) { closed.add(key); closed.sort() }
+    }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DAY_OF_MONTH)).apply {
+      datePicker.minDate = System.currentTimeMillis() - 1000
+    }.show()
   }
 
   Scaffold(
@@ -351,6 +369,38 @@ fun BusinessProfileScreen(
           hours.forEachIndexed { index, d ->
             WorkingDayRow(d) { updated -> hours[index] = updated }
             if (index < hours.size - 1) HorizontalDivider(color = palette.cardBorder)
+          }
+        }
+      }
+
+      // 3b. Tatil ve izin günleri
+      item {
+        FormCard(tr("Tatil ve izin günleri")) {
+          Text(
+            tr("Seçtiğiniz tarihlerde müşteriler randevu alamaz. Kaydet'e basmayı unutmayın."),
+            style = MaterialTheme.typography.bodySmall, color = Slate500
+          )
+          Spacer(modifier = Modifier.height(8.dp))
+          closed.toList().forEach { key ->
+            val label = runCatching {
+              val c = java.util.Calendar.getInstance().apply {
+                set(key.substring(0, 4).toInt(), key.substring(4, 6).toInt() - 1, key.substring(6, 8).toInt(), 12, 0, 0)
+              }
+              Formatters.formatFriendlyDate(c.timeInMillis)
+            }.getOrDefault(key)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+              Icon(Icons.Default.EventBusy, contentDescription = null, tint = palette.danger, modifier = Modifier.size(18.dp))
+              Spacer(modifier = Modifier.width(8.dp))
+              Text(label, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+              IconButton(onClick = { closed.remove(key) }) {
+                Icon(Icons.Default.Close, contentDescription = tr("Kaldır"), tint = Slate500)
+              }
+            }
+          }
+          TextButton(onClick = { pickClosedDate() }, modifier = Modifier.testTag("btn_add_closed_date")) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(tr("Tarih ekle"))
           }
         }
       }

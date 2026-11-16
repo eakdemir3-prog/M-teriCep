@@ -161,3 +161,32 @@ fun IntroAnimation(onFinished: () -> Unit) {
     )
   }
 }
+
+/** Uygulama kilitliyken içeriği tamamen örten ekran. */
+@Composable
+fun LockOverlay(onUnlock: () -> Unit) {
+  Box(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(IntroBackground)
+      .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onUnlock() },
+    contentAlignment = Alignment.Center
+  ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      Image(
+        painter = painterResource(R.drawable.ic_launcher_foreground),
+        contentDescription = null,
+        modifier = Modifier.size(140.dp)
+      )
+      Text(tr("MüşteriCep kilitli"), color = IntroInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+      Spacer(modifier = Modifier.height(6.dp))
+      Text(tr("Kilidi açmak için dokunun"), color = IntroMuted, fontSize = 14.sp)
+      Spacer(modifier = Modifier.height(24.dp))
+      androidx.compose.material3.Button(
+        onClick = onUnlock,
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = IntroGreen, contentColor = IntroBackground),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+      ) { Text(tr("Kilidi aç"), fontWeight = FontWeight.Bold) }
+    }
+  }
+}

@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
     }
     super.onCreate(savedInstanceState)
     com.example.billing.BillingManager.init(this)
+    com.example.util.AppLock.onCreate(this, savedInstanceState == null)
     // Açılış katmanı beyaz olduğu için başta koyu durum çubuğu simgeleri; tema yüklenince güncellenir.
     val light = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
     enableEdgeToEdge(statusBarStyle = light, navigationBarStyle = light)
@@ -88,8 +89,26 @@ class MainActivity : ComponentActivity() {
       Box(modifier = Modifier.fillMaxSize()) {
         AppRoot()
         if (showIntro) com.example.ui.components.IntroAnimation(onFinished = { showIntro = false })
+        if (com.example.util.AppLock.locked) com.example.ui.components.LockOverlay { com.example.util.AppLock.authenticate(this@MainActivity) }
       }
     }
+  }
+
+  override fun onStart() {
+    super.onStart()
+    window.decorView.post { com.example.util.AppLock.onStart(this) }
+  }
+
+  override fun onStop() {
+    super.onStop()
+    com.example.util.AppLock.onStop()
+    com.example.widget.BalanceWidget.updateAll(this)
+  }
+
+  @Deprecated("Android 9 ve altı ekran kilidi dönüşü")
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+    super.onActivityResult(requestCode, resultCode, data)
+    com.example.util.AppLock.onActivityResult(requestCode, resultCode)
   }
 
   override fun onResume() {
@@ -235,7 +254,11 @@ fun MusteriCepApp(
           is Screen.Customers -> CustomersScreen(viewModel = viewModel)
           is Screen.Collections -> CollectionsScreen(viewModel = viewModel)
           is Screen.Settings -> SettingsScreen(viewModel = viewModel, cloud = cloud)
-          is Screen.CustomerDetail -> CustomerDetailScreen(viewModel = viewModel)
+          is Screen.CustomerDetail -> CustomerDetailScreen(
+            viewModel = viewModel,
+            businessName = if (cloudUser != null) myBusiness?.name else null,
+            businessLogo = if (cloudUser != null) myBusiness?.logo.orEmpty() else ""
+          )
           is Screen.WhatsAppTemplates -> WhatsAppTemplatesScreen(viewModel = viewModel)
           is Screen.ReportsAndExport -> ReportsAndExportScreen(viewModel = viewModel)
           is Screen.Pricing -> PricingScreen(viewModel = viewModel)
